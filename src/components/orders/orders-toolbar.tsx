@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { orderStatusLabels } from "@/lib/orders/lifecycle"
-import { hasActiveFilters, ordersHref } from "@/lib/orders/query"
+import { hasActiveFilters, ORDER_HISTORY_PATH, ordersHref } from "@/lib/orders/query"
 import { ORDER_STATUSES, type OrderListQuery } from "@/lib/orders/types"
 import { cn } from "@/lib/utils"
 
@@ -46,7 +46,7 @@ export function OrdersToolbar({ query }: { query: OrderListQuery }) {
       </nav>
 
       <form
-        action="/orders"
+        action={ORDER_HISTORY_PATH}
         method="get"
         role="search"
         aria-label="Search and filter orders"

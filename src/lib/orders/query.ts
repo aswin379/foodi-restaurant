@@ -38,7 +38,9 @@ export function parseOrderListQuery(params: RawSearchParams): OrderListQuery {
   }
 }
 
-/** Builds an /orders URL that keeps the current filters, with overrides. */
+export const ORDER_HISTORY_PATH = "/orders/history"
+
+/** Builds an order-history URL that keeps the current filters, with overrides. */
 export function ordersHref(
   query: OrderListQuery,
   overrides: Partial<Pick<OrderListQuery, "status" | "page">> = {}
@@ -51,7 +53,7 @@ export function ordersHref(
   if (next.to) params.set("to", next.to)
   if (next.page > 1) params.set("page", String(next.page))
   const search = params.toString()
-  return search ? `/orders?${search}` : "/orders"
+  return search ? `${ORDER_HISTORY_PATH}?${search}` : ORDER_HISTORY_PATH
 }
 
 export function hasActiveFilters(query: OrderListQuery) {

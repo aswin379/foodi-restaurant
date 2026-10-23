@@ -1,93 +1,178 @@
-# Restaurant Orders UI (RUI-02)
+# Restaurant Orders UI (B1)
 
-Status: **UI built on a provisional model. All order actions are disabled.** No orders API exists yet, and the canonical Foodi order lifecycle has not been approved.
+The Orders screens follow PRD v0.3 §4 (`docs/product/foodi-2-restaurant-panel-prd.md`
+on the PRD branch) and use the shared foundations from B0 (`docs/foundations.md`).
+No orders API exists yet, so production shows "Orders aren't connected yet".
+Every action works only against labelled preview data.
 
 ## Routes
 
-| Route | Purpose |
+| Route | What it is |
 |---|---|
-| `/orders` | Orders list: status tabs, reference search, date range, pagination (10 per page). Table on `md` and up, cards below. |
-| `/orders/[orderId]` | Order detail: items and charges, timeline, customer and fulfilment, payment, proposed actions (disabled). |
+| `/orders` | Live board: New → In kitchen → Ready, plus Scheduled |
+| `/orders/history` | Searchable, filterable list of all orders (was `/orders` before B1) |
+| `/orders/[orderId]` | Order detail with actions, preparation timing, timeline and payment |
+| `/print/orders/[orderId]` | Kitchen ticket (KOT) and bill, laid out for printing, outside the dashboard shell |
 
-Filters live in the URL (`status`, `q`, `from`, `to`, `page`), so every view can be shared and works before hydration. Invalid values fall back to defaults (`src/lib/orders/query.ts`).
+## Lifecycle (PRD §4)
 
-## Provisional decisions (not an approved backend contract)
+Statuses: `scheduled` → `pending` (shown as "New") → `accepted` → `ready` →
+(`out_for_delivery`) → `completed`; closed as `rejected` or `cancelled`.
 
-1. **Order statuses:** `pending` (shown as "New"), `accepted`, `preparing`, `ready`, `out_for_delivery`, `completed`, `rejected`, `cancelled`.
-2. **Payment status is separate from order status:** `unpaid`, `paid`, `failed`, `refund_pending`, `refunded`. Payment method is `online` or `cash`, and can be missing.
-3. **Fulfilment method is a separate field:** `foodi_delivery`, `restaurant_delivery`, `pickup`, `dine_in`.
-4. **Scheduled orders aren't supported.**
-5. **No state-changing actions are enabled.** The detail page shows the actions the proposed model would offer (`src/lib/orders/lifecycle.ts`). They are rendered with `aria-disabled`, linked to an explanation, and do nothing:
+- **No `preparing` status.** Preparation is part of `accepted`. Accepting sets
+  `preparationStartedAt` to the server's time (D3, Q10 Option A), and there is
+  no "Start preparing" action in Release 1.
+- **Payment failure is not an order status** (D4). Payment has its own status.
+- Rules live in `src/lib/orders/lifecycle.ts`:
+  - `availableActions()` decides which actions each order offers.
+  - `cancellationCheck()` applies §4.3.
+  - `applyOrderCommand()` applies a command or refuses it with `conflict`.
 
-   | Status | Proposed actions |
-   |---|---|
-   | `pending` | Accept order; Reject order (reason required) |
-   | `accepted` | Start preparing; Cancel order (reason required) |
-   | `preparing` | Mark ready; Cancel order (reason required) |
-   | `ready` | Mark out for delivery (restaurant delivery); Mark completed (pickup, dine-in). None for Foodi delivery. |
-   | `out_for_delivery` | Mark delivered (restaurant delivery only) |
-   | `completed`, `rejected`, `cancelled` | None |
+  The same rules drive the UI and the preview adapter. The real backend must
+  enforce them itself (P2): hiding a button is never the control.
 
-6. **Money** is in integer minor units with an ISO currency code.
-7. **Dates and date filters** use `Asia/Kolkata` (`src/lib/orders/format.ts`). They should come from the restaurant profile once that API exists.
-8. **Search** matches the order reference only. Other identifiers need backend support.
+| Status | Order type | Actions |
+|---|---|---|
+| scheduled | any | none; moves to New before its slot |
+| pending | any | Accept (prep time), Reject (reason) |
+| accepted | any | Mark ready, Adjust prep time, Cancel (reason) |
+| ready | Foodi delivery | Cancel; waiting for the Foodi rider |
+| ready | own-rider delivery | Dispatch (choose rider), Cancel |
+| ready | takeaway, dine-in | Complete, Cancel |
+| out_for_delivery | own rider | Complete, Cancel (with rider confirmation) |
+| out_for_delivery | Foodi rider | none; "Contact Foodi support to cancel it" |
+| completed, rejected, cancelled | any | none |
 
-## Open lifecycle decisions
+### Cancellation and refunds (P2)
 
-- **L2:** Are "accept" and "start preparing" separate steps?
-- **L3:** Can a restaurant cancel after accepting? Until which step? Free-text reasons or a fixed list?
-- **L4:** Who advances orders past "ready" for each fulfilment method?
-- **L6:** Is there a time limit for accepting new orders? Are scheduled orders supported?
-- **Rejection and cancellation reason entry:** dialogs with confirmation are built only once L3 is settled.
+- A reason is mandatory.
+- The confirmation states that reserved stock isn't returned, because
+  preparation has already started (D3/Q10).
+- A paid online order moves to **Refund pending**. Nothing in the UI shows
+  **Refunded** until the payment provider confirms it.
+- Cancelling an own-rider order that is out for delivery needs a
+  confirmation that the rider will be told.
+- Foodi-rider orders out for delivery can't be cancelled from the panel.
 
-## Architecture
+### Provisional values (not approved)
 
-```
-src/lib/orders/
-  types.ts         domain types (provisional)
-  lifecycle.ts     labels + proposed actions (presentation only)
-  query.ts         URL params -> validated OrderListQuery; link builder
-  format.ts        money/date formatting, restaurant time zone
-  errors.ts        OrdersServiceError (not_configured | unavailable)
-  service.ts       server-only entry point used by pages; picks the data source
-  api-source.ts    INTEGRATION POINT: always "not_configured" today
-  fixtures/        development fixtures only (see below)
-src/components/orders/   list, toolbar, pagination, states, badges, items, timeline, actions
-src/app/(dashboard)/orders/   list page, [orderId] detail page, not-found
-```
+| What | Where | Status |
+|---|---|---|
+| Reject reasons | `src/lib/orders/reasons.ts` | PRD Q9, proposed list |
+| Restaurant cancellation reasons | `src/lib/orders/reasons.ts` | PRD §4.3 proposal |
+| Default prep time 20 min, presets 10–60 | `src/lib/orders/commands.ts` | Until restaurant settings exist (B4) |
+| New order flagged after 5 min waiting | `src/lib/orders/timing.ts` | Product default, not in the PRD |
+| Board polling every 15 s | `src/components/orders/orders-board.tsx` | PRD §7 fallback until real-time transport exists |
 
-## Data sources and fixtures
+## Live board
 
-- **Default: API.** `api-source.ts` throws `not_configured`, and the pages show "Orders aren't connected yet". Nothing else is rendered.
-- **Fixtures** are an explicit development opt-in: `FOODI_ORDERS_DATA_SOURCE=fixtures npm run dev`.
-  - They're **refused when `NODE_ENV=production`**, even with the variable set.
-  - Every fixture page shows an "Illustrative preview data" notice.
-  - References start with `PRV-`, customers are "Preview customer NN", and addresses read "Preview address · not a real location".
-  - There are no real names, phone numbers or addresses.
-- **No fallback.** If the API errors, the UI shows an error state with "Try again". It never shows fixtures instead.
-- **Preview scenarios** (fixture mode only): `?preview=empty`, `?preview=error` and `?preview=slow` show the empty, error and loading states.
+- Three columns (New, In kitchen, Ready) plus a Scheduled lane. On phones the
+  columns stack, with jump links and counts.
+- Out-for-delivery orders appear in Ready with an "Out for delivery" badge.
+- Each card shows a live timer:
+  - waiting time for New orders (amber after 5 minutes)
+  - time left in the kitchen, or "Late by …" in red
+  - time to a scheduled slot
+- Lines marked unavailable after placement are flagged (§3.10). The kitchen
+  ticket shows the flag too.
+- **New-order alarm:** a banner (only its border pulses, and not with reduced
+  motion) until the orders are acknowledged.
+  - Sound is opt-in through the "Alarm sound" toggle, because browsers block
+    sound that plays by itself. The chime is generated in the browser.
+  - Phones vibrate once the page has had a tap.
+  - Acknowledging is per browser tab.
+- The board re-fetches every 15 seconds while the tab is visible and shows
+  "Updating every 15 s", or "Offline" when the browser is offline.
+- Mark ready and Complete are one tap; every other action opens a dialog.
+
+## Data sources
+
+`src/lib/orders/service.ts` uses the shared `selectAdapter()` from B0:
+
+- **Default: API** (`api-source.ts`). Every call goes through the shared
+  transport, which reports `not_configured`.
+- **Preview** (`preview-source.ts`) is an explicit development opt-in:
+  `FOODI_ORDERS_DATA_SOURCE=preview npm run dev`. The older value `fixtures`
+  also works.
+  - Refused in production, even with the variable set.
+  - Orders live in the B0 in-memory preview store. Commands really change
+    them within the preview server, nothing reaches Foodi, and everything
+    resets on restart.
+  - Repeating a request with the same idempotency key returns the stored
+    result instead of applying the command twice.
+  - Every screen shows "Preview only, not saved to Foodi", and so does every
+    success notification. Printed tickets are stamped "Preview · sample data
+    · not a real order".
+  - References start with `PRV-`. Customers are "Preview customer NN", riders
+    "Preview rider A/B", addresses "Preview address · not a real location".
+  - Preview tools on the board: **Simulate a new order** (to try the alarm)
+    and **Reset sample orders**. Their Server Actions refuse to run outside
+    preview mode.
+  - `?preview=empty|error|slow` shows the empty, error and loading states.
+- **No fallback.** If the API errors, the UI shows an error with "Try again".
+  It never shows preview data instead.
+
+Server Actions (`src/app/(dashboard)/orders/actions.ts`) treat all input as
+untrusted:
+- They check the order id and idempotency key.
+- They parse the command (`parseOrderCommand`), including reason and
+  prep-time validation.
+- They let the data source apply the lifecycle rules.
+- They then refresh the route.
 
 ## Proposed API contract (PROPOSED, for the backend team)
 
-None of these endpoints exist. Paths assume the seller API proposed in the AUTH-01 audit. Every call is scoped to the restaurant in the session and never takes a restaurant id from the client.
+None of these endpoints exist. They're listed in `api-source.ts`. Paths, the
+prefix and enum names are §9.1 decisions. Every call is scoped to the
+restaurant in the session and never takes a restaurant id from the client.
 
 | Method + path | Request | Response |
 |---|---|---|
-| GET `/api/v1/seller/orders` | `status`, `q` (reference), `from`, `to` (restaurant-local dates), `page`, `pageSize` | `{ items: OrderSummary[], page, pageSize, totalItems, totalPages }` |
-| GET `/api/v1/seller/orders/:id` | none | `OrderDetail`, or 404 for unknown or other-restaurant orders |
-| POST `/api/v1/seller/orders/:id/transitions` | `{ action, reason? }` | updated `OrderDetail`; 409 if the transition isn't allowed from the current status |
+| GET `/seller/orders` | `status`, `q`, `from`, `to` (restaurant-local dates), `page`, `pageSize` | `{ items: OrderSummary[], page, pageSize, totalItems, totalPages }` |
+| GET `/seller/orders/board` | none | active `OrderDetail[]` |
+| GET `/seller/orders/:id` | none | `OrderDetail`, or 404 for unknown or other-restaurant orders |
+| POST `/seller/orders/:id/commands` | an `OrderCommand` (`src/lib/orders/commands.ts`) plus an idempotency key | updated `OrderDetail`; 409 if the command doesn't fit the current state; 422 with field errors |
+| GET `/seller/riders` | none | `Rider[]` (own riders, for Dispatch) |
 
-Field shapes are in `src/lib/orders/types.ts`. Also needed:
+Field shapes are in `src/lib/orders/types.ts`. The backend also needs to
+provide:
+- `preparationStartedAt` and `readyBy` set from server time
+- refund status that changes to refunded only on provider confirmation
+- the audit trail behind the timeline
 - an ETag or version for concurrent updates
-- real-time updates (polling or push) for new orders
+- real-time order events
 
-## Not covered by automated tests
+## Deferred
 
-The repository has no test runner (adding one needs approval). These were checked manually with Playwright scripts:
-- filters, search, pagination and invalid parameters
-- empty, error, no-results, loading and not-found states
-- disabled actions and keyboard reach
-- 1440, 820 and 390 px widths
-- production refusing fixtures
+- **Order editing** (§4.3): the contract is undefined.
+- **Pickup-code check on Complete:** needs the restaurant setting (B4).
+- **Auto-accept:** settings, B4.
+- **Real-time transport and push notifications:** §9.1.
 
-There are no unit tests for `parseOrderListQuery`, `proposedActionsFor` or the fixture filtering yet.
+## Tests
+
+- **Unit** (`npm test`):
+  - lifecycle table and transitions, including refunds, stock and rider
+    confirmation
+  - command parsing
+  - timers
+  - history query
+  - the preview adapter: board contents and order, idempotent replay, history
+    filters, simulate/reset, scenarios, production refusal
+  - the service: production refusal, no fallback, preview-only controls
+- **Browser** (`npm run test:e2e`):
+  - **Production build:** every Orders route and the print view show "not
+    connected" with no sample data or preview tools.
+  - **Preview, at desktop and mobile:**
+    - accept with a prep time, by mouse and by keyboard alone
+    - reject needing a reason and a note for Other
+    - cancel with stock and refund wording, and refund shown as pending
+    - Foodi-rider orders can't be cancelled
+    - own-rider cancel needs confirmation
+    - mark ready, then dispatch
+    - adjust prep time
+    - the simulated new-order alarm and acknowledgement
+    - the sound toggle
+    - a double click applies once
+    - every page passes axe (serious and critical), has no horizontal
+      overflow, and logs no console errors

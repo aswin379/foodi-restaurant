@@ -1,28 +1,67 @@
 import "server-only"
 
-import { OrdersServiceError } from "./errors"
-import type { OrderDetail, OrderListQuery, OrderListResult } from "./types"
+import { getApiTransport } from "@/lib/api/transport"
+import { getRestaurantContext } from "@/lib/restaurant/context"
+
+import type { OrdersAdapter } from "./adapter"
+import type { OrderDetail, OrderListResult, Rider } from "./types"
 
 /**
  * Integration point for the Foodi orders API.
  *
- * No orders API exists yet, so these functions always report
- * `not_configured`. When the backend contract is approved, implement them
- * here: call the API server-side with the restaurant session, map responses
- * to the types in ./types, and throw OrdersServiceError("unavailable") on
- * failure. Never fall back to fixtures. The proposed contract is in
- * docs/orders-ui.md.
+ * No seller API exists yet, so the transport reports `not_configured` for
+ * every call and the pages show "Orders aren't connected yet". The paths
+ * below are the PROPOSED contract in docs/orders-ui.md, not confirmed
+ * endpoints. When the contract is fixed, map responses through
+ * src/lib/api/mapping.ts here. Never fall back to preview data.
  */
-export async function fetchOrderList(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _query: OrderListQuery
-): Promise<OrderListResult> {
-  throw new OrdersServiceError("not_configured")
+const PROPOSED_PATHS = {
+  orders: "/seller/orders",
+  board: "/seller/orders/board",
+  order: (id: string) => `/seller/orders/${encodeURIComponent(id)}`,
+  commands: (id: string) => `/seller/orders/${encodeURIComponent(id)}/commands`,
+  riders: "/seller/riders",
 }
 
-export async function fetchOrder(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _orderId: string
-): Promise<OrderDetail | null> {
-  throw new OrdersServiceError("not_configured")
+export const apiOrdersAdapter: OrdersAdapter = {
+  context: getRestaurantContext,
+
+  list(query) {
+    return getApiTransport().request<OrderListResult>({
+      method: "GET",
+      path: PROPOSED_PATHS.orders,
+      query: {
+        status: query.status === "all" ? undefined : query.status,
+        q: query.search || undefined,
+        from: query.from ?? undefined,
+        to: query.to ?? undefined,
+        page: query.page,
+        pageSize: query.pageSize,
+      },
+    })
+  },
+
+  board() {
+    return getApiTransport().request<OrderDetail[]>({ method: "GET", path: PROPOSED_PATHS.board })
+  },
+
+  get(orderId) {
+    return getApiTransport().request<OrderDetail | null>({
+      method: "GET",
+      path: PROPOSED_PATHS.order(orderId),
+    })
+  },
+
+  riders() {
+    return getApiTransport().request<Rider[]>({ method: "GET", path: PROPOSED_PATHS.riders })
+  },
+
+  act(orderId, command, idempotencyKey) {
+    return getApiTransport().request<OrderDetail>({
+      method: "POST",
+      path: PROPOSED_PATHS.commands(orderId),
+      body: command,
+      idempotencyKey,
+    })
+  },
 }

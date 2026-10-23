@@ -7,41 +7,52 @@ import {
   gotoAndSettle,
 } from "../helpers"
 
-// Development server with sample data enabled. Sample data must always be
-// labelled as such.
+// Development server with preview data enabled. Preview data must always be
+// labelled as such; these checks only read pages.
 
-test("orders preview is labelled and uses PRV- references", async ({ page }) => {
-  await gotoAndSettle(page, "/orders")
-  await expect(page.getByRole("note").filter({ hasText: /preview data/i }).first()).toBeVisible()
-  // The list is a table on desktop and cards on mobile; check whichever is shown.
-  await expect(page.getByText(/PRV-\d+/).filter({ visible: true }).first()).toBeVisible()
-  await expectNoHorizontalOverflow(page)
-  await expectNoSeriousA11yViolations(page)
-  expectNoConsoleErrors(page)
+const PREVIEW_LABEL = /preview only, not saved to foodi/i
+
+const pages = [
+  { name: "orders board", path: "/orders", heading: /^orders$/i },
+  { name: "order history", path: "/orders/history", heading: /order history/i },
+  { name: "order detail", path: "/orders/prv-1007", heading: /order prv-1007/i },
+  { name: "order print view", path: "/print/orders/prv-1007", heading: /kitchen ticket and bill/i },
+  { name: "menu", path: "/menu", heading: /menu/i },
+  { name: "categories", path: "/menu/categories", heading: /categories/i },
+]
+
+for (const { name, path, heading } of pages) {
+  test(`${name} renders accessibly without overflow or console errors`, async ({ page }) => {
+    await gotoAndSettle(page, path)
+    await expect(page.getByRole("heading", { level: 1, name: heading })).toBeAttached()
+    await expectNoHorizontalOverflow(page)
+    await expectNoSeriousA11yViolations(page)
+    expectNoConsoleErrors(page)
+  })
+}
+
+test("orders pages label preview data and use PRV- references", async ({ page }) => {
+  for (const path of ["/orders", "/orders/history", "/orders/prv-1007"]) {
+    await gotoAndSettle(page, path)
+    await expect(page.getByRole("note").filter({ hasText: PREVIEW_LABEL }).first()).toBeVisible()
+    // The history is a table on desktop and cards on mobile; check whichever is shown.
+    await expect(page.getByText(/PRV-\d+/).filter({ visible: true }).first()).toBeVisible()
+  }
+  await gotoAndSettle(page, "/print/orders/prv-1007")
+  await expect(page.getByText(/preview · sample data · not a real order/i).first()).toBeVisible()
 })
 
-test("order detail preview", async ({ page }) => {
-  await gotoAndSettle(page, "/orders")
-  await page.getByRole("link", { name: /PRV-\d+/ }).filter({ visible: true }).first().click()
-  await page.waitForLoadState("networkidle")
-  await expect(page.getByRole("heading", { level: 1, name: /PRV-\d+/ })).toBeVisible()
-  await expectNoHorizontalOverflow(page)
-  await expectNoSeriousA11yViolations(page)
-  expectNoConsoleErrors(page)
+test("order history filters by status", async ({ page }) => {
+  await gotoAndSettle(page, "/orders/history?status=completed")
+  // Status badges are spans; the filter tabs above them are links.
+  const badges = (pattern: string) =>
+    page.locator(`main span:text-matches("${pattern}")`).filter({ visible: true })
+  await expect(badges("^Completed$").first()).toBeVisible()
+  await expect(badges("^(Scheduled|New|Accepted|Ready|Out for delivery|Rejected|Cancelled)$")).toHaveCount(0)
+  await expect(page.getByRole("link", { name: "Completed", exact: true })).toHaveAttribute("aria-current", "page")
 })
 
 test("menu preview is labelled", async ({ page }) => {
   await gotoAndSettle(page, "/menu")
   await expect(page.getByRole("note").first()).toBeVisible()
-  await expectNoHorizontalOverflow(page)
-  await expectNoSeriousA11yViolations(page)
-  expectNoConsoleErrors(page)
-})
-
-test("categories preview", async ({ page }) => {
-  await gotoAndSettle(page, "/menu/categories")
-  await expect(page.getByRole("heading", { level: 1, name: /categories/i })).toBeVisible()
-  await expectNoHorizontalOverflow(page)
-  await expectNoSeriousA11yViolations(page)
-  expectNoConsoleErrors(page)
 })

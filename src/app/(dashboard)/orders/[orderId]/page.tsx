@@ -2,34 +2,34 @@ import { Suspense } from "react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeft, Ban } from "lucide-react"
+import { ArrowLeft, Ban, ChefHat, Printer } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { LiveTiming } from "@/components/orders/live-timing"
 import { OrderActions } from "@/components/orders/order-actions"
 import { OrderItems } from "@/components/orders/order-items"
 import { OrderTimeline } from "@/components/orders/order-timeline"
-import { OrdersError, OrdersNotConnected } from "@/components/orders/orders-states"
-import { PreviewDataNotice } from "@/components/orders/preview-data-notice"
-import {
-  FulfilmentLabel,
-  OrderStatusBadge,
-  PaymentStatusText,
-} from "@/components/orders/status-badges"
-import { OrdersServiceError } from "@/lib/orders/errors"
-import { formatDateTime } from "@/lib/orders/format"
-import { deliveryFulfilment } from "@/lib/orders/lifecycle"
-import { getOrder, ordersDataSource } from "@/lib/orders/service"
-import type { OrderDetail } from "@/lib/orders/types"
+import { OrdersLoadFailure } from "@/components/orders/orders-states"
+import { OrderStatusBadge, OrderTypeLabel, PaymentStatusText } from "@/components/orders/status-badges"
+import { PreviewNotice } from "@/components/shared/preview-notice"
+import { DEFAULT_PREP_TIME_MINUTES } from "@/lib/orders/commands"
+import { formatDateTime, formatTime, type ZoneAndLocale } from "@/lib/orders/format"
+import { getOrder, getOrdersContext, listRiders, ordersMode } from "@/lib/orders/service"
+import type { OrderActor, OrderDetail, Rider } from "@/lib/orders/types"
 
 export const metadata: Metadata = {
   title: "Order details",
 }
 
-export default function OrderDetailPage({
-  params,
-  searchParams,
-}: PageProps<"/orders/[orderId]">) {
+const closedBy: Record<OrderActor, string> = {
+  customer: "the customer",
+  restaurant: "your restaurant",
+  foodi: "Foodi support",
+  system: "Foodi automatically",
+}
+
+export default function OrderDetailPage({ params, searchParams }: PageProps<"/orders/[orderId]">) {
   return (
     <div className="flex flex-col gap-6">
       <Link
@@ -37,7 +37,7 @@ export default function OrderDetailPage({
         className="inline-flex w-fit items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
         <ArrowLeft aria-hidden className="size-4" />
-        All orders
+        Orders board
       </Link>
       <Suspense fallback={<OrderDetailSkeleton />}>
         <OrderDetailView params={params} searchParams={searchParams} />
@@ -56,37 +56,45 @@ async function OrderDetailView({
   const { orderId } = await params
   const { preview } = await searchParams
 
-  let order: OrderDetail | null
+  let loaded
   try {
-    order = await getOrder(decodeURIComponent(orderId), preview)
+    const [context, order] = await Promise.all([
+      getOrdersContext(),
+      getOrder(decodeURIComponent(orderId), preview),
+    ])
+    loaded = { context, order }
   } catch (error) {
-    if (error instanceof OrdersServiceError && error.kind === "not_configured") {
-      return <OrdersNotConnected />
-    }
-    return <OrdersError retryHref={`/orders/${orderId}`} />
+    return <OrdersLoadFailure error={error} retryHref={`/orders/${orderId}`} />
   }
+  const order = loaded.order
   if (!order) notFound()
+  const context: ZoneAndLocale = { timeZone: loaded.context.timeZone, locale: loaded.context.locale }
 
-  const isDelivery = deliveryFulfilment.has(order.fulfilment)
+  let riders: Rider[] = []
+  try {
+    riders = await listRiders()
+  } catch {
+    riders = []
+  }
 
   return (
     <div className="flex flex-col gap-6">
-      {ordersDataSource() === "fixtures" ? <PreviewDataNotice /> : null}
+      {ordersMode() === "preview" ? <PreviewNotice detail="Sample orders use PRV- references." /> : null}
 
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight">Order {order.reference}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Placed <time dateTime={order.placedAt}>{formatDateTime(order.placedAt)}</time>
+            Placed <time dateTime={order.placedAt}>{formatDateTime(order.placedAt, context)}</time>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <OrderStatusBadge status={order.status} />
-          <FulfilmentLabel method={order.fulfilment} />
+          <OrderTypeLabel order={order} />
         </div>
       </header>
 
-      {order.closureReason ? (
+      {order.closure ? (
         <div
           role="note"
           className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
@@ -94,39 +102,48 @@ async function OrderDetailView({
           <Ban aria-hidden className="mt-0.5 size-4 shrink-0" />
           <p>
             <span className="font-semibold">
-              {order.status === "rejected" ? "Rejected" : "Cancelled"}:
+              {order.status === "rejected" ? "Rejected" : "Cancelled"} by {closedBy[order.closure.actor]}:
             </span>{" "}
-            {order.closureReason}
+            {order.closure.reason}
+            {order.closure.note ? ` (${order.closure.note})` : null}
           </p>
         </div>
       ) : null}
 
+      <OrderProgress order={order} context={context} />
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-2">
           <DetailCard title="Items">
-            <OrderItems items={order.items} charges={order.charges} />
+            <OrderItems items={order.items} charges={order.charges} context={context} />
           </DetailCard>
           <DetailCard title="Order timeline">
-            <OrderTimeline events={order.timeline} />
+            <OrderTimeline events={order.timeline} context={context} />
           </DetailCard>
         </div>
 
         <div className="flex flex-col gap-6">
           <DetailCard title="Actions">
-            <OrderActions status={order.status} fulfilment={order.fulfilment} />
+            <div className="flex flex-col gap-4">
+              <OrderActions order={order} riders={riders} context={context} />
+              <Link
+                href={`/print/orders/${encodeURIComponent(order.id)}`}
+                className="inline-flex w-fit items-center gap-1.5 rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                <Printer aria-hidden className="size-4" />
+                Print kitchen ticket and bill
+              </Link>
+            </div>
           </DetailCard>
 
-          <DetailCard title={isDelivery ? "Customer & delivery" : "Customer & pickup"}>
+          <DetailCard title="Customer">
             <dl className="flex flex-col gap-3 text-sm">
               <InfoRow label="Customer" value={order.customerName ?? "Not shared"} />
-              <InfoRow label="Fulfilment" value={<FulfilmentLabel method={order.fulfilment} />} />
-              {order.deliveryAddress ? (
-                <InfoRow label="Delivery address" value={order.deliveryAddress} />
-              ) : null}
+              <InfoRow label="Order type" value={<OrderTypeLabel order={order} />} />
+              {order.deliveryAddress ? <InfoRow label="Delivery address" value={order.deliveryAddress} /> : null}
               {order.tableLabel ? <InfoRow label="Table" value={order.tableLabel} /> : null}
-              {order.customerNote ? (
-                <InfoRow label="Customer note" value={order.customerNote} />
-              ) : null}
+              {order.rider ? <InfoRow label="Rider" value={order.rider.name} /> : null}
+              {order.customerNote ? <InfoRow label="Customer note" value={order.customerNote} /> : null}
             </dl>
           </DetailCard>
 
@@ -144,9 +161,57 @@ async function OrderDetailView({
                 }
               />
             </dl>
+            {order.paymentStatus === "refund_pending" ? (
+              <p className="mt-3 text-xs text-muted-foreground">
+                The refund shows as refunded only after the payment provider confirms it.
+              </p>
+            ) : null}
           </DetailCard>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** Preparation or scheduling facts, with a live timer. */
+function OrderProgress({ order, context }: { order: OrderDetail; context: ZoneAndLocale }) {
+  if (order.status === "scheduled" && order.scheduledFor) {
+    const movesAt = new Date(Date.parse(order.scheduledFor) - DEFAULT_PREP_TIME_MINUTES * 60_000).toISOString()
+    return (
+      <ProgressPanel timing={<LiveTiming order={order} />}>
+        Scheduled for <time dateTime={order.scheduledFor}>{formatDateTime(order.scheduledFor, context)}</time>.
+        It moves to New at about <time dateTime={movesAt}>{formatTime(movesAt, context)}</time>.
+      </ProgressPanel>
+    )
+  }
+  if (order.status === "accepted" && order.preparationStartedAt && order.readyBy) {
+    return (
+      <ProgressPanel timing={<LiveTiming order={order} />}>
+        Preparation started{" "}
+        <time dateTime={order.preparationStartedAt}>{formatTime(order.preparationStartedAt, context)}</time> ·
+        prep time {order.prepTimeMinutes} min · ready by{" "}
+        <time dateTime={order.readyBy}>{formatTime(order.readyBy, context)}</time>
+      </ProgressPanel>
+    )
+  }
+  if (order.status === "pending") {
+    return (
+      <ProgressPanel timing={<LiveTiming order={order} />}>
+        Waiting for you to accept or reject. Preparation starts when you accept.
+      </ProgressPanel>
+    )
+  }
+  return null
+}
+
+function ProgressPanel({ children, timing }: { children: React.ReactNode; timing: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border bg-card px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+      <p className="flex items-start gap-2">
+        <ChefHat aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <span>{children}</span>
+      </p>
+      {timing}
     </div>
   )
 }
