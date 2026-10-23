@@ -24,13 +24,15 @@ This is Foodi's own design. StackFood (the legacy source) and MenuThere were stu
 |---|---|---|---|
 | P1 | POS and QR dine-in | **Release 2.** Keep the architecture extensible now; don't delay the initial ordering launch. | 1 |
 
-### Approved in v0.3 (formerly recommendations P2, P3, and open question Q11)
+### Approved in v0.3 (formerly recommendations P2, P3, and open questions Q11–Q13)
 
 | ID | Decision | Section |
 |---|---|---|
 | P2 | **Approved: restaurants may cancel an accepted order, with restrictions.** Only under the rules in §4.3; mandatory reason; audit records actor, timestamp, reason and order context; online payments go through the refund workflow, and a refund is never shown as successful until the payment provider confirms it; enforced by the backend, not only by the UI; stock is not returned (D3, Q10). Restaurant cancellation stays distinct from rejection before acceptance and from customer, support and system cancellation. | 4.1, 4.2, 4.3 |
 | P3 | **Approved: unavailable items are hidden by default in the customer-facing menu**, with a customer control to show them. When shown, they are clearly marked unavailable and are not orderable. Presentation policy only: server-side availability validation (A1, A5, §3.9) is unchanged, and placed orders are never silently changed (§3.10). "Next available" keeps the §3.6 reliability conditions. | 3.4, 3.6 |
 | Q11 | **Decided: no visibility override at launch.** Unavailable items are hidden by default (P3); **no restaurant-, category- or item-level setting** changes that default. The restaurant closed/paused banner (§3.6) is unchanged; hide-by-default never replaces or weakens it. Customer-facing hiding is implemented in the **customer app/web**, not in the restaurant panel, which only shows availability state and explanatory text. Release assignment: undecided. | 3.2, 3.4, 3.6, 3.7 |
+| Q12 | **Decided (Option A): order types can differ per schedule window.** Each timed window in an item schedule names one or more order types (delivery, takeaway, dine-in) it applies to, e.g. Monday 11:00–15:00 dine-in and takeaway, 18:00–22:00 delivery only. Every window needs at least one order type. The item's own order types (§3.4 Channels) stay the outer limit: a window can only use order types the item is offered for. | 3.2, 3.4 |
+| Q13 | **Decided (Option A): explicit All day entry per day.** Each selected day can be **All day**, meaning the full calendar day in the restaurant's IANA time zone, with its own order types. All day is stored as its own entry, never as a timed window such as `00:00–00:00` or `00:00–23:45`. On the same day, timed windows may only cover order types that are not already All day; a timed window repeating an All day order type is redundant and refused. | 3.2, 3.4 |
 
 ### Resolved in v0.3 (PRD consistency decisions)
 
@@ -48,7 +50,7 @@ These resolve the seven internal inconsistencies found in the v0.2 reconciliatio
 
 ### Still open
 - **P1** (confirmation). P2 and P3 are approved (above).
-- Section 9: Q1 (rest of the release split), Q4 (channel pricing), Q5 (withdrawals), Q6 (multi-outlet scope), Q7 (payment timeout), Q8 (cancellation-rate policy) and Q9 (reject reasons). Q10 and Q11 are decided (§4.1, decision record).
+- Section 9: Q1 (rest of the release split), Q4 (channel pricing), Q5 (withdrawals), Q6 (multi-outlet scope), Q7 (payment timeout), Q8 (cancellation-rate policy) and Q9 (reject reasons). Q10, Q11, Q12 and Q13 are decided (§4.1, §3.2, decision record).
 - The backend contracts in §9.1.
 
 ---
@@ -154,6 +156,7 @@ An item is orderable at time *T*, for channel *C* (delivery, takeaway or dine-in
 
 - **Evaluation:** the server checks every level atomically at checkout (§3.9). Scheduled orders are checked again at activation and acceptance. For ordinary orders, availability changes after placement are handled by the exception policy in §3.10, not by automatic re-validation (D6). The UI shows each result with a reason.
 - **Narrowing only:** lower levels can only narrow availability, never widen it. An item scheduled 06:00–10:00 in a restaurant that opens at 07:00 is effectively available 07:00–10:00, and the editor warns about the gap.
+- **Per-window order types and All day (Q12, Q13)** are part of the item schedule (level 5) and only narrow it further. They never override restaurant open state, business hours, date exceptions, pauses, category restrictions, sold-out state or stock: an item that is "All day" for takeaway is still unavailable while the restaurant is closed or paused, its category is off, or it is sold out.
 
 ### 3.2 Schedule model (shared by restaurant, category, item, size and option)
 
@@ -163,7 +166,8 @@ type AvailabilitySchedule = {
   timeZone: string                     // restaurant's IANA zone, e.g. "Asia/Kolkata"
   weekly: Array<{
     days: Weekday[]                    // ["mon","tue",…]
-    windows: Array<{ start: "HH:MM"; end: "HH:MM" }>   // several per day; end < start means overnight
+    allDay: { channels: Channel[] } | null              // Q13: whole local calendar day, for these order types
+    windows: Array<{ start: "HH:MM"; end: "HH:MM"; channels: Channel[] }>   // several per day; end < start means overnight; Q12: order types per window
   }>
   dateRange?: { from: "YYYY-MM-DD"; to?: "YYYY-MM-DD" }  // seasonal items (R2)
   exceptions?: Array<{                 // specific dates: R1 for the restaurant; items/categories to be confirmed (D5)
@@ -171,8 +175,9 @@ type AvailabilitySchedule = {
     closed?: boolean
     windows?: Array<{ start: "HH:MM"; end: "HH:MM" }>
   }>
-  channels?: Array<"delivery" | "takeaway" | "dine_in">  // which channels this schedule applies to; default all
 }
+
+type Channel = "delivery" | "takeaway" | "dine_in"   // PRD names; backend enum names per §9.1
 
 type SoldOutState =
   | { state: "available" }
@@ -181,8 +186,10 @@ type SoldOutState =
 ```
 
 **Rules:**
+- **Order types per window (Q12):** every timed window and every All day entry lists at least one order type. They must be a subset of the item's own order types (§3.4 Channels). Before Q12 this model had one schedule-level `channels` list ("default all"); data in that older shape is read as: a window without `channels` applies to the schedule-level list if present, otherwise to all the item's order types.
+- **All day (Q13):** the whole calendar day, from local midnight to the next local midnight, in the restaurant's time zone (23 or 25 hours on a daylight-saving change). It is distinct from timed windows and is never written as `00:00–00:00` or `00:00–23:45`. A day may have one All day entry; timed windows on that day may only use order types that are not All day.
 - **Overnight windows:** `22:00–02:00` on Friday belongs to Friday's service and runs into Saturday 02:00.
-- **Overlapping windows** on the same day are merged when saved. The editor shows the merged result.
+- **Overlapping windows** on the same day are merged when saved, **per order type** (Q12): two overlapping delivery windows become one, while a dine-in window overlapping a delivery window stays separate. Order types with identical merged times share one window. The editor shows the merged result.
 - **Minimum window:** 15 minutes. Times are in 15-minute steps in the picker, while the API accepts any minute.
 - **Time zone:** every rule uses the restaurant's IANA time zone (e.g. `Asia/Kolkata`, `Europe/London`), never the device's or the server's. Stored local times are evaluated with the zone's rules for that date, never with a fixed UTC offset.
 - **Daylight-saving transitions** (only relevant for zones that observe DST):
@@ -207,8 +214,8 @@ type SoldOutState =
 | Setting | Options | Default |
 |---|---|---|
 | Available now | On / Off (sold-out shortcut with a "until" picker) | On |
-| Schedule | **Always (follows restaurant/category hours)** · Meal periods (preset chips: Breakfast, Lunch, Snacks, Dinner, Late night; editable per restaurant) · Custom days and times | Always |
-| Channels | Delivery / Takeaway / Dine-in toggles; optional channel price | All on |
+| Schedule | **Always (follows restaurant/category hours)** · Meal periods (preset chips: Breakfast, Lunch, Snacks, Dinner, Late night; editable per restaurant) · Custom days and times: per selected day, **All day** (Q13) and/or time windows, each with its own order types (Q12) | Always |
+| Channels | Delivery / Takeaway / Dine-in toggles; optional channel price. The **outer limit** for the schedule: windows and All day entries can only narrow these order types, never add one (Q12). | All on |
 | Season | Date range (from / to) (R2) | None |
 | Outside schedule | **Not a restaurant setting (Q11).** Outside its schedule an item is unavailable and is hidden from customers by default (P3); customers can choose to show unavailable items, which then appear marked unavailable (with "Available from …" when reliably known, see 3.6). The panel shows the state and the note "Hidden from customers while unavailable". | — |
 | Advance notice | Requires *N* hours' notice: orderable only as a scheduled order (cakes, catering) (R2) | None |
@@ -513,6 +520,8 @@ The restaurant may cancel an accepted order **only under the rules in this secti
 9. **Reject reason list:** the fixed reasons a restaurant picks from when rejecting a pending order. Proposed starting list, not approved: item unavailable, too busy, closing soon / closed, delivery area or address issue, suspected fraud, other (free text required).
 10. ~~Preparation-start default~~ **Confirmed: Option A.** R1 sets `preparationStartedAt` automatically to the server-authoritative acceptance timestamp; no separate Start-preparing action; stock is not returned if the restaurant cancels after acceptance; acceptance timestamp and cancellation reason are audited. An explicit step may be reconsidered in R2. See §4.1.
 11. ~~Restaurant override of P3~~ **Decided:** no restaurant-, category- or item-level visibility override at launch; unavailable items hidden by default (P3); the closed/paused banner (§3.6) unchanged; customer-facing hiding lives in the customer app/web, not the restaurant panel. Release: undecided.
+12. ~~Order types per schedule window~~ **Decided: Option A.** Each timed window names the order types it applies to, within the item's own order types (§3.2, §3.4).
+13. ~~All-day availability~~ **Decided: Option A.** An explicit All day entry per selected day, with its own order types; the full local calendar day; distinct from timed windows; timed windows that day only for other order types (§3.2).
 
 ### 9.1 Backend contracts to be settled by the backend team
 
@@ -526,6 +535,7 @@ These are engineering decisions and change no product rule:
 - **Time:** the time-zone and daylight-saving implementation, and where the availability evaluator runs (server-computed states vs a shared library).
 - **Real-time:** the transport (WebSocket or SSE), event payloads and the polling fallback.
 - **API:** paths and prefix (`/api/v1/seller/...` vs `/seller/...`) and enum names (e.g. `takeaway` vs `pickup`).
+- **Schedule shape (Q12, Q13):** accept and store per-window `channels` and the `allDay` entry (§3.2); read older schedules with a single schedule-level `channels` list as described in §3.2; the availability evaluator, menu responses and checkout evaluate All day as the full local calendar day and per-window order types for the requested order type.
 - **Refunds:** refund and partial-refund integration, including how provider confirmation, pending and failed refunds are reported back (P2).
 - **Audit log:** the schema.
 
@@ -537,4 +547,4 @@ These are engineering decisions and change no product rule:
 |---|---|---|
 | 0.1 | 2026-10-23 | First proposal: 24 modules, R1–R3 split, data model, availability engine, order lifecycle, menu model |
 | 0.2 | 2026-10-23 | Marked as the working direction (not frozen). Added the decision record (A1–A5 approved; P1–P3 recommended). Added DST rules (3.2), reliable "next available" (3.6), availability / inventory / acceptance / reservation with atomic placement and scheduled-order revalidation (3.9), restaurant cancellation rules (4.3), and the reconciliation step before UI changes (8). |
-| 0.3 | 2026-10-23 | Resolved the seven v0.2 inconsistencies (D1–D7): one cancellation rule subject to P2; restaurant added as a `cancelled` actor; recorded `preparationStartedAt` drives stock return; payment failure kept off the order status (`cancelled` / `payment_failed`); category mandatory for active items; R1 includes core hours and restaurant date exceptions, advanced scheduling to be confirmed; scheduled orders revalidated at acceptance plus new §3.10 policy for ordinary orders. Added Q9 (reject reasons), Q10 (preparation-start default) and §9.1 backend contracts. P2 and P3 remain awaiting confirmation. Q10 later confirmed as Option A (automatic preparation start at acceptance, no stock return on restaurant cancellation after acceptance, no Start-preparing action in R1). P2 approved (restaurant cancellation after acceptance under §4.3: mandatory reason, audit, refund confirmed by the provider, backend enforcement) and P3 approved (unavailable items hidden by default with a customer control to show them, not orderable when shown); Q11 added for restaurant overrides of P3, then decided: no visibility override at launch, closed/paused banner unchanged, customer-facing hiding in the customer app (release undecided); the per-item "Outside schedule" setting (§3.4) and related mentions in §3.2, §3.7 and §8 no longer imply a restaurant-configurable override. |
+| 0.3 | 2026-10-23 | Resolved the seven v0.2 inconsistencies (D1–D7): one cancellation rule subject to P2; restaurant added as a `cancelled` actor; recorded `preparationStartedAt` drives stock return; payment failure kept off the order status (`cancelled` / `payment_failed`); category mandatory for active items; R1 includes core hours and restaurant date exceptions, advanced scheduling to be confirmed; scheduled orders revalidated at acceptance plus new §3.10 policy for ordinary orders. Added Q9 (reject reasons), Q10 (preparation-start default) and §9.1 backend contracts. P2 and P3 remain awaiting confirmation. Q10 later confirmed as Option A (automatic preparation start at acceptance, no stock return on restaurant cancellation after acceptance, no Start-preparing action in R1). P2 approved (restaurant cancellation after acceptance under §4.3: mandatory reason, audit, refund confirmed by the provider, backend enforcement) and P3 approved (unavailable items hidden by default with a customer control to show them, not orderable when shown); Q11 added for restaurant overrides of P3, then decided: no visibility override at launch, closed/paused banner unchanged, customer-facing hiding in the customer app (release undecided); the per-item "Outside schedule" setting (§3.4) and related mentions in §3.2, §3.7 and §8 no longer imply a restaurant-configurable override. Q12 decided (Option A: order types per schedule window, within the item's order types) and Q13 decided (Option A: explicit All day entry per day, distinct from timed windows, with its own order types); §3.2 schedule model and rules, §3.1, §3.4, §9 and §9.1 updated; both only narrow availability. |
