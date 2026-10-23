@@ -34,7 +34,7 @@ These resolve the seven internal inconsistencies found in the v0.2 reconciliatio
 |---|---|---|---|
 | D1 | §8 said cancellation after acceptance goes "via support"; §4.2/§4.3 said the restaurant cancels | One rule everywhere: restaurant cancellation after acceptance follows §4.3 **if P2 is confirmed**. Until then §4.3 remains the proposal and no other section contradicts it. | 4.1, 8 |
 | D2 | §4.1 listed cancellation actors without the restaurant | `cancelled` can come from the customer, the restaurant (subject to P2), Foodi support or the system | 4.1 |
-| D3 | §4.3's "not yet preparing" had no recorded state in R1 | Every order records **`preparationStartedAt`** (UTC instant). Stock-return rules use it: returned only while it is unset. How it gets set is in §4.1. | 4.1, 4.3 |
+| D3 | §4.3's "not yet preparing" had no recorded state in R1 | Every order records **`preparationStartedAt`** (UTC instant). In R1 it is set automatically at acceptance (**Q10 confirmed, Option A**), so stock is not returned when the restaurant cancels an accepted order. Rules in §4.1. | 4.1, 4.3 |
 | D4 | `failed` (payment) appeared as an order state | **Payment failure stays on the payment, not the order status.** An online order whose payment fails or times out is closed as `cancelled` with system reason `payment_failed`, and never reaches the restaurant's New column. | 4.1, 3.9 |
 | D5 | §1 vs §3.2/§3.3 release tags for holidays and per-channel hours | **R1:** core restaurant hours (per order type, several windows, overnight), pause, and **restaurant-level date exceptions** (holidays and special hours). **Advanced scheduling** (seasonal date ranges, item/category date exceptions, size/option schedules, slot capacity) to be confirmed separately, tentatively R2. | 1, 3.2, 3.3 |
 | D6 | Whether availability is re-checked at acceptance (§3.1 vs §3.8 vs §3.9) | **Scheduled orders:** revalidated at acceptance (as §3.9). **Ordinary orders:** availability and price are guaranteed at placement (atomic, §3.9). Later changes don't invalidate a placed order automatically; the operational exception policy is in §3.10. | 3.1, 3.8, 3.10 |
@@ -42,7 +42,7 @@ These resolve the seven internal inconsistencies found in the v0.2 reconciliatio
 
 ### Still open
 - **P2** and **P3** (confirmation).
-- Section 9: Q1 (rest of the release split), Q4 (channel pricing), Q5 (withdrawals), Q6 (multi-outlet scope), Q7 (payment timeout), Q8 (cancellation-rate policy), Q9 (reject reasons) and Q10 (preparation-start default).
+- Section 9: Q1 (rest of the release split), Q4 (channel pricing), Q5 (withdrawals), Q6 (multi-outlet scope), Q7 (payment timeout), Q8 (cancellation-rate policy) and Q9 (reject reasons). Q10 is confirmed (§4.1).
 - The backend contracts in §9.1.
 
 ---
@@ -331,9 +331,13 @@ Closed states:
 **Payment failure is not an order status (D4).** It lives on the payment record (`failed`). An online order whose payment fails or times out is closed as `cancelled` / `payment_failed` before it reaches the restaurant.
 
 **Preparation start (D3).** `preparing` is a **sub-state of accepted**, not a separate status. Every order records `preparationStartedAt`:
-- **Default (R1):** set at acceptance, so preparation starts when the restaurant accepts. One tap per order.
-- **Optional setting (R2):** "Explicit Start preparing step". Accepted orders then show **Start preparing**, which sets the timestamp.
-- Stock-return and cancellation rules (§3.9, §4.3) use `preparationStartedAt`, never the UI label. With the R1 default, an accepted order is always "preparing", so stock is not returned on cancellation after acceptance. Confirming this default is **Q10**.
+- **On acceptance (R1, confirmed Q10 Option A):** the server sets `preparationStartedAt` automatically to the server-authoritative acceptance timestamp. The client never supplies it.
+- **Restaurant workflow:** there is **no separate "Start preparing" action in R1**. Accepting starts preparation.
+- **Stock handling:** if the restaurant later cancels the order (§4.3, subject to P2), reserved stock is **not returned**, because preparation has already started.
+- **Audit:** the audit trail records the acceptance timestamp (and therefore `preparationStartedAt`), who accepted, and on cancellation the actor and cancellation reason.
+- **Future (R2, to be reconsidered):** an explicit preparation-start step, which would leave `preparationStartedAt` unset until the restaurant taps **Start preparing**.
+- **Intended trade-off:** this rule deliberately prioritises a simpler restaurant workflow over restoring stock when an accepted order is cancelled.
+- Stock-return and cancellation rules (§3.9, §4.3) use `preparationStartedAt`, never the UI label.
 
 ### 4.2 Transitions
 
@@ -371,8 +375,8 @@ The restaurant may cancel an accepted order, with restrictions:
 
   | State | Allowed? | Extra rule |
   |---|---|---|
-  | `accepted`, `preparationStartedAt` unset (only with the explicit-step setting) | Yes | Stock returned |
-  | `accepted` with `preparationStartedAt` set, or `ready` | Yes | Stock not returned; counts towards the cancellation rate (Q8) |
+  | `accepted`, `preparationStartedAt` unset (not possible in R1; only if an explicit step is added in R2) | Yes | Stock returned |
+  | `accepted` (in R1 always has `preparationStartedAt` set), or `ready` | Yes | Stock not returned; counts towards the cancellation rate (Q8) |
   | `out_for_delivery` (Foodi rider) | **No.** Goes to support. | The rider and customer are already involved |
   | `out_for_delivery` (own rider) | Yes, with a confirmation | Rider is notified |
   | `completed` | No. Use refund/dispute instead. | — |
@@ -465,7 +469,7 @@ The restaurant may cancel an accepted order, with restrictions:
 
 **How the earlier UI decision IDs map to this PRD:**
 - **Orders:**
-  - L2 → one-step accept with `preparationStartedAt` (D3, Q10).
+  - L2 → one-step accept with `preparationStartedAt` set at acceptance (D3, Q10 confirmed); no separate Start-preparing action in R1.
   - L3 → reject before acceptance (reasons: Q9); restaurant cancellation after acceptance per §4.3, subject to **P2** (D1).
   - L4 → §4.2.
   - L6 → scheduled orders supported; auto-accept optional.
@@ -488,7 +492,7 @@ The restaurant may cancel an accepted order, with restrictions:
 7. Payment timeout for unpaid online checkouts before the reservation is released and the order is closed as `payment_failed` (proposed 15 min).
 8. Cancellation-rate policy: which cancellations and rejections count, over what period, and what thresholds trigger admin review?
 9. **Reject reason list:** the fixed reasons a restaurant picks from when rejecting a pending order. Proposed starting list, not approved: item unavailable, too busy, closing soon / closed, delivery area or address issue, suspected fraud, other (free text required).
-10. **Preparation-start default (D3):** confirm that R1 sets `preparationStartedAt` at acceptance, so stock is not returned on cancellation after acceptance unless a restaurant enables the explicit Start-preparing step (R2).
+10. ~~Preparation-start default~~ **Confirmed: Option A.** R1 sets `preparationStartedAt` automatically to the server-authoritative acceptance timestamp; no separate Start-preparing action; stock is not returned if the restaurant cancels after acceptance; acceptance timestamp and cancellation reason are audited. An explicit step may be reconsidered in R2. See §4.1.
 
 ### 9.1 Backend contracts to be settled by the backend team
 
@@ -513,4 +517,4 @@ These are engineering decisions and change no product rule:
 |---|---|---|
 | 0.1 | 2026-10-23 | First proposal: 24 modules, R1–R3 split, data model, availability engine, order lifecycle, menu model |
 | 0.2 | 2026-10-23 | Marked as the working direction (not frozen). Added the decision record (A1–A5 approved; P1–P3 recommended). Added DST rules (3.2), reliable "next available" (3.6), availability / inventory / acceptance / reservation with atomic placement and scheduled-order revalidation (3.9), restaurant cancellation rules (4.3), and the reconciliation step before UI changes (8). |
-| 0.3 | 2026-10-23 | Resolved the seven v0.2 inconsistencies (D1–D7): one cancellation rule subject to P2; restaurant added as a `cancelled` actor; recorded `preparationStartedAt` drives stock return; payment failure kept off the order status (`cancelled` / `payment_failed`); category mandatory for active items; R1 includes core hours and restaurant date exceptions, advanced scheduling to be confirmed; scheduled orders revalidated at acceptance plus new §3.10 policy for ordinary orders. Added Q9 (reject reasons), Q10 (preparation-start default) and §9.1 backend contracts. P2 and P3 remain awaiting confirmation. |
+| 0.3 | 2026-10-23 | Resolved the seven v0.2 inconsistencies (D1–D7): one cancellation rule subject to P2; restaurant added as a `cancelled` actor; recorded `preparationStartedAt` drives stock return; payment failure kept off the order status (`cancelled` / `payment_failed`); category mandatory for active items; R1 includes core hours and restaurant date exceptions, advanced scheduling to be confirmed; scheduled orders revalidated at acceptance plus new §3.10 policy for ordinary orders. Added Q9 (reject reasons), Q10 (preparation-start default) and §9.1 backend contracts. P2 and P3 remain awaiting confirmation. Q10 later confirmed as Option A (automatic preparation start at acceptance, no stock return on restaurant cancellation after acceptance, no Start-preparing action in R1). |
