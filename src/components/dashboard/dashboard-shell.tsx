@@ -10,6 +10,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { Notifications } from "@/components/shared/notifications"
 import { cn } from "@/lib/utils"
 
 import { DashboardHeader } from "./header"
@@ -63,6 +64,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
+      <Notifications />
     </TooltipProvider>
   )
 }

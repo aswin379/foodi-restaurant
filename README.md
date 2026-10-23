@@ -93,4 +93,16 @@ FOODI_MENU_DATA_SOURCE=fixtures npm run dev
 Fixtures are refused in production builds. Details, open decisions and the
 proposed API: [docs/menu-ui.md](docs/menu-ui.md).
 
+## Shared foundations and tests
+
+Data-source rules, preview mode, shared components and naming are described in
+[docs/foundations.md](docs/foundations.md).
+
+```bash
+npm run typecheck   # TypeScript
+npm run lint        # ESLint
+npm test            # Vitest unit and component tests
+npm run test:e2e    # Playwright + axe, against a production build and a preview dev server
+```
+
 Brand logo: `public/brand/foodi-logo.png`.

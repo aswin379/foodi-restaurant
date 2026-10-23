@@ -44,7 +44,8 @@
   --secondary: oklch(0.97 0.001 106.424);
   --secondary-foreground: oklch(0.216 0.006 56.043);
   --muted: oklch(0.97 0.001 106.424);
-  --muted-foreground: oklch(0.553 0.013 58.071);
+  /* 4% darker than stone-500 (0.553) so muted text on bg-muted meets WCAG AA (4.85:1). */
+  --muted-foreground: oklch(0.531 0.013 58.071);
   --accent: oklch(0.979 0.021 166.113);
   --accent-foreground: oklch(0.432 0.095 166.913);
   --destructive: oklch(0.577 0.245 27.325);
