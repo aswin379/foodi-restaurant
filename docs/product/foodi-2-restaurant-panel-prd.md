@@ -23,8 +23,13 @@ This is Foodi's own design. StackFood (the legacy source) and MenuThere were stu
 | ID | Question | Recommendation | Section |
 |---|---|---|---|
 | P1 | POS and QR dine-in | **Release 2.** Keep the architecture extensible now; don't delay the initial ordering launch. | 1 |
-| P2 | Can restaurants cancel accepted orders? | **Yes, with restrictions.** Reason required, audit event recorded, explicit rules for refunds and for orders already preparing or dispatched. | 4.3 |
-| P3 | Unavailable items: grey out or hide? | **Grey out by default**, with a restaurant-level setting to hide. Show the next availability time only when it can be calculated reliably. | 3.4, 3.6 |
+
+### Approved in v0.3 (formerly recommendations P2, P3)
+
+| ID | Decision | Section |
+|---|---|---|
+| P2 | **Approved: restaurants may cancel an accepted order, with restrictions.** Only under the rules in §4.3; mandatory reason; audit records actor, timestamp, reason and order context; online payments go through the refund workflow, and a refund is never shown as successful until the payment provider confirms it; enforced by the backend, not only by the UI; stock is not returned (D3, Q10). Restaurant cancellation stays distinct from rejection before acceptance and from customer, support and system cancellation. | 4.1, 4.2, 4.3 |
+| P3 | **Approved: unavailable items are hidden by default in the customer-facing menu**, with a customer control to show them. When shown, they are clearly marked unavailable and are not orderable. Presentation policy only: server-side availability validation (A1, A5, §3.9) is unchanged, and placed orders are never silently changed (§3.10). "Next available" keeps the §3.6 reliability conditions. | 3.4, 3.6 |
 
 ### Resolved in v0.3 (PRD consistency decisions)
 
@@ -32,8 +37,8 @@ These resolve the seven internal inconsistencies found in the v0.2 reconciliatio
 
 | ID | Issue in v0.2 | Resolution | Sections updated |
 |---|---|---|---|
-| D1 | §8 said cancellation after acceptance goes "via support"; §4.2/§4.3 said the restaurant cancels | One rule everywhere: restaurant cancellation after acceptance follows §4.3 **if P2 is confirmed**. Until then §4.3 remains the proposal and no other section contradicts it. | 4.1, 8 |
-| D2 | §4.1 listed cancellation actors without the restaurant | `cancelled` can come from the customer, the restaurant (subject to P2), Foodi support or the system | 4.1 |
+| D1 | §8 said cancellation after acceptance goes "via support"; §4.2/§4.3 said the restaurant cancels | One rule everywhere: restaurant cancellation after acceptance follows §4.3 (**P2 approved**); no other section contradicts it. | 4.1, 8 |
+| D2 | §4.1 listed cancellation actors without the restaurant | `cancelled` can come from the customer, the restaurant (after acceptance, §4.3, P2 approved), Foodi support or the system | 4.1 |
 | D3 | §4.3's "not yet preparing" had no recorded state in R1 | Every order records **`preparationStartedAt`** (UTC instant). In R1 it is set automatically at acceptance (**Q10 confirmed, Option A**), so stock is not returned when the restaurant cancels an accepted order. Rules in §4.1. | 4.1, 4.3 |
 | D4 | `failed` (payment) appeared as an order state | **Payment failure stays on the payment, not the order status.** An online order whose payment fails or times out is closed as `cancelled` with system reason `payment_failed`, and never reaches the restaurant's New column. | 4.1, 3.9 |
 | D5 | §1 vs §3.2/§3.3 release tags for holidays and per-channel hours | **R1:** core restaurant hours (per order type, several windows, overnight), pause, and **restaurant-level date exceptions** (holidays and special hours). **Advanced scheduling** (seasonal date ranges, item/category date exceptions, size/option schedules, slot capacity) to be confirmed separately, tentatively R2. | 1, 3.2, 3.3 |
@@ -41,8 +46,8 @@ These resolve the seven internal inconsistencies found in the v0.2 reconciliatio
 | D7 | Whether "category required" was approved | **Category is mandatory for every active menu item.** Archived items keep their last category for history. | 2, 5 |
 
 ### Still open
-- **P2** and **P3** (confirmation).
-- Section 9: Q1 (rest of the release split), Q4 (channel pricing), Q5 (withdrawals), Q6 (multi-outlet scope), Q7 (payment timeout), Q8 (cancellation-rate policy) and Q9 (reject reasons). Q10 is confirmed (§4.1).
+- **P1** (confirmation). P2 and P3 are approved (above).
+- Section 9: Q1 (rest of the release split), Q4 (channel pricing), Q5 (withdrawals), Q6 (multi-outlet scope), Q7 (payment timeout), Q8 (cancellation-rate policy), Q9 (reject reasons) and Q11 (restaurant override of P3). Q10 is confirmed (§4.1).
 - The backend contracts in §9.1.
 
 ---
@@ -186,7 +191,7 @@ type SoldOutState =
   - Countdowns, prep timers, "sold out until" times and scheduled slots are stored as UTC instants plus the zone, and converted to local time only for display.
   - The evaluator has explicit tests for both transitions in at least one DST zone (e.g. `Europe/London`, `America/New_York`), even though launch markets may not observe DST.
 - **Exceptions:** an exception date replaces that day's weekly rule.
-- **Date range:** outside it the item is hidden or shown as "Not available" (a per-item choice; see 3.4).
+- **Date range:** outside it the item is unavailable and follows P3 (§3.6): hidden by default, shown as "Not available" only when the customer chooses to show unavailable items. Restaurant overrides: Q11.
 
 ### 3.3 Restaurant-level settings (Settings → Hours)
 
@@ -204,7 +209,7 @@ type SoldOutState =
 | Schedule | **Always (follows restaurant/category hours)** · Meal periods (preset chips: Breakfast, Lunch, Snacks, Dinner, Late night; editable per restaurant) · Custom days and times | Always |
 | Channels | Delivery / Takeaway / Dine-in toggles; optional channel price | All on |
 | Season | Date range (from / to) (R2) | None |
-| Outside schedule | **Show greyed out** (with "Available from …" when reliably known, see 3.6) · Hide from menu. Restaurant-level default, overridable per category/item (P3). | Show greyed out |
+| Outside schedule | **Hide from menu** (P3 default); customers can choose to show unavailable items, which then appear marked unavailable (with "Available from …" when reliably known, see 3.6). Whether restaurants keep a restaurant/category/item override of this default: Q11. | Hide (P3) |
 | Advance notice | Requires *N* hours' notice: orderable only as a scheduled order (cakes, catering) (R2) | None |
 | Daily stock | Count per day, reset at opening; auto sold-out at 0 (R2) | Unlimited |
 
@@ -228,13 +233,18 @@ Category-level settings mirror the item card: on/off, schedule, channels, and ou
 
 ### 3.6 Customer-facing behaviour (apps / web / QR)
 
-- **Items outside their window:** greyed out by default (P3), or hidden per restaurant setting. They can't be added for immediate orders.
+- **Unavailable items (P3, approved):**
+  - **Hidden by default:** the default customer-menu view excludes items that are not currently available.
+  - **Show unavailable items:** a clear customer-facing control reveals them.
+  - **When shown:** each one is clearly marked unavailable (e.g. "Currently unavailable" or the "next available" text below) and is **not orderable**: no add-to-cart for immediate orders.
+  - **Presentation only:** the server still validates availability on every placement (§3.9); hiding or showing items never relaxes it.
+  - **Placed orders:** never silently changed by an item becoming unavailable; §3.10 applies.
 - **"Next available" text** is shown only when the server can calculate it reliably:
   - it lies within the next 7 days
   - it's determined by schedules only, not by a manual "sold out until I switch it back" or by stock
   - the restaurant isn't paused indefinitely
 
-  Otherwise the item just says "Currently unavailable". Examples: "Available from 12:00 today", "Available tomorrow from 07:00".
+  Otherwise no time is promised and the item just says "Currently unavailable". Examples: "Available from 12:00 today", "Available tomorrow from 07:00".
 - **Scheduled order slots:** when a customer picks a slot, the menu re-evaluates for that slot's time and channel.
 - **Cart changes:** if the cart becomes invalid (time passed, sold out, channel switched), checkout lists the affected lines and offers to remove them. The server re-validates when the order is placed.
 - **Restaurant closed or paused:** a "Closed now · opens 11:00" or "Not accepting orders right now" banner, plus pre-order if enabled.
@@ -311,7 +321,7 @@ If an item becomes unavailable after checkout, the order isn't silently changed.
 | When the restaurant finds it can't fulfil a line | What the panel offers | Rules |
 |---|---|---|
 | Order is `pending` | **Reject** with reason "Item unavailable", **or** accept and remove the line (if order editing is enabled) | Removing a line needs the customer notified, totals recalculated and a partial refund for online payment; audited |
-| Order is `accepted` / preparing | Remove the line (if editing is enabled), **or** cancel per §4.3 (subject to P2) | Same notification, refund and audit rules; counts towards the cancellation rate only if the whole order is cancelled (Q8) |
+| Order is `accepted` / preparing | Remove the line (if editing is enabled), **or** cancel per §4.3 (P2 approved) | Same notification, refund (§4.3) and audit rules; counts towards the cancellation rate only if the whole order is cancelled (Q8) |
 | Order is `ready` or later | No line changes; support handles any dispute | — |
 
 The order shows which lines were marked unavailable **after** placement, with who and when, so the restaurant sees why the flag appears. Marking an item sold out never touches orders already placed.
@@ -326,14 +336,20 @@ The order shows which lines were marked unavailable **after** placement, with wh
 
 Closed states:
 - `rejected`: by the restaurant, before acceptance, with a reason (list: Q9).
-- `cancelled`: by the customer, the restaurant (after acceptance, §4.3, subject to P2), Foodi support, or the system (e.g. reason `payment_failed`), always with a reason.
+- `cancelled`: always with a reason, by one of these distinct actors:
+  - the **customer**
+  - the **restaurant**, after acceptance only, under §4.3 (P2 approved)
+  - **Foodi support**
+  - the **system** (e.g. reason `payment_failed`)
+
+  A restaurant ending a `pending` order is a **rejection**, not a cancellation. Eligibility rules for customer and support cancellation are not defined in this PRD.
 
 **Payment failure is not an order status (D4).** It lives on the payment record (`failed`). An online order whose payment fails or times out is closed as `cancelled` / `payment_failed` before it reaches the restaurant.
 
 **Preparation start (D3).** `preparing` is a **sub-state of accepted**, not a separate status. Every order records `preparationStartedAt`:
 - **On acceptance (R1, confirmed Q10 Option A):** the server sets `preparationStartedAt` automatically to the server-authoritative acceptance timestamp. The client never supplies it.
 - **Restaurant workflow:** there is **no separate "Start preparing" action in R1**. Accepting starts preparation.
-- **Stock handling:** if the restaurant later cancels the order (§4.3, subject to P2), reserved stock is **not returned**, because preparation has already started.
+- **Stock handling:** if the restaurant later cancels the order (§4.3, P2 approved), reserved stock is **not returned**, because preparation has already started.
 - **Audit:** the audit trail records the acceptance timestamp (and therefore `preparationStartedAt`), who accepted, and on cancellation the actor and cancellation reason.
 - **Future (R2, to be reconsidered):** an explicit preparation-start step, which would leave `preparationStartedAt` unset until the restaurant taps **Start preparing**.
 - **Intended trade-off:** this rule deliberately prioritises a simpler restaurant workflow over restoring stock when an accepted order is cancelled.
@@ -350,7 +366,7 @@ Closed states:
 | ready | *Foodi delivery:* none (the rider picks up) | out_for_delivery → completed | Shows the rider's status |
 | ready | *Restaurant delivery:* **Dispatch** (choose rider) | out_for_delivery | Then **Complete** |
 | ready | *Takeaway / dine-in:* **Complete** (optional pickup code check) | completed | |
-| accepted, ready | **Cancel order** (reason required) | cancelled | Rules in 4.3 (P2) |
+| accepted, ready | **Cancel order** (reason required) | cancelled | Rules in 4.3 (P2 approved); enforced by the backend |
 | scheduled | (automatic) enters `pending` at slot time minus prep lead | pending | "Prepare now" reminders |
 
 **Settings:**
@@ -362,13 +378,13 @@ Closed states:
 
 **Live board (R1):** three columns, New → In kitchen → Ready, with large action buttons, a ringing alarm until a new order is acknowledged, timers, and colours for delayed orders. It works on tablet and phone, and real-time updates use a socket with a polling fallback.
 
-### 4.3 Restaurant cancellation after acceptance (P2, awaiting confirmation)
+### 4.3 Restaurant cancellation after acceptance (P2, approved)
 
-The restaurant may cancel an accepted order, with restrictions:
+The restaurant may cancel an accepted order **only under the rules in this section**:
 
-- **Required:** a reason from a list (item unavailable, kitchen issue, closing early, customer request, suspected fraud, other) plus an optional note. The audit event records who, when, the reason, and the order state at that moment.
+- **Required:** a reason from a list (item unavailable, kitchen issue, closing early, customer request, suspected fraud, other) plus an optional note. A reason is **mandatory**. The audit event records the cancellation actor, the timestamp, the reason and the relevant order context (order state, `preparationStartedAt`, payment method and status at that moment).
 - **Refunds:**
-  - *Online payment:* full refund, issued automatically.
+  - *Online payment:* the cancellation triggers the refund workflow automatically (full refund). The refund is shown as pending and is **never shown as successful until the payment provider confirms it**. Refund timing, partial or failed refunds, and provider capabilities are for backend confirmation (§9.1).
   - *Cash on delivery:* nothing is collected.
   - Whether any part is charged to the restaurant is a platform-policy setting, not a restaurant choice.
 - **By state:**
@@ -381,6 +397,8 @@ The restaurant may cancel an accepted order, with restrictions:
   | `out_for_delivery` (own rider) | Yes, with a confirmation | Rider is notified |
   | `completed` | No. Use refund/dispute instead. | — |
 
+- **Backend enforcement:** the server checks every cancellation against this section (state, actor, reason) and refuses ineligible requests. Hiding or disabling the button in the UI is never the only control.
+- **Stock:** consistent with D3 and Q10: in R1 an accepted order always has `preparationStartedAt` set, so stock is not returned on restaurant cancellation.
 - **Notifications:** the customer and rider are told immediately with a plain-language reason.
 - **Abuse control:** high cancellation rates surface to the platform admin. Thresholds are a platform setting.
 
@@ -470,7 +488,7 @@ The restaurant may cancel an accepted order, with restrictions:
 **How the earlier UI decision IDs map to this PRD:**
 - **Orders:**
   - L2 → one-step accept with `preparationStartedAt` set at acceptance (D3, Q10 confirmed); no separate Start-preparing action in R1.
-  - L3 → reject before acceptance (reasons: Q9); restaurant cancellation after acceptance per §4.3, subject to **P2** (D1).
+  - L3 → reject before acceptance (reasons: Q9); restaurant cancellation after acceptance per §4.3 (**P2 approved**, D1).
   - L4 → §4.2.
   - L6 → scheduled orders supported; auto-accept optional.
 - **Menu:**
@@ -484,8 +502,8 @@ The restaurant may cancel an accepted order, with restrictions:
 ## 9. Open questions
 
 1. ~~Release order, POS and QR dine-in~~ → **P1** (recommended: R2), awaiting confirmation. Is the rest of the R1 / R2 / R3 split right?
-2. ~~Restaurant cancellation after acceptance~~ → **P2** (recommended: yes, with restrictions, 4.3), awaiting confirmation.
-3. ~~Grey out or hide~~ → **P3** (recommended: grey out by default, restaurant setting to hide), awaiting confirmation.
+2. ~~Restaurant cancellation after acceptance~~ → **P2 approved**: yes, with restrictions (§4.3).
+3. ~~Grey out or hide~~ → **P3 approved**: hidden by default in the customer menu, with a customer control to show unavailable items (§3.6).
 4. Should channel-specific prices (higher delivery price) be allowed in R1?
 5. Withdrawals: is that restaurant-initiated, or on an automatic settlement schedule only?
 6. Multi-outlet in R2: does one owner manage several *brands*, or only several *branches* of one brand?
@@ -493,6 +511,7 @@ The restaurant may cancel an accepted order, with restrictions:
 8. Cancellation-rate policy: which cancellations and rejections count, over what period, and what thresholds trigger admin review?
 9. **Reject reason list:** the fixed reasons a restaurant picks from when rejecting a pending order. Proposed starting list, not approved: item unavailable, too busy, closing soon / closed, delivery area or address issue, suspected fraud, other (free text required).
 10. ~~Preparation-start default~~ **Confirmed: Option A.** R1 sets `preparationStartedAt` automatically to the server-authoritative acceptance timestamp; no separate Start-preparing action; stock is not returned if the restaurant cancels after acceptance; acceptance timestamp and cancellation reason are audited. An explicit step may be reconsidered in R2. See §4.1.
+11. **Restaurant override of P3:** do restaurants keep a restaurant/category/item setting that changes the customer-menu default (e.g. always show certain unavailable items), or is hide-by-default fixed? And does hide-by-default apply when the whole restaurant is closed or paused, or does the §3.6 closed/paused banner behaviour stay as is? Release: undecided.
 
 ### 9.1 Backend contracts to be settled by the backend team
 
@@ -506,7 +525,7 @@ These are engineering decisions and change no product rule:
 - **Time:** the time-zone and daylight-saving implementation, and where the availability evaluator runs (server-computed states vs a shared library).
 - **Real-time:** the transport (WebSocket or SSE), event payloads and the polling fallback.
 - **API:** paths and prefix (`/api/v1/seller/...` vs `/seller/...`) and enum names (e.g. `takeaway` vs `pickup`).
-- **Refunds:** refund and partial-refund integration.
+- **Refunds:** refund and partial-refund integration, including how provider confirmation, pending and failed refunds are reported back (P2).
 - **Audit log:** the schema.
 
 ---
@@ -517,4 +536,4 @@ These are engineering decisions and change no product rule:
 |---|---|---|
 | 0.1 | 2026-10-23 | First proposal: 24 modules, R1–R3 split, data model, availability engine, order lifecycle, menu model |
 | 0.2 | 2026-10-23 | Marked as the working direction (not frozen). Added the decision record (A1–A5 approved; P1–P3 recommended). Added DST rules (3.2), reliable "next available" (3.6), availability / inventory / acceptance / reservation with atomic placement and scheduled-order revalidation (3.9), restaurant cancellation rules (4.3), and the reconciliation step before UI changes (8). |
-| 0.3 | 2026-10-23 | Resolved the seven v0.2 inconsistencies (D1–D7): one cancellation rule subject to P2; restaurant added as a `cancelled` actor; recorded `preparationStartedAt` drives stock return; payment failure kept off the order status (`cancelled` / `payment_failed`); category mandatory for active items; R1 includes core hours and restaurant date exceptions, advanced scheduling to be confirmed; scheduled orders revalidated at acceptance plus new §3.10 policy for ordinary orders. Added Q9 (reject reasons), Q10 (preparation-start default) and §9.1 backend contracts. P2 and P3 remain awaiting confirmation. Q10 later confirmed as Option A (automatic preparation start at acceptance, no stock return on restaurant cancellation after acceptance, no Start-preparing action in R1). |
+| 0.3 | 2026-10-23 | Resolved the seven v0.2 inconsistencies (D1–D7): one cancellation rule subject to P2; restaurant added as a `cancelled` actor; recorded `preparationStartedAt` drives stock return; payment failure kept off the order status (`cancelled` / `payment_failed`); category mandatory for active items; R1 includes core hours and restaurant date exceptions, advanced scheduling to be confirmed; scheduled orders revalidated at acceptance plus new §3.10 policy for ordinary orders. Added Q9 (reject reasons), Q10 (preparation-start default) and §9.1 backend contracts. P2 and P3 remain awaiting confirmation. Q10 later confirmed as Option A (automatic preparation start at acceptance, no stock return on restaurant cancellation after acceptance, no Start-preparing action in R1). P2 approved (restaurant cancellation after acceptance under §4.3: mandatory reason, audit, refund confirmed by the provider, backend enforcement) and P3 approved (unavailable items hidden by default with a customer control to show them, not orderable when shown); Q11 added for restaurant overrides of P3. |
