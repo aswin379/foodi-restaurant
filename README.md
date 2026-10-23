@@ -37,4 +37,32 @@ npm run build
    `public/images/` and set `heroImage` in
    `src/app/(auth)/login/brand-panel.tsx`.
 
+## Dashboard shell
+
+- Route: `/dashboard` (`src/app/(dashboard)/`). Every page added under the
+  `(dashboard)` route group gets the shell from its `layout.tsx`.
+- Shared components live in `src/components/dashboard/`:
+  - `dashboard-shell.tsx`: sidebar, header, content container and the
+    development notice.
+  - `navigation.ts`: the single nav config. A module with `href: null`
+    shows as a disabled "Soon" item. Give it a route once its page exists.
+  - `page-header.tsx`, `stat-card.tsx`, `empty-state.tsx`: building blocks
+    for module pages.
+- KPI cards and dashboard sections show empty states. No sample or live data
+  is rendered.
+
+### Not yet protected
+
+`/dashboard` is an **unprotected development preview**: anyone who can reach
+the app can open it. A banner on every dashboard page says so. Before
+production:
+
+1. Add a session check in `src/app/(dashboard)/layout.tsx` (or `proxy.ts`)
+   that redirects to `/login` when there's no valid restaurant session.
+2. Load the restaurant's name for the header from that session instead of the
+   "Your restaurant" placeholder.
+3. End the session in `src/lib/auth/sign-out.ts`. Today it only redirects to
+   `/login`, because no session is ever created.
+4. Remove the development notice from `dashboard-shell.tsx`.
+
 Brand logo: `public/brand/foodi-logo.png`.
