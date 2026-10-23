@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
-import { dashboardNavigation, isNavItemActive, type NavItem } from "./navigation"
+import { dashboardNavigation, getActiveNavItem, type NavItem } from "./navigation"
 
 type SidebarNavProps = {
   collapsed?: boolean
@@ -38,6 +38,7 @@ function SidebarNavList({
   onNavigate,
   pathname,
 }: SidebarNavProps & { pathname: string | null }) {
+  const activeItem = pathname ? getActiveNavItem(pathname) : null
   return (
     <nav aria-label="Restaurant admin" className="flex flex-col gap-5">
       {dashboardNavigation.map((group) => (
@@ -55,9 +56,7 @@ function SidebarNavList({
               <li key={item.title}>
                 <SidebarNavItem
                   item={item}
-                  active={
-                    item.href && pathname ? isNavItemActive(item.href, pathname) : false
-                  }
+                  active={item === activeItem}
                   collapsed={collapsed}
                   onNavigate={onNavigate}
                 />

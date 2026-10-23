@@ -79,4 +79,18 @@ FOODI_ORDERS_DATA_SOURCE=fixtures npm run dev
 Fixtures are refused in production builds. Details, open decisions and the
 proposed API contract: [docs/orders-ui.md](docs/orders-ui.md).
 
+## Menu UI
+
+`/menu`, `/menu/new`, `/menu/[itemId]/edit` and `/menu/categories` are built on
+a **provisional** menu model. Nothing can be saved: forms validate, then stop
+with "Backend integration pending". No menu API exists yet, so the pages show
+"Menu isn't connected yet". To preview with labelled sample data in development:
+
+```bash
+FOODI_MENU_DATA_SOURCE=fixtures npm run dev
+```
+
+Fixtures are refused in production builds. Details, open decisions and the
+proposed API: [docs/menu-ui.md](docs/menu-ui.md).
+
 Brand logo: `public/brand/foodi-logo.png`.
