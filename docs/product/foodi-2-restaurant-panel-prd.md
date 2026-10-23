@@ -24,12 +24,13 @@ This is Foodi's own design. StackFood (the legacy source) and MenuThere were stu
 |---|---|---|---|
 | P1 | POS and QR dine-in | **Release 2.** Keep the architecture extensible now; don't delay the initial ordering launch. | 1 |
 
-### Approved in v0.3 (formerly recommendations P2, P3)
+### Approved in v0.3 (formerly recommendations P2, P3, and open question Q11)
 
 | ID | Decision | Section |
 |---|---|---|
 | P2 | **Approved: restaurants may cancel an accepted order, with restrictions.** Only under the rules in §4.3; mandatory reason; audit records actor, timestamp, reason and order context; online payments go through the refund workflow, and a refund is never shown as successful until the payment provider confirms it; enforced by the backend, not only by the UI; stock is not returned (D3, Q10). Restaurant cancellation stays distinct from rejection before acceptance and from customer, support and system cancellation. | 4.1, 4.2, 4.3 |
 | P3 | **Approved: unavailable items are hidden by default in the customer-facing menu**, with a customer control to show them. When shown, they are clearly marked unavailable and are not orderable. Presentation policy only: server-side availability validation (A1, A5, §3.9) is unchanged, and placed orders are never silently changed (§3.10). "Next available" keeps the §3.6 reliability conditions. | 3.4, 3.6 |
+| Q11 | **Decided: no visibility override at launch.** Unavailable items are hidden by default (P3); **no restaurant-, category- or item-level setting** changes that default. The restaurant closed/paused banner (§3.6) is unchanged; hide-by-default never replaces or weakens it. Customer-facing hiding is implemented in the **customer app/web**, not in the restaurant panel, which only shows availability state and explanatory text. Release assignment: undecided. | 3.2, 3.4, 3.6, 3.7 |
 
 ### Resolved in v0.3 (PRD consistency decisions)
 
@@ -47,7 +48,7 @@ These resolve the seven internal inconsistencies found in the v0.2 reconciliatio
 
 ### Still open
 - **P1** (confirmation). P2 and P3 are approved (above).
-- Section 9: Q1 (rest of the release split), Q4 (channel pricing), Q5 (withdrawals), Q6 (multi-outlet scope), Q7 (payment timeout), Q8 (cancellation-rate policy), Q9 (reject reasons) and Q11 (restaurant override of P3). Q10 is confirmed (§4.1).
+- Section 9: Q1 (rest of the release split), Q4 (channel pricing), Q5 (withdrawals), Q6 (multi-outlet scope), Q7 (payment timeout), Q8 (cancellation-rate policy) and Q9 (reject reasons). Q10 and Q11 are decided (§4.1, decision record).
 - The backend contracts in §9.1.
 
 ---
@@ -191,7 +192,7 @@ type SoldOutState =
   - Countdowns, prep timers, "sold out until" times and scheduled slots are stored as UTC instants plus the zone, and converted to local time only for display.
   - The evaluator has explicit tests for both transitions in at least one DST zone (e.g. `Europe/London`, `America/New_York`), even though launch markets may not observe DST.
 - **Exceptions:** an exception date replaces that day's weekly rule.
-- **Date range:** outside it the item is unavailable and follows P3 (§3.6): hidden by default, shown as "Not available" only when the customer chooses to show unavailable items. Restaurant overrides: Q11.
+- **Date range:** outside it the item is unavailable and follows P3 (§3.6): hidden by default, shown as "Not available" only when the customer chooses to show unavailable items. Restaurants can't override this (Q11).
 
 ### 3.3 Restaurant-level settings (Settings → Hours)
 
@@ -209,11 +210,11 @@ type SoldOutState =
 | Schedule | **Always (follows restaurant/category hours)** · Meal periods (preset chips: Breakfast, Lunch, Snacks, Dinner, Late night; editable per restaurant) · Custom days and times | Always |
 | Channels | Delivery / Takeaway / Dine-in toggles; optional channel price | All on |
 | Season | Date range (from / to) (R2) | None |
-| Outside schedule | **Hide from menu** (P3 default); customers can choose to show unavailable items, which then appear marked unavailable (with "Available from …" when reliably known, see 3.6). Whether restaurants keep a restaurant/category/item override of this default: Q11. | Hide (P3) |
+| Outside schedule | **Not a restaurant setting (Q11).** Outside its schedule an item is unavailable and is hidden from customers by default (P3); customers can choose to show unavailable items, which then appear marked unavailable (with "Available from …" when reliably known, see 3.6). The panel shows the state and the note "Hidden from customers while unavailable". | — |
 | Advance notice | Requires *N* hours' notice: orderable only as a scheduled order (cakes, catering) (R2) | None |
 | Daily stock | Count per day, reset at opening; auto sold-out at 0 (R2) | Unlimited |
 
-Category-level settings mirror the item card: on/off, schedule, channels, and outside-schedule behaviour. A category schedule applies to all its items unless an item narrows it further.
+Category-level settings mirror the item card: on/off, schedule and channels (no visibility override, Q11). A category schedule applies to all its items unless an item narrows it further.
 
 **Meal periods** are restaurant-defined named schedules ("Lunch = Mon–Sat 12:00–15:30"), so changing one period updates every item using it. This is the main time-saver for large menus.
 
@@ -253,7 +254,7 @@ Category-level settings mirror the item card: on/off, schedule, channels, and ou
 
 - **Menu responses** include each item's `availability` (schedule, sold-out state, channels) and a computed `availableNow` and `nextAvailableAt`, for the restaurant's time zone and the requested channel.
 - **Panel endpoints:**
-  - `PATCH /seller/menu/items/:id/availability` (schedule, channels, outside-schedule mode)
+  - `PATCH /seller/menu/items/:id/availability` (schedule, channels; no visibility mode, Q11)
   - `POST /seller/menu/items/:id/sold-out` with `{ until, reason }`, and `DELETE /seller/menu/items/:id/sold-out`
   - the same for categories and sizes
   - `PUT /seller/hours`, `POST /seller/pause`, `DELETE /seller/pause`
@@ -480,7 +481,7 @@ The restaurant may cancel an accepted order **only under the rules in this secti
 | Area | Current state | Change under this spec |
 |---|---|---|
 | Orders UI (PR #3) | 8 provisional statuses; all actions disabled | Merge `preparing` into `accepted` (sub-state with countdown); add `scheduled`; actions become Accept (with prep time), Reject (reasons), Mark ready, Dispatch, Complete; add the live board view. Update `docs/orders-ui.md`. |
-| Menu UI (RUI-03, uncommitted) | Flat variants and add-ons, item on/off only, category optional | Category **required**; **Sizes** (replace price) plus **Option groups** (single/multiple, required, min/max); an **Availability card** with schedule, channels, sold-out-until and outside-schedule mode; meal periods; availability states in the list; archive instead of delete. |
+| Menu UI (RUI-03, uncommitted) | Flat variants and add-ons, item on/off only, category optional | Category **required**; **Sizes** (replace price) plus **Option groups** (single/multiple, required, min/max); an **Availability card** with schedule, channels and sold-out-until (no visibility override, Q11); meal periods; availability states in the list; archive instead of delete. |
 | Dashboard (PR #2) | Placeholder KPIs | Add paused/sold-out banners and the live order counts from this spec. |
 | Settings | Not built | New: Hours (business hours, holidays, pause, order-ahead), meal periods. |
 | Backend | Seller auth and menu/order APIs not built | Section 3.7 plus sections 4 and 5 become the proposed contract for the backend team. |
@@ -511,7 +512,7 @@ The restaurant may cancel an accepted order **only under the rules in this secti
 8. Cancellation-rate policy: which cancellations and rejections count, over what period, and what thresholds trigger admin review?
 9. **Reject reason list:** the fixed reasons a restaurant picks from when rejecting a pending order. Proposed starting list, not approved: item unavailable, too busy, closing soon / closed, delivery area or address issue, suspected fraud, other (free text required).
 10. ~~Preparation-start default~~ **Confirmed: Option A.** R1 sets `preparationStartedAt` automatically to the server-authoritative acceptance timestamp; no separate Start-preparing action; stock is not returned if the restaurant cancels after acceptance; acceptance timestamp and cancellation reason are audited. An explicit step may be reconsidered in R2. See §4.1.
-11. **Restaurant override of P3:** do restaurants keep a restaurant/category/item setting that changes the customer-menu default (e.g. always show certain unavailable items), or is hide-by-default fixed? And does hide-by-default apply when the whole restaurant is closed or paused, or does the §3.6 closed/paused banner behaviour stay as is? Release: undecided.
+11. ~~Restaurant override of P3~~ **Decided:** no restaurant-, category- or item-level visibility override at launch; unavailable items hidden by default (P3); the closed/paused banner (§3.6) unchanged; customer-facing hiding lives in the customer app/web, not the restaurant panel. Release: undecided.
 
 ### 9.1 Backend contracts to be settled by the backend team
 
@@ -536,4 +537,4 @@ These are engineering decisions and change no product rule:
 |---|---|---|
 | 0.1 | 2026-10-23 | First proposal: 24 modules, R1–R3 split, data model, availability engine, order lifecycle, menu model |
 | 0.2 | 2026-10-23 | Marked as the working direction (not frozen). Added the decision record (A1–A5 approved; P1–P3 recommended). Added DST rules (3.2), reliable "next available" (3.6), availability / inventory / acceptance / reservation with atomic placement and scheduled-order revalidation (3.9), restaurant cancellation rules (4.3), and the reconciliation step before UI changes (8). |
-| 0.3 | 2026-10-23 | Resolved the seven v0.2 inconsistencies (D1–D7): one cancellation rule subject to P2; restaurant added as a `cancelled` actor; recorded `preparationStartedAt` drives stock return; payment failure kept off the order status (`cancelled` / `payment_failed`); category mandatory for active items; R1 includes core hours and restaurant date exceptions, advanced scheduling to be confirmed; scheduled orders revalidated at acceptance plus new §3.10 policy for ordinary orders. Added Q9 (reject reasons), Q10 (preparation-start default) and §9.1 backend contracts. P2 and P3 remain awaiting confirmation. Q10 later confirmed as Option A (automatic preparation start at acceptance, no stock return on restaurant cancellation after acceptance, no Start-preparing action in R1). P2 approved (restaurant cancellation after acceptance under §4.3: mandatory reason, audit, refund confirmed by the provider, backend enforcement) and P3 approved (unavailable items hidden by default with a customer control to show them, not orderable when shown); Q11 added for restaurant overrides of P3. |
+| 0.3 | 2026-10-23 | Resolved the seven v0.2 inconsistencies (D1–D7): one cancellation rule subject to P2; restaurant added as a `cancelled` actor; recorded `preparationStartedAt` drives stock return; payment failure kept off the order status (`cancelled` / `payment_failed`); category mandatory for active items; R1 includes core hours and restaurant date exceptions, advanced scheduling to be confirmed; scheduled orders revalidated at acceptance plus new §3.10 policy for ordinary orders. Added Q9 (reject reasons), Q10 (preparation-start default) and §9.1 backend contracts. P2 and P3 remain awaiting confirmation. Q10 later confirmed as Option A (automatic preparation start at acceptance, no stock return on restaurant cancellation after acceptance, no Start-preparing action in R1). P2 approved (restaurant cancellation after acceptance under §4.3: mandatory reason, audit, refund confirmed by the provider, backend enforcement) and P3 approved (unavailable items hidden by default with a customer control to show them, not orderable when shown); Q11 added for restaurant overrides of P3, then decided: no visibility override at launch, closed/paused banner unchanged, customer-facing hiding in the customer app (release undecided); the per-item "Outside schedule" setting (§3.4) and related mentions in §3.2, §3.7 and §8 no longer imply a restaurant-configurable override. |
