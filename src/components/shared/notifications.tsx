@@ -75,8 +75,10 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener)
 }
 
+// Snapshots must be stable references, or React re-renders forever.
+const NO_NOTIFICATIONS: Notification[] = []
 const getSnapshot = () => notifications
-const getServerSnapshot = (): Notification[] => []
+const getServerSnapshot = () => NO_NOTIFICATIONS
 
 /** Mounted once, in the dashboard shell. */
 export function Notifications() {

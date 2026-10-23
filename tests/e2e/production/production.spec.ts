@@ -1,6 +1,11 @@
 import { expect, test } from "@playwright/test"
 
-import { expectNoHorizontalOverflow, expectNoSeriousA11yViolations, gotoAndSettle } from "../helpers"
+import {
+  expectNoConsoleErrors,
+  expectNoHorizontalOverflow,
+  expectNoSeriousA11yViolations,
+  gotoAndSettle,
+} from "../helpers"
 
 // Production build with no data-source variables: every module must show its
 // "not connected" state, and no sample data or preview label may appear.
@@ -31,6 +36,7 @@ for (const route of routes) {
 
       await expectNoHorizontalOverflow(page)
       await expectNoSeriousA11yViolations(page)
+      expectNoConsoleErrors(page)
     })
   })
 }

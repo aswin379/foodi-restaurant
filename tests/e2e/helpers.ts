@@ -25,8 +25,25 @@ export async function expectNoHorizontalOverflow(page: Page) {
   expect(overflow).toBeLessThanOrEqual(0)
 }
 
-/** Waits for streamed content (Suspense boundaries) to settle. */
+const consoleErrors = new WeakMap<Page, string[]>()
+
+/**
+ * Waits for streamed content (Suspense boundaries) to settle, and starts
+ * recording console errors and uncaught exceptions for expectNoConsoleErrors.
+ */
 export async function gotoAndSettle(page: Page, path: string) {
+  if (!consoleErrors.has(page)) {
+    const errors: string[] = []
+    consoleErrors.set(page, errors)
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text())
+    })
+    page.on("pageerror", (error) => errors.push(error.message))
+  }
   await page.goto(path)
   await page.waitForLoadState("networkidle")
+}
+
+export function expectNoConsoleErrors(page: Page) {
+  expect(consoleErrors.get(page) ?? []).toEqual([])
 }

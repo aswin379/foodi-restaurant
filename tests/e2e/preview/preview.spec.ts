@@ -1,6 +1,11 @@
 import { expect, test } from "@playwright/test"
 
-import { expectNoHorizontalOverflow, expectNoSeriousA11yViolations, gotoAndSettle } from "../helpers"
+import {
+  expectNoConsoleErrors,
+  expectNoHorizontalOverflow,
+  expectNoSeriousA11yViolations,
+  gotoAndSettle,
+} from "../helpers"
 
 // Development server with sample data enabled. Sample data must always be
 // labelled as such.
@@ -12,6 +17,7 @@ test("orders preview is labelled and uses PRV- references", async ({ page }) => 
   await expect(page.getByText(/PRV-\d+/).filter({ visible: true }).first()).toBeVisible()
   await expectNoHorizontalOverflow(page)
   await expectNoSeriousA11yViolations(page)
+  expectNoConsoleErrors(page)
 })
 
 test("order detail preview", async ({ page }) => {
@@ -21,6 +27,7 @@ test("order detail preview", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: /PRV-\d+/ })).toBeVisible()
   await expectNoHorizontalOverflow(page)
   await expectNoSeriousA11yViolations(page)
+  expectNoConsoleErrors(page)
 })
 
 test("menu preview is labelled", async ({ page }) => {
@@ -28,6 +35,7 @@ test("menu preview is labelled", async ({ page }) => {
   await expect(page.getByRole("note").first()).toBeVisible()
   await expectNoHorizontalOverflow(page)
   await expectNoSeriousA11yViolations(page)
+  expectNoConsoleErrors(page)
 })
 
 test("categories preview", async ({ page }) => {
@@ -35,4 +43,5 @@ test("categories preview", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: /categories/i })).toBeVisible()
   await expectNoHorizontalOverflow(page)
   await expectNoSeriousA11yViolations(page)
+  expectNoConsoleErrors(page)
 })
