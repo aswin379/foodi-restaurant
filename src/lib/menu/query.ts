@@ -1,4 +1,4 @@
-import { MENU_AVAILABILITY, type MenuAvailability, type MenuItemListQuery } from "./types"
+import { MENU_LIST_FILTERS, type MenuItemListQuery, type MenuListFilter } from "./types"
 
 export const MENU_PAGE_SIZE = 10
 const MAX_SEARCH_LENGTH = 80
@@ -10,18 +10,18 @@ function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
 }
 
-function isAvailability(value: string): value is MenuAvailability {
-  return (MENU_AVAILABILITY as readonly string[]).includes(value)
+function isListFilter(value: string): value is MenuListFilter {
+  return (MENU_LIST_FILTERS as readonly string[]).includes(value)
 }
 
 /** Turns untrusted URL search params into a valid, bounded list query. */
 export function parseMenuItemListQuery(params: RawSearchParams): MenuItemListQuery {
-  const availability = first(params.availability) ?? "all"
+  const filter = first(params.filter) ?? "all"
   const category = first(params.category)
   const page = Number.parseInt(first(params.page) ?? "1", 10)
 
   return {
-    availability: isAvailability(availability) ? availability : "all",
+    filter: isListFilter(filter) ? filter : "all",
     search: (first(params.q) ?? "").trim().slice(0, MAX_SEARCH_LENGTH),
     categoryId: category && ID_PATTERN.test(category) ? category : null,
     page: Number.isFinite(page) && page > 0 ? page : 1,
@@ -32,11 +32,11 @@ export function parseMenuItemListQuery(params: RawSearchParams): MenuItemListQue
 /** Builds a /menu URL that keeps the current filters, with overrides. */
 export function menuHref(
   query: MenuItemListQuery,
-  overrides: Partial<Pick<MenuItemListQuery, "availability" | "page">> = {}
+  overrides: Partial<Pick<MenuItemListQuery, "filter" | "page">> = {}
 ) {
   const next = { ...query, ...overrides }
   const params = new URLSearchParams()
-  if (next.availability !== "all") params.set("availability", next.availability)
+  if (next.filter !== "all") params.set("filter", next.filter)
   if (next.search) params.set("q", next.search)
   if (next.categoryId) params.set("category", next.categoryId)
   if (next.page > 1) params.set("page", String(next.page))

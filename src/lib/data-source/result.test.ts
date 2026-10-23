@@ -43,6 +43,13 @@ describe("toActionFailure", () => {
     expect(failure.message).not.toContain("secret")
   })
 
+  it("shows a ServiceError's explicit user message, and nothing else from it", () => {
+    expect(toActionFailure(new ServiceError("conflict", "internal detail", undefined, "Move its items first.")).message).toBe(
+      "Move its items first."
+    )
+    expect(toActionFailure(new ServiceError("conflict", "internal detail")).message).toBe(ACTION_FAILURE_MESSAGES.conflict)
+  })
+
   it("never describes a failure as saved", () => {
     for (const message of Object.values(ACTION_FAILURE_MESSAGES)) {
       expect(message.toLowerCase()).not.toMatch(/\bsaved\b/)

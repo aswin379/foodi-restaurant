@@ -4,21 +4,16 @@ import { notFound } from "next/navigation"
 
 import { PageHeader } from "@/components/dashboard/page-header"
 import { MenuItemForm } from "@/components/menu/menu-item-form"
-import { BackendPendingNotice, MenuPreviewNotice } from "@/components/menu/menu-notices"
 import { BackToMenuLink, MenuFormSkeleton } from "@/components/menu/menu-page-parts"
-import { MenuError, MenuNotConnected } from "@/components/menu/menu-states"
-import { MenuServiceError } from "@/lib/menu/errors"
-import { getMenuItem, listMenuCategories, menuDataSource } from "@/lib/menu/service"
-import type { MenuCategory, MenuItem } from "@/lib/menu/types"
+import { MenuLoadFailure } from "@/components/menu/menu-states"
+import { PreviewNotice } from "@/components/shared/preview-notice"
+import { getMenuContext, getMenuItem, listMenuCategories, menuMode } from "@/lib/menu/service"
 
 export const metadata: Metadata = {
   title: "Edit menu item",
 }
 
-export default function EditMenuItemPage({
-  params,
-  searchParams,
-}: PageProps<"/menu/[itemId]/edit">) {
+export default function EditMenuItemPage({ params, searchParams }: PageProps<"/menu/[itemId]/edit">) {
   return (
     <div className="flex flex-col gap-6">
       <BackToMenuLink />
@@ -39,32 +34,31 @@ async function EditItemView({
   const { itemId } = await params
   const { preview } = await searchParams
 
-  let item: MenuItem | null
+  let loaded
   try {
-    item = await getMenuItem(decodeURIComponent(itemId), preview)
+    const [context, item, categories] = await Promise.all([
+      getMenuContext(),
+      getMenuItem(decodeURIComponent(itemId), preview),
+      listMenuCategories(),
+    ])
+    loaded = { context, item, categories }
   } catch (error) {
-    if (error instanceof MenuServiceError && error.kind === "not_configured") {
-      return <MenuNotConnected />
-    }
-    return <MenuError retryHref={`/menu/${itemId}/edit`} what="this item" />
+    return <MenuLoadFailure error={error} retryHref={`/menu/${itemId}/edit`} what="item" />
   }
-  if (!item) notFound()
-
-  let categories: MenuCategory[] | null = null
-  try {
-    categories = await listMenuCategories()
-  } catch {
-    categories = null
-  }
+  const { item } = loaded
+  // Archived items are restored from the list before they can be edited.
+  if (!item || item.archived) notFound()
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={`Edit ${item.name}`} description="Update the item's details, price, options and availability." />
-      {menuDataSource() === "fixtures" ? <MenuPreviewNotice /> : null}
-      <BackendPendingNotice>
-        Changes on this page can&apos;t be saved yet. Backend integration pending.
-      </BackendPendingNotice>
-      <MenuItemForm mode="edit" item={item} categories={categories} />
+      <PageHeader title={`Edit ${item.name}`} description="Update the item's details, price, sizes, options and availability." />
+      {menuMode() === "preview" ? <PreviewNotice /> : null}
+      <MenuItemForm
+        mode="edit"
+        item={item}
+        categories={loaded.categories}
+        context={{ timeZone: loaded.context.timeZone, locale: loaded.context.locale }}
+      />
     </div>
   )
 }

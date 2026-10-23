@@ -35,19 +35,23 @@ export function actionSuccess<Data>(
 
 export function actionFailure(
   reason: ServiceErrorKind,
-  fieldErrors?: Record<string, string>
+  fieldErrors?: Record<string, string>,
+  userMessage?: string
 ): ActionFailure {
   return {
     ok: false,
     reason,
-    message: ACTION_FAILURE_MESSAGES[reason],
+    message: userMessage ?? ACTION_FAILURE_MESSAGES[reason],
     ...(fieldErrors ? { fieldErrors } : {}),
   }
 }
 
-/** Unknown errors are reported as "unavailable"; their details stay on the server. */
+/**
+ * Unknown errors are reported as "unavailable"; their details stay on the
+ * server. A ServiceError shows only its explicit userMessage, if any.
+ */
 export function toActionFailure(error: unknown): ActionFailure {
-  if (isServiceError(error)) return actionFailure(error.kind, error.fieldErrors)
+  if (isServiceError(error)) return actionFailure(error.kind, error.fieldErrors, error.userMessage)
   return actionFailure("unavailable")
 }
 

@@ -17,7 +17,8 @@ const routes = [
   { path: "/orders/history", heading: /order history/i, disconnected: /orders aren.t connected yet/i },
   { path: "/orders/prv-1003", heading: null, disconnected: /orders aren.t connected yet/i },
   { path: "/menu", heading: /menu/i, disconnected: /menu isn.t connected yet/i },
-  { path: "/menu/new", heading: /add (a )?(menu )?item|new item/i },
+  { path: "/menu/new", heading: /add menu item/i, disconnected: /categories aren.t connected yet/i },
+  { path: "/menu/prv-item-01/edit", heading: null, disconnected: /menu isn.t connected yet/i },
   { path: "/menu/categories", heading: /categories/i, disconnected: /categories aren.t connected yet/i },
 ]
 
@@ -56,6 +57,18 @@ test("the board offers no preview tools in production", async ({ page }) => {
   await gotoAndSettle(page, "/orders")
   await expect(page.getByRole("button", { name: /simulate a new order|reset sample orders/i })).toHaveCount(0)
   await expect(page.getByRole("button", { name: /^accept/i })).toHaveCount(0)
+})
+
+test("the menu offers no preview tools or item controls in production", async ({ page }) => {
+  await gotoAndSettle(page, "/menu")
+  await expect(page.getByRole("button", { name: /reset sample menu/i })).toHaveCount(0)
+  await expect(page.getByRole("switch")).toHaveCount(0)
+  await gotoAndSettle(page, "/menu/categories")
+  await expect(page.getByRole("button", { name: /move .* up/i })).toHaveCount(0)
+  // No editor, so no schedule can be set or saved.
+  await gotoAndSettle(page, "/menu/new")
+  await expect(page.getByRole("radio", { name: /only at set times/i })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: /add item/i })).toHaveCount(0)
 })
 
 test("fixture preview scenarios are ignored in production", async ({ page }) => {

@@ -1,9 +1,11 @@
 "use client"
 
 import { useId, useState } from "react"
-import { AlertCircle, PlugZap } from "lucide-react"
+import { AlertCircle, Loader2 } from "lucide-react"
 
+import { ActionResultMessage } from "@/components/shared/action-result-message"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogClose,
@@ -16,40 +18,48 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { BACKEND_PENDING_MESSAGE } from "@/lib/menu/labels"
+import { ORDER_TYPES, orderTypeLabels } from "@/lib/domain/order-types"
 import type { MenuCategory } from "@/lib/menu/types"
 import {
   CATEGORY_NAME_MAX,
+  hasErrors,
   validateCategoryDraft,
   type CategoryDraft,
-  type CategoryErrors,
+  type FieldErrors,
 } from "@/lib/menu/validation"
 
+import { useMenuCommand } from "./use-menu-command"
+
+function draftFrom(category?: MenuCategory): CategoryDraft {
+  return {
+    name: category?.name ?? "",
+    description: category?.description ?? "",
+    active: category?.active ?? true,
+    channels: category?.channels ?? { delivery: true, takeaway: true, dine_in: true },
+  }
+}
+
 /**
- * Add or edit a category. Validation runs locally; a valid submission stops
- * with "Backend integration pending" and the dialog stays open. Cancel or
- * Escape closes it without changing anything.
+ * Add or edit a category (PRD §3.4: on/off and order types). Validated here
+ * and again on the server; in preview mode the save is simulated.
  */
-export function CategoryDialog({
-  category,
-  trigger,
-}: {
-  category?: MenuCategory
-  trigger: React.ReactNode
-}) {
+export function CategoryDialog({ category, trigger }: { category?: MenuCategory; trigger: React.ReactNode }) {
   const id = useId()
+  const command = useMenuCommand()
   const [open, setOpen] = useState(false)
-  const [draft, setDraft] = useState<CategoryDraft>({ name: "", description: "" })
-  const [errors, setErrors] = useState<CategoryErrors>({})
-  const [pending, setPending] = useState(false)
+  const [draft, setDraft] = useState<CategoryDraft>(() => draftFrom(category))
+  const [localErrors, setLocalErrors] = useState<FieldErrors>({})
+  const errors: FieldErrors = { ...command.fieldErrors, ...localErrors }
 
   function onOpenChange(next: boolean) {
+    if (command.pending) return
     if (next) {
       // Start from the saved values each time; nothing carries over.
-      setDraft({ name: category?.name ?? "", description: category?.description ?? "" })
-      setErrors({})
-      setPending(false)
+      setDraft(draftFrom(category))
+      setLocalErrors({})
+      command.begin()
     }
     setOpen(next)
   }
@@ -57,41 +67,49 @@ export function CategoryDialog({
   function update(patch: Partial<CategoryDraft>) {
     const next = { ...draft, ...patch }
     setDraft(next)
-    setPending(false)
-    if (errors.name || errors.description) setErrors(validateCategoryDraft(next))
+    if (hasErrors(localErrors)) setLocalErrors(validateCategoryDraft(next))
   }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const nextErrors = validateCategoryDraft(draft)
-    setErrors(nextErrors)
-    if (nextErrors.name || nextErrors.description) {
-      document.getElementById(nextErrors.name ? `${id}-name` : `${id}-description`)?.focus()
+    setLocalErrors(nextErrors)
+    if (hasErrors(nextErrors)) {
+      document.getElementById(nextErrors.name ? `${id}-name` : nextErrors.description ? `${id}-description` : `${id}-channels`)?.focus()
       return
     }
-    setPending(true)
+    const name = draft.name.trim()
+    command.run(
+      { type: "save_category", categoryId: category?.id ?? null, draft },
+      category ? `${name} updated` : `${name} added`,
+      () => setOpen(false)
+    )
   }
 
   const editing = Boolean(category)
+  const fieldError = (key: string) =>
+    errors[key] ? (
+      <p id={`${id}-${key}-error`} className="flex items-center gap-1.5 text-sm text-destructive">
+        <AlertCircle aria-hidden className="size-3.5" />
+        {errors[key]}
+      </p>
+    ) : null
+  const generalFailure = command.result && !command.result.ok && !command.result.fieldErrors ? command.result : null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <form onSubmit={submit} noValidate className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{editing ? `Edit ${category?.name}` : "Add category"}</DialogTitle>
-            <DialogDescription>
-              Categories group items on your menu, like Starters or Drinks.
-            </DialogDescription>
+            <DialogDescription>Categories group items on your menu, like Starters or Drinks.</DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-2">
             <Label htmlFor={`${id}-name`} className="gap-2">
               Category name
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-                Required
-              </span>
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">Required</span>
             </Label>
             <Input
               id={`${id}-name`}
@@ -104,12 +122,7 @@ export function CategoryDialog({
               aria-describedby={errors.name ? `${id}-name-error` : undefined}
               className="h-10"
             />
-            {errors.name ? (
-              <p id={`${id}-name-error`} className="flex items-center gap-1.5 text-sm text-destructive">
-                <AlertCircle aria-hidden className="size-3.5" />
-                {errors.name}
-              </p>
-            ) : null}
+            {fieldError("name")}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -121,29 +134,49 @@ export function CategoryDialog({
               id={`${id}-description`}
               value={draft.description}
               onChange={(event) => update({ description: event.target.value })}
-              rows={3}
+              rows={2}
               aria-invalid={errors.description ? true : undefined}
               aria-describedby={errors.description ? `${id}-description-error` : undefined}
             />
-            {errors.description ? (
-              <p id={`${id}-description-error`} className="flex items-center gap-1.5 text-sm text-destructive">
-                <AlertCircle aria-hidden className="size-3.5" />
-                {errors.description}
-              </p>
-            ) : null}
+            {fieldError("description")}
           </div>
 
-          {pending ? (
-            <div
-              role="alert"
-              className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-900"
-            >
-              <PlugZap aria-hidden className="mt-0.5 size-4 shrink-0" />
-              <p>
-                <span className="font-semibold">Not saved.</span> {BACKEND_PENDING_MESSAGE}
+          <div className="flex items-start gap-3">
+            <Switch
+              id={`${id}-active`}
+              checked={draft.active}
+              onCheckedChange={(active) => update({ active })}
+              aria-describedby={`${id}-active-help`}
+              className="mt-0.5"
+            />
+            <div className="flex flex-col gap-1">
+              <Label htmlFor={`${id}-active`}>Category on</Label>
+              <p id={`${id}-active-help`} className="text-xs text-muted-foreground">
+                When off, none of its items can be ordered.
               </p>
             </div>
-          ) : null}
+          </div>
+
+          <fieldset className="grid gap-2">
+            <legend id={`${id}-channels`} tabIndex={-1} className="mb-1 text-sm font-medium outline-none">
+              Order types
+            </legend>
+            {ORDER_TYPES.map((type) => (
+              <div key={type} className="flex items-center gap-2.5">
+                <Checkbox
+                  id={`${id}-channel-${type}`}
+                  checked={draft.channels[type]}
+                  onCheckedChange={(checked) => update({ channels: { ...draft.channels, [type]: checked === true } })}
+                />
+                <Label htmlFor={`${id}-channel-${type}`} className="font-normal">
+                  {orderTypeLabels[type]}
+                </Label>
+              </div>
+            ))}
+            {fieldError("channels")}
+          </fieldset>
+
+          {generalFailure ? <ActionResultMessage result={generalFailure} successText="" /> : null}
 
           <DialogFooter>
             <DialogClose asChild>
@@ -151,7 +184,10 @@ export function CategoryDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit">{editing ? "Save changes" : "Add category"}</Button>
+            <Button type="submit" aria-disabled={command.pending || undefined}>
+              {command.pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
+              {editing ? "Save changes" : "Add category"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -11,7 +11,7 @@ and no seller API yet.
 |---|---|---|
 | Mode | `src/lib/data-source/mode.ts` | Each module has its own variable (e.g. `FOODI_RESTAURANT_DATA_SOURCE`). `preview` (or the existing `fixtures`) turns preview on, **outside production only**. Anything else, and every production build, uses the API. |
 | Adapter choice | `selectAdapter()` in `mode.ts` | Picks the API or the preview adapter once. The preview adapter is created only when chosen. Errors from the chosen adapter reach the caller: **no fallback to sample data after an API failure.** |
-| Errors | `src/lib/data-source/errors.ts` | `ServiceError` with `not_configured`, `unavailable`, `forbidden`, `not_found`, `conflict` or `validation`. |
+| Errors | `src/lib/data-source/errors.ts` | `ServiceError` with `not_configured`, `unavailable`, `forbidden`, `not_found`, `conflict` or `validation`. An optional `userMessage` holds wording written for the user (such as a business-rule refusal); it's the only error text the UI ever shows. |
 | Action results | `src/lib/data-source/result.ts` | Every Server Action returns `ActionResult`. `runAction()` turns errors into safe user messages; raw error text never reaches the UI. Success carries `preview: true` when simulated. |
 | Simulated writes | `src/lib/data-source/preview-store.ts` | In-memory collections for preview mode (G1). Every operation refuses to run in production. Copies on read and write; reset on server restart. |
 | API seam | `src/lib/api/transport.ts` | The only way to call the Foodi API. Always `not_configured` today. |
@@ -19,8 +19,8 @@ and no seller API yet.
 | Name mapping | `src/lib/api/mapping.ts` | The only place backend enum names appear (G6). |
 | Restaurant context | `src/lib/restaurant/context.ts` | Time zone, currency, locale. Preview restaurant in preview mode, `not_configured` otherwise. |
 
-Orders (`FOODI_ORDERS_DATA_SOURCE`) uses `selectAdapter()` since B1. Menu
-(`FOODI_MENU_DATA_SOURCE`) keeps its own selection code until B2. Production
+Orders (`FOODI_ORDERS_DATA_SOURCE`, since B1) and Menu
+(`FOODI_MENU_DATA_SOURCE`, since B2) both use `selectAdapter()`. Production
 refusal and no-fallback behaviour are covered by tests for both
 (`src/lib/orders/service.test.ts`, `src/lib/menu/service.test.ts`).
 

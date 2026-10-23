@@ -1,30 +1,66 @@
 import "server-only"
 
-import { MenuServiceError } from "./errors"
-import type { MenuCategory, MenuItem, MenuItemListQuery, MenuItemListResult } from "./types"
+import { getApiTransport } from "@/lib/api/transport"
+import { getRestaurantContext } from "@/lib/restaurant/context"
+
+import type { MenuAdapter } from "./adapter"
+import { categoryFromApi, commandResultFromApi, commandToApi, itemFromApi, itemListFromApi } from "./api-mapping"
+import type { MenuCommandResult } from "./rules"
+import type { MenuCategory, MenuItem, MenuItemListResult } from "./types"
 
 /**
  * Integration point for the Foodi menu API.
  *
- * No menu API exists yet, so every function reports `not_configured`. When the
- * contract is approved, implement these server-side with the restaurant
- * session, map responses to ./types, and throw MenuServiceError("unavailable")
- * on failure. Never fall back to fixtures. Proposed contract: docs/menu-ui.md.
+ * No seller API exists yet, so the transport reports `not_configured` for
+ * every call and the pages show "Menu isn't connected yet". The paths below
+ * are the PROPOSED contract in docs/menu-ui.md, not confirmed endpoints.
+ * Image upload needs its own endpoint (and server-side compression) once the
+ * contract is fixed. Never fall back to preview data.
  */
-export async function fetchMenuItems(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _query: MenuItemListQuery
-): Promise<MenuItemListResult> {
-  throw new MenuServiceError("not_configured")
+const PROPOSED_PATHS = {
+  items: "/seller/menu/items",
+  item: (id: string) => `/seller/menu/items/${encodeURIComponent(id)}`,
+  categories: "/seller/menu/categories",
+  commands: "/seller/menu/commands",
 }
 
-export async function fetchMenuItem(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _itemId: string
-): Promise<MenuItem | null> {
-  throw new MenuServiceError("not_configured")
-}
+// Responses and command bodies carry order-type names, so they go through
+// api-mapping.ts in both directions.
+export const apiMenuAdapter: MenuAdapter = {
+  context: getRestaurantContext,
 
-export async function fetchMenuCategories(): Promise<MenuCategory[]> {
-  throw new MenuServiceError("not_configured")
+  async listItems(query) {
+    const result = await getApiTransport().request<MenuItemListResult>({
+      method: "GET",
+      path: PROPOSED_PATHS.items,
+      query: {
+        filter: query.filter,
+        q: query.search || undefined,
+        category: query.categoryId ?? undefined,
+        page: query.page,
+        pageSize: query.pageSize,
+      },
+    })
+    return itemListFromApi(result)
+  },
+
+  async getItem(itemId) {
+    const item = await getApiTransport().request<MenuItem | null>({ method: "GET", path: PROPOSED_PATHS.item(itemId) })
+    return item && itemFromApi(item)
+  },
+
+  async listCategories() {
+    const categories = await getApiTransport().request<MenuCategory[]>({ method: "GET", path: PROPOSED_PATHS.categories })
+    return categories.map(categoryFromApi)
+  },
+
+  async act(command, idempotencyKey) {
+    const result = await getApiTransport().request<MenuCommandResult>({
+      method: "POST",
+      path: PROPOSED_PATHS.commands,
+      body: commandToApi(command),
+      idempotencyKey,
+    })
+    return commandResultFromApi(result)
+  },
 }

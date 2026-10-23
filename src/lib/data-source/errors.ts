@@ -1,5 +1,4 @@
-// Shared error type for every module's data source (B0). Module-specific error
-// classes (OrdersServiceError, MenuServiceError) move onto this in B1/B2.
+// Shared error type for every module's data source (B0).
 
 export const SERVICE_ERROR_KINDS = [
   /** No backend API exists for this feature yet. */
@@ -22,7 +21,12 @@ export class ServiceError extends Error {
     readonly kind: ServiceErrorKind,
     message: string = kind,
     /** Field-level messages from the server, keyed by form field name. */
-    readonly fieldErrors?: Record<string, string>
+    readonly fieldErrors?: Record<string, string>,
+    /**
+     * Wording written for the user (e.g. a business-rule refusal). Only this is
+     * ever shown; `message` stays on the server.
+     */
+    readonly userMessage?: string
   ) {
     super(message)
     this.name = "ServiceError"
