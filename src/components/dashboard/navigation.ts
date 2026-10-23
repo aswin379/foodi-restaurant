@@ -35,7 +35,7 @@ export const dashboardNavigation: NavGroup[] = [
   {
     label: "Operations",
     items: [
-      { title: "Orders", icon: ReceiptText, href: null },
+      { title: "Orders", icon: ReceiptText, href: "/orders" },
       { title: "Menu Management", icon: UtensilsCrossed, href: null },
       { title: "Categories", icon: Tags, href: null },
       { title: "Delivery Management", icon: Bike, href: null },

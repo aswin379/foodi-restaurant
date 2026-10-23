@@ -65,4 +65,18 @@ production:
    `/login`, because no session is ever created.
 4. Remove the development notice from `dashboard-shell.tsx`.
 
+## Orders UI
+
+`/orders` and `/orders/[orderId]` are built on a **provisional** order model, and
+all order actions are disabled until the order lifecycle and API are approved.
+No orders API exists yet, so the pages show "Orders aren't connected yet". To
+preview with clearly labelled sample data in development:
+
+```bash
+FOODI_ORDERS_DATA_SOURCE=fixtures npm run dev
+```
+
+Fixtures are refused in production builds. Details, open decisions and the
+proposed API contract: [docs/orders-ui.md](docs/orders-ui.md).
+
 Brand logo: `public/brand/foodi-logo.png`.

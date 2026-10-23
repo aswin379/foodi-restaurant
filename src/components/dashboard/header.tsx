@@ -1,6 +1,6 @@
 "use client"
 
-import { startTransition } from "react"
+import { Suspense, startTransition } from "react"
 import { usePathname } from "next/navigation"
 import {
   Bell,
@@ -37,9 +37,6 @@ export function DashboardHeader({
   onToggleSidebar,
   onOpenMobileNav,
 }: DashboardHeaderProps) {
-  const pathname = usePathname()
-  const title = getActiveNavItem(pathname)?.title ?? "Dashboard"
-
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-6">
       <Button
@@ -63,9 +60,10 @@ export function DashboardHeader({
         {sidebarCollapsed ? <PanelLeftOpen aria-hidden /> : <PanelLeftClose aria-hidden />}
       </Button>
 
-      <p className="min-w-0 truncate text-[15px] font-semibold text-foreground">
-        {title}
-      </p>
+      {/* Pathname is request data on dynamic routes, so it's read inside Suspense. */}
+      <Suspense fallback={<span className="min-w-0 flex-1" />}>
+        <CurrentPageTitle />
+      </Suspense>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
         <RestaurantIdentity />
@@ -73,6 +71,15 @@ export function DashboardHeader({
         <AccountMenu />
       </div>
     </header>
+  )
+}
+
+function CurrentPageTitle() {
+  const title = getActiveNavItem(usePathname())?.title ?? "Dashboard"
+  return (
+    <p className="min-w-0 truncate text-[15px] font-semibold text-foreground">
+      {title}
+    </p>
   )
 }
 
