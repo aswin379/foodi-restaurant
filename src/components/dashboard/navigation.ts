@@ -36,8 +36,8 @@ export const dashboardNavigation: NavGroup[] = [
     label: "Operations",
     items: [
       { title: "Orders", icon: ReceiptText, href: "/orders" },
-      { title: "Menu Management", icon: UtensilsCrossed, href: null },
-      { title: "Categories", icon: Tags, href: null },
+      { title: "Menu Management", icon: UtensilsCrossed, href: "/menu" },
+      { title: "Categories", icon: Tags, href: "/menu/categories" },
       { title: "Delivery Management", icon: Bike, href: null },
     ],
   },
@@ -62,11 +62,19 @@ export function isNavItemActive(href: string, pathname: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
+/** The most specific matching item, so /menu/categories selects "Categories", not "Menu". */
 export function getActiveNavItem(pathname: string) {
+  let active: NavItem | null = null
   for (const group of dashboardNavigation) {
     for (const item of group.items) {
-      if (item.href && isNavItemActive(item.href, pathname)) return item
+      if (
+        item.href &&
+        isNavItemActive(item.href, pathname) &&
+        item.href.length > (active?.href?.length ?? 0)
+      ) {
+        active = item
+      }
     }
   }
-  return null
+  return active
 }
