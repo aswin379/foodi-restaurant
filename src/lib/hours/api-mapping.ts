@@ -84,7 +84,8 @@ export function actorFromApi(value: unknown): Actor {
 }
 const nullableActor = (value: unknown) => (value === null || value === undefined ? null : actorFromApi(value))
 
-function dayRulesFromApi(value: unknown): DayRule[] {
+/** Weekly day rules (also used for meal-period times, B3b). */
+export function dayRulesFromApi(value: unknown): DayRule[] {
   return list(value, "rules").map((rule) => {
     if (!isRecord(rule)) throw invalid("rule")
     const days = list(rule.days, "days").map((day) => oneOf<Weekday>(day, WEEKDAYS, "weekday"))

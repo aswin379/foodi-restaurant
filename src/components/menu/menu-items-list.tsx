@@ -10,8 +10,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { formatMoney, type ZoneAndLocale } from "@/lib/orders/format"
+import { mealPeriodLabels, type MealPeriod } from "@/lib/menu/meal-periods"
 import { displayPrice, itemStatus } from "@/lib/menu/rules"
-import { scheduleLines } from "@/lib/menu/schedule"
+import { scheduleLines, type MealPeriodLabel } from "@/lib/menu/schedule"
 import type { MenuCategory, MenuItem } from "@/lib/menu/types"
 
 import { DietaryMark, ItemStatusBadge } from "./item-status-badge"
@@ -34,21 +35,34 @@ function OptionSummary({ item }: { item: MenuItem }) {
 const SCHEDULE_LINES_SHOWN = 2
 
 /**
- * Custom schedules only; "always" is the default and isn't repeated on every
- * row. Order types appear only where a window narrows the item's own.
+ * Custom and meal-period schedules only; "always" is the default and isn't
+ * repeated on every row. Order types appear only where a window narrows the
+ * item's own. Meal-period names come from `periods`; if they couldn't be
+ * loaded, the row says so rather than guessing.
  */
-function ScheduleSummary({ item, context }: { item: MenuItem; context: ZoneAndLocale }) {
+function ScheduleSummary({
+  item,
+  context,
+  periods,
+}: {
+  item: MenuItem
+  context: ZoneAndLocale
+  periods: ReadonlyMap<string, MealPeriodLabel> | null
+}) {
   const { schedule } = item
   if (schedule.mode === "always") return null
-  const lines = scheduleLines(schedule, item.channels)
+  const lines =
+    schedule.mode === "meal_periods" && !periods
+      ? ["Meal periods (names couldn't be loaded)"]
+      : scheduleLines(schedule, item.channels, periods ?? undefined)
   const hidden = lines.length - SCHEDULE_LINES_SHOWN
   // Times are shown in the zone they were saved in; say so if it isn't the restaurant's current zone.
-  const zone = schedule.timeZone === context.timeZone ? null : schedule.timeZone
+  const zone = schedule.mode !== "custom" || schedule.timeZone === context.timeZone ? null : schedule.timeZone
   return (
     <span className="flex max-w-md items-start gap-1 text-xs whitespace-normal text-muted-foreground">
       <CalendarClock aria-hidden className="mt-px size-3.5 shrink-0" />
       <span className="flex min-w-0 flex-col">
-        <span className="sr-only">Available only: </span>
+        <span className="sr-only">{schedule.mode === "meal_periods" ? "Available only during: " : "Available only: "}</span>
         {lines.slice(0, SCHEDULE_LINES_SHOWN).map((line) => (
           <span key={line}>{line}</span>
         ))}
@@ -86,13 +100,17 @@ function Price({ item, context }: { item: MenuItem; context: ZoneAndLocale }) {
 export function MenuItemsList({
   items,
   categories,
+  mealPeriods = null,
   context,
 }: {
   items: MenuItem[]
   categories: MenuCategory[]
+  /** Null when meal periods couldn't be loaded. */
+  mealPeriods?: MealPeriod[] | null
   context: ZoneAndLocale
 }) {
   const categoryById = new Map(categories.map((category) => [category.id, category]))
+  const periods = mealPeriods ? mealPeriodLabels(mealPeriods) : null
   const rows = items.map((item) => ({ item, status: itemStatus(item, categoryById.get(item.categoryId) ?? null) }))
 
   return (
@@ -120,7 +138,7 @@ export function MenuItemsList({
                         <ItemName item={item} />
                       </span>
                       <OptionSummary item={item} />
-                      <ScheduleSummary item={item} context={context} />
+                      <ScheduleSummary item={item} context={context} periods={periods} />
                     </div>
                   </div>
                 </TableCell>
@@ -152,7 +170,7 @@ export function MenuItemsList({
                 </span>
                 <span className="text-xs text-muted-foreground">{item.categoryName}</span>
                 <OptionSummary item={item} />
-                <ScheduleSummary item={item} context={context} />
+                <ScheduleSummary item={item} context={context} periods={periods} />
                 <span className="text-sm font-semibold tabular-nums">
                   <Price item={item} context={context} />
                 </span>

@@ -5,6 +5,7 @@ import { getRestaurantContext } from "@/lib/restaurant/context"
 
 import type { MenuAdapter } from "./adapter"
 import { categoryFromApi, commandResultFromApi, commandToApi, itemFromApi, itemListFromApi } from "./api-mapping"
+import { mealPeriodListFromApi } from "./meal-periods-api"
 import type { MenuCommandResult } from "./rules"
 import type { MenuCategory, MenuItem, MenuItemListResult } from "./types"
 
@@ -21,6 +22,8 @@ const PROPOSED_PATHS = {
   items: "/seller/menu/items",
   item: (id: string) => `/seller/menu/items/${encodeURIComponent(id)}`,
   categories: "/seller/menu/categories",
+  /** B3b, PROPOSED (docs/meal-periods-ui.md). Changes go through `commands`. */
+  mealPeriods: "/seller/menu/meal-periods",
   commands: "/seller/menu/commands",
 }
 
@@ -52,6 +55,10 @@ export const apiMenuAdapter: MenuAdapter = {
   async listCategories() {
     const categories = await getApiTransport().request<MenuCategory[]>({ method: "GET", path: PROPOSED_PATHS.categories })
     return categories.map(categoryFromApi)
+  },
+
+  async listMealPeriods() {
+    return mealPeriodListFromApi(await getApiTransport().request<unknown>({ method: "GET", path: PROPOSED_PATHS.mealPeriods }))
   },
 
   async act(command, idempotencyKey) {

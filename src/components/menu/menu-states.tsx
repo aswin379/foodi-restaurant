@@ -6,12 +6,18 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/dashboard/empty-state"
 import { isServiceError } from "@/lib/data-source/errors"
 
-export function MenuNotConnected({ what = "menu" }: { what?: "menu" | "categories" }) {
+const NOT_CONNECTED = {
+  menu: { title: "Menu isn't connected yet", what: "menu items" },
+  categories: { title: "Categories aren't connected yet", what: "categories" },
+  meal_periods: { title: "Meal periods aren't connected yet", what: "meal periods" },
+}
+
+export function MenuNotConnected({ what = "menu" }: { what?: keyof typeof NOT_CONNECTED }) {
   return (
     <EmptyState
       icon={PlugZap}
-      title={what === "menu" ? "Menu isn't connected yet" : "Categories aren't connected yet"}
-      description={`Your restaurant's ${what === "menu" ? "menu items" : "categories"} will appear here once the Foodi menu service is connected. Nothing is shown or saved until then.`}
+      title={NOT_CONNECTED[what].title}
+      description={`Your restaurant's ${NOT_CONNECTED[what].what} will appear here once the Foodi menu service is connected. Nothing is shown or saved until then.`}
       className="min-h-72 bg-card"
     />
   )
@@ -103,15 +109,15 @@ export function MenuLoadFailure({
 }: {
   error: unknown
   retryHref: string
-  what?: "menu" | "categories" | "item"
+  what?: "menu" | "categories" | "item" | "meal_periods"
 }) {
   if (isServiceError(error) && error.kind === "not_configured") {
-    return <MenuNotConnected what={what === "categories" ? "categories" : "menu"} />
+    return <MenuNotConnected what={what === "item" ? "menu" : what} />
   }
   return (
     <MenuError
       retryHref={retryHref}
-      what={what === "categories" ? "categories" : what === "item" ? "this item" : "menu items"}
+      what={what === "categories" ? "categories" : what === "item" ? "this item" : what === "meal_periods" ? "meal periods" : "menu items"}
     />
   )
 }

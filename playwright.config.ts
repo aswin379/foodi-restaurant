@@ -9,6 +9,8 @@ import { defineConfig, devices } from "@playwright/test"
 
 const PRODUCTION_PORT = 3100
 const PREVIEW_PORT = 3101
+/** Changes the preview restaurant hours; see the preview projects below. */
+const HOURS_SPEC = "**/hours.spec.ts"
 
 const viewports = {
   desktop: { width: 1440, height: 900 },
@@ -41,15 +43,34 @@ export default defineConfig({
     })),
     // Preview tests share one in-memory preview store, so the mobile run waits
     // for the desktop run instead of changing the same orders at the same time.
+    // The menu tests also read restaurant hours (the B3b hours check), so the
+    // tests that change hours run in their own step, never alongside them.
+    // Every other preview file still runs in parallel.
     {
       name: "preview-desktop",
       testDir: "./tests/e2e/preview",
+      testIgnore: HOURS_SPEC,
+      use: { baseURL: `http://localhost:${PREVIEW_PORT}`, viewport: viewports.desktop },
+    },
+    {
+      name: "preview-hours-desktop",
+      testDir: "./tests/e2e/preview",
+      testMatch: HOURS_SPEC,
+      dependencies: ["preview-desktop"],
       use: { baseURL: `http://localhost:${PREVIEW_PORT}`, viewport: viewports.desktop },
     },
     {
       name: "preview-mobile",
       testDir: "./tests/e2e/preview",
-      dependencies: ["preview-desktop"],
+      testIgnore: HOURS_SPEC,
+      dependencies: ["preview-hours-desktop"],
+      use: { baseURL: `http://localhost:${PREVIEW_PORT}`, viewport: viewports.mobile },
+    },
+    {
+      name: "preview-hours-mobile",
+      testDir: "./tests/e2e/preview",
+      testMatch: HOURS_SPEC,
+      dependencies: ["preview-mobile"],
       use: { baseURL: `http://localhost:${PREVIEW_PORT}`, viewport: viewports.mobile },
     },
   ],

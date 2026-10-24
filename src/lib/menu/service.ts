@@ -9,6 +9,7 @@ import type { RestaurantContext } from "@/lib/restaurant/context"
 import type { MenuAdapter } from "./adapter"
 import { apiMenuAdapter } from "./api-source"
 import type { MenuCommand } from "./commands"
+import type { MealPeriod } from "./meal-periods"
 import { createPreviewMenuAdapter, resetPreviewMenu } from "./preview-source"
 import type { MenuCommandResult } from "./rules"
 import type { MenuCategory, MenuItem, MenuItemListQuery, MenuItemListResult } from "./types"
@@ -50,6 +51,12 @@ export async function getMenuItem(itemId: string, previewScenario?: unknown): Pr
 export async function listMenuCategories(previewScenario?: unknown): Promise<MenuCategory[]> {
   await connection()
   return menu().adapter.listCategories(previewScenario)
+}
+
+/** Every meal period, archived ones included (B3b). */
+export async function listMealPeriods(previewScenario?: unknown): Promise<MealPeriod[]> {
+  await connection()
+  return menu().adapter.listMealPeriods(previewScenario)
 }
 
 export async function performMenuCommand(command: MenuCommand, idempotencyKey: string): Promise<MenuCommandResult> {

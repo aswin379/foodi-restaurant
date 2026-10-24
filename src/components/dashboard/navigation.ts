@@ -1,6 +1,7 @@
 import {
   BadgePercent,
   Bike,
+  CalendarClock,
   ChartColumn,
   Clock,
   Contact,
@@ -49,6 +50,7 @@ export const dashboardNavigation: NavGroup[] = [
       { title: "Orders", icon: ReceiptText, href: "/orders", prdModule: 3 },
       { title: "Menu", icon: UtensilsCrossed, href: "/menu", prdModule: 4 },
       { title: "Categories", icon: Tags, href: "/menu/categories", prdModule: 4 },
+      { title: "Meal periods", icon: CalendarClock, href: "/menu/meal-periods", prdModule: 4 },
       { title: "Availability & hours", icon: Clock, href: "/hours", prdModule: 5 },
       { title: "Delivery", icon: Bike, href: null, prdModule: 9 },
       { title: "Promotions", icon: BadgePercent, href: null, prdModule: 12 },

@@ -82,6 +82,8 @@ export type CategoryDraft = {
   description: string
   active: boolean
   channels: ChannelSettings
+  /** B3b. Left out = keep the saved schedule (a new category: always available). */
+  schedule?: ScheduleDraft
 }
 
 export type FieldErrors = Record<string, string>
@@ -236,6 +238,7 @@ export function validateCategoryDraft(draft: CategoryDraft): FieldErrors {
   }
   const channels = channelsError(draft.channels)
   if (channels) errors.channels = channels
+  if (draft.schedule) Object.assign(errors, validateScheduleDraft(draft.schedule, draft.channels, "category"))
   return errors
 }
 

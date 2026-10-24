@@ -25,14 +25,17 @@ import {
   weekdayLabels,
   type DayDraft,
   type ScheduleDraft,
+  type ScheduleOwner,
   type Weekday,
   type WindowDraft,
 } from "@/lib/menu/schedule"
+import type { MealPeriod } from "@/lib/menu/meal-periods"
 import type { ChannelSettings } from "@/lib/menu/types"
 import { fieldId, type FieldErrors } from "@/lib/menu/validation"
 import { isOvernight, validateWindow } from "@/lib/time/windows"
 
 import { FieldError } from "./item-options-editors"
+import { MealPeriodsFields } from "./meal-period-picker"
 
 const emptyWindow = (key: string, channels: OrderType[]): WindowDraft => ({ key, start: "", end: "", channels })
 const isBlank = (window: WindowDraft) => window.start === "" && window.end === ""
@@ -46,6 +49,10 @@ const windowSignature = (window: { start: string; end: string; channels: OrderTy
  * An end before the start runs into the next day (§3.2). Overlapping windows
  * are merged on save and the editor shows the result. The schedule only
  * narrows availability; the server decides what's orderable.
+ *
+ * B3b: also used for category schedules (`owner`), and offers reusable meal
+ * periods as a third option when `mealPeriods` is passed. A schedule never
+ * mixes meal periods with custom times.
  */
 export function ScheduleEditor({
   value,
@@ -55,6 +62,8 @@ export function ScheduleEditor({
   savedTimeZone,
   itemChannels,
   newKey,
+  owner = "item",
+  mealPeriods,
 }: {
   value: ScheduleDraft
   onChange: (value: ScheduleDraft) => void
@@ -63,15 +72,23 @@ export function ScheduleEditor({
   timeZone: string
   /** Zone of the stored schedule, when editing a custom one. */
   savedTimeZone?: string
-  /** The item's own order types; the schedule can only narrow them. */
+  /** The owner's own order types; the schedule can only narrow them. */
   itemChannels: ChannelSettings
   newKey: () => string
+  /** Whose schedule this is, for wording and ids. */
+  owner?: ScheduleOwner
+  /** Meal periods to choose from; null when they couldn't be loaded. Leave out to hide the option. */
+  mealPeriods?: MealPeriod[] | null
 }) {
   const custom = value.mode === "custom" ? value : null
+  const [convertedFrom, setConvertedFrom] = useState<string[] | null>(null)
+  const offerMealPeriods = mealPeriods !== undefined
+  // Without loaded periods, the option can't be chosen anew, only kept.
+  const mealPeriodsDisabled = mealPeriods === null && value.mode !== "meal_periods"
 
   // Show what will be saved once the schedule is valid.
   const saved =
-    custom && Object.keys(validateScheduleDraft(value, itemChannels)).length === 0
+    custom && Object.keys(validateScheduleDraft(value, itemChannels, owner)).length === 0
       ? scheduleLines(scheduleFromDraft(value, timeZone), itemChannels)
       : []
 
@@ -114,24 +131,54 @@ export function ScheduleEditor({
         </legend>
         <RadioGroup
           value={value.mode}
-          onValueChange={(mode) =>
-            onChange(mode === "always" ? { mode: "always" } : { mode: "custom", days: custom?.days ?? emptyDays() })
-          }
+          onValueChange={(mode) => {
+            setConvertedFrom(null)
+            onChange(
+              mode === "always"
+                ? { mode: "always" }
+                : mode === "meal_periods"
+                  ? { mode: "meal_periods", periods: [] }
+                  : { mode: "custom", days: custom?.days ?? emptyDays() }
+            )
+          }}
           className="gap-2"
         >
           <div className="flex items-start gap-2.5">
-            <RadioGroupItem value="always" id="item-schedule-always" className="mt-0.5" />
+            <RadioGroupItem value="always" id={`${owner}-schedule-always`} className="mt-0.5" />
             <div className="grid gap-0.5">
-              <Label htmlFor="item-schedule-always" className="font-normal">
+              <Label htmlFor={`${owner}-schedule-always`} className="font-normal">
                 Always available
               </Label>
-              <span className="text-xs text-muted-foreground">Follows restaurant and category hours.</span>
+              <span className="text-xs text-muted-foreground">
+                {owner === "item" ? "Follows restaurant and category hours." : "Follows restaurant hours."}
+              </span>
             </div>
           </div>
+          {offerMealPeriods ? (
+            <div className="flex items-start gap-2.5">
+              <RadioGroupItem
+                value="meal_periods"
+                id={`${owner}-schedule-meal-periods`}
+                disabled={mealPeriodsDisabled}
+                aria-describedby={`${owner}-schedule-meal-periods-help`}
+                className="mt-0.5"
+              />
+              <div className="grid gap-0.5">
+                <Label htmlFor={`${owner}-schedule-meal-periods`} className="font-normal">
+                  During meal periods
+                </Label>
+                <span id={`${owner}-schedule-meal-periods-help`} className="text-xs text-muted-foreground">
+                  {mealPeriodsDisabled
+                    ? "Meal periods couldn't be loaded, so they can't be chosen right now."
+                    : "Use your restaurant's meal periods, like Lunch. Changing a meal period changes it everywhere it's used."}
+                </span>
+              </div>
+            </div>
+          ) : null}
           <div className="flex items-start gap-2.5">
-            <RadioGroupItem value="custom" id="item-schedule-custom" className="mt-0.5" />
+            <RadioGroupItem value="custom" id={`${owner}-schedule-custom`} className="mt-0.5" />
             <div className="grid gap-0.5">
-              <Label htmlFor="item-schedule-custom" className="font-normal">
+              <Label htmlFor={`${owner}-schedule-custom`} className="font-normal">
                 Only at set times
               </Label>
               <span className="text-xs text-muted-foreground">Choose days, times and order types.</span>
@@ -141,14 +188,39 @@ export function ScheduleEditor({
         <FieldError path={schedulePaths.root} errors={errors} />
       </fieldset>
 
+      {value.mode === "meal_periods" ? (
+        <MealPeriodsFields
+          value={value}
+          onChange={onChange}
+          onConverted={(names, draft) => {
+            setConvertedFrom(names)
+            onChange(draft)
+          }}
+          errors={errors}
+          timeZone={timeZone}
+          ownerChannels={itemChannels}
+          owner={owner}
+          mealPeriods={mealPeriods ?? null}
+          newKey={newKey}
+        />
+      ) : null}
+
       {custom ? (
         <>
+          {convertedFrom ? (
+            <p role="status" className="rounded-md border bg-muted/40 px-3 py-2 text-xs">
+              Converted from {convertedFrom.join(", ")}. These times are now this {owner}&apos;s own; the meal{" "}
+              {convertedFrom.length === 1 ? "period isn't" : "periods aren't"} changed. Nothing is saved until you save.
+            </p>
+          ) : null}
           <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
             <CalendarClock aria-hidden className="mt-px size-3.5 shrink-0" />
             <span>
               Times are in the restaurant&apos;s time zone, <span className="font-medium text-foreground">{timeZone}</span>.
-              All day means midnight to midnight there. The schedule can only narrow when the item is available:
-              restaurant hours, pauses, its category, its order types and stock still apply.
+              All day means midnight to midnight there.{" "}
+              {owner === "item"
+                ? "The schedule can only narrow when the item is available: restaurant hours, pauses, its category, its order types and stock still apply."
+                : "The schedule can only narrow when the category's items are available: restaurant hours, pauses, its order types and each item's own settings still apply."}
             </span>
           </p>
           {savedTimeZone && savedTimeZone !== timeZone ? (
@@ -165,6 +237,7 @@ export function ScheduleEditor({
                 value={custom.days[day]}
                 errors={errors}
                 itemChannels={itemChannels}
+                owner={owner}
                 newKey={newKey}
                 onChange={(next) => onChange({ ...custom, days: { ...custom.days, [day]: next } })}
                 onCopyDay={(targets) => copyDay(day, targets)}
@@ -180,7 +253,7 @@ export function ScheduleEditor({
                   <li key={line}>{line}</li>
                 ))}
               </ul>
-              <p className="mt-1 text-muted-foreground">Order types are shown only where they narrow the item&apos;s own.</p>
+              <p className="mt-1 text-muted-foreground">Order types are shown only where they narrow the {owner}&apos;s own.</p>
             </div>
           ) : null}
         </>
@@ -194,6 +267,7 @@ function DayRow({
   value,
   errors,
   itemChannels,
+  owner,
   newKey,
   onChange,
   onCopyDay,
@@ -203,6 +277,7 @@ function DayRow({
   value: DayDraft
   errors: FieldErrors
   itemChannels: ChannelSettings
+  owner: ScheduleOwner
   newKey: () => string
   onChange: (next: DayDraft) => void
   onCopyDay: (targets: Weekday[]) => void
@@ -302,6 +377,7 @@ function DayRow({
             name={`All day on ${label}`}
             value={allDay.channels}
             itemChannels={itemChannels}
+            owner={owner}
             errors={errors}
             onChange={(channels) => onChange({ enabled, allDay: { channels }, windows })}
           />
@@ -323,6 +399,7 @@ function DayRow({
                   window={window}
                   errors={errors}
                   itemChannels={itemChannels}
+                  owner={owner}
                   onChange={(next) =>
                     onChange({
                       enabled,
@@ -367,6 +444,7 @@ function WindowRow({
   window,
   errors,
   itemChannels,
+  owner,
   onChange,
   onRemove,
   onCopy,
@@ -376,6 +454,7 @@ function WindowRow({
   window: WindowDraft
   errors: FieldErrors
   itemChannels: ChannelSettings
+  owner: ScheduleOwner
   onChange: (window: WindowDraft) => void
   onRemove: () => void
   onCopy: (targets: Weekday[]) => void
@@ -456,6 +535,7 @@ function WindowRow({
         name={name}
         value={window.channels}
         itemChannels={itemChannels}
+        owner={owner}
         errors={errors}
         onChange={(channels) => onChange({ ...window, channels })}
       />
@@ -464,15 +544,16 @@ function WindowRow({
 }
 
 /**
- * Order types for one window or All day entry (Q12). Types the item itself
- * isn't offered for can't be added; if one is already ticked, validation
- * says so rather than dropping it silently.
+ * Order types for one window, All day entry or meal period (Q12, H1). Types
+ * the owner itself isn't offered for can't be added; if one is already
+ * ticked, validation says so rather than dropping it silently.
  */
-function OrderTypePicker({
+export function OrderTypePicker({
   path,
   name,
   value,
   itemChannels,
+  owner = "item",
   errors,
   onChange,
 }: {
@@ -480,6 +561,7 @@ function OrderTypePicker({
   name: string
   value: OrderType[]
   itemChannels: ChannelSettings
+  owner?: ScheduleOwner
   errors: FieldErrors
   onChange: (channels: OrderType[]) => void
 }) {
@@ -518,7 +600,7 @@ function OrderTypePicker({
       </div>
       {off.length > 0 ? (
         <p className="text-xs text-muted-foreground">
-          {listOrderTypes(off)} {off.length === 1 ? "is" : "are"} off for this item.
+          {listOrderTypes(off)} {off.length === 1 ? "is" : "are"} off for this {owner}.
         </p>
       ) : null}
       <FieldError path={path} errors={errors} />

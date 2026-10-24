@@ -10,6 +10,7 @@ import { CategoryDialog } from "@/components/menu/category-dialog"
 import { MenuListSkeleton, MenuLoadFailure } from "@/components/menu/menu-states"
 import { PreviewMenuControls } from "@/components/menu/preview-menu-controls"
 import { PreviewNotice } from "@/components/shared/preview-notice"
+import { loadCategoryScheduleSupport } from "@/lib/menu/schedule-support"
 import { listMenuCategories, menuMode } from "@/lib/menu/service"
 
 export const metadata: Metadata = {
@@ -23,14 +24,9 @@ export default function MenuCategoriesPage({ searchParams }: PageProps<"/menu/ca
         title="Categories"
         description="Group your menu into sections, like Starters or Drinks, set their order, and switch them on or off."
         actions={
-          <CategoryDialog
-            trigger={
-              <Button>
-                <Plus aria-hidden />
-                Add category
-              </Button>
-            }
-          />
+          <Suspense fallback={<AddCategoryButton disabled />}>
+            <AddCategory />
+          </Suspense>
         }
       />
       <Suspense fallback={<MenuListSkeleton label="Loading categories" />}>
@@ -38,6 +34,21 @@ export default function MenuCategoriesPage({ searchParams }: PageProps<"/menu/ca
       </Suspense>
     </div>
   )
+}
+
+function AddCategoryButton({ disabled = false }: { disabled?: boolean }) {
+  return (
+    <Button disabled={disabled}>
+      <Plus aria-hidden />
+      Add category
+    </Button>
+  )
+}
+
+/** The add dialog needs the restaurant's zone and meal periods for a schedule (B3b). */
+async function AddCategory() {
+  const scheduleSupport = await loadCategoryScheduleSupport()
+  return <CategoryDialog scheduleSupport={scheduleSupport} trigger={<AddCategoryButton />} />
 }
 
 async function CategoriesView({
@@ -48,6 +59,7 @@ async function CategoriesView({
   const { preview } = await searchParams
 
   let categories
+  const scheduleSupport = loadCategoryScheduleSupport()
   try {
     categories = await listMenuCategories(preview)
   } catch (error) {
@@ -70,7 +82,7 @@ async function CategoriesView({
           className="min-h-72 bg-card"
         />
       ) : (
-        <CategoriesList categories={categories} />
+        <CategoriesList categories={categories} scheduleSupport={await scheduleSupport} />
       )}
     </div>
   )

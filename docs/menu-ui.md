@@ -13,7 +13,8 @@ against labelled preview data.
 | `/menu` | Items with status filters (All, Available, Sold out, Archived), search and category filter |
 | `/menu/new` | Add an item |
 | `/menu/[itemId]/edit` | Edit an active item (archived items are restored from the list first) |
-| `/menu/categories` | Categories in menu order, with reorder, on/off, archive, restore and delete |
+| `/menu/categories` | Categories in menu order, with reorder, on/off, archive, restore and delete; a category schedule since B3b |
+| `/menu/meal-periods` | Reusable meal periods (B3b, see [meal-periods-ui.md](meal-periods-ui.md)) |
 
 ## Menu model (PRD §5)
 
@@ -159,12 +160,18 @@ type ItemSchedule =
 - The backend evaluator must treat All day as the full local calendar day
   for the listed order types, and apply every higher level (§3.1) on top.
 
-### Open questions
+### Added in B3b
 
-- **Meal periods** (§3.4's third option) are restaurant-defined and arrive
-  with restaurant hours in B3.
-- **Gap warning:** §3.2 asks the editor to warn when a schedule falls outside
-  restaurant hours. That needs restaurant hours (B3).
+- **Meal periods** (§3.4's third option): a schedule can be always available,
+  one or more meal periods (each for some of the owner's order types), or
+  custom times; never meal periods and custom times together.
+- **Category schedules** with the same three options, bounded by the
+  category's order types.
+- **Restaurant-hours check** in the item editor (§3.2 gap warning), advisory
+  only.
+
+`always` and `custom` are unchanged. Shapes, legacy handling, rules and
+backend dependencies: [meal-periods-ui.md](meal-periods-ui.md).
 
 ## Rules (`src/lib/menu/rules.ts`)
 
@@ -272,9 +279,9 @@ The backend also needs:
 
 ## Deferred
 
-- **Category schedules, meal periods, restaurant-hours gap warning,
-  seasonal dates, holiday exceptions, size/option schedules and slot
-  capacity:** B3, which needs restaurant hours.
+- **Seasonal dates, recurring holidays, size/option schedules, slot
+  capacity, last-order time and order-ahead:** not in B3b. (Category
+  schedules, meal periods and the restaurant-hours check arrived in B3b.)
 - **Channel-specific prices:** Q4 is open.
 - **Translations:** B4.
 - **Subcategories:** not in §5's requirements.

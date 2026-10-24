@@ -118,6 +118,18 @@ In preview, status is a labelled estimate, never live availability. Details,
 the proposed API contract and open backend dependencies (H4, P-2):
 [docs/hours-ui.md](docs/hours-ui.md).
 
+## Meal periods and category schedules
+
+`/menu/meal-periods` manages reusable meal periods, like Lunch: named weekly
+times with no order types of their own. Items and categories can use them
+(each choosing which of its order types do), set custom times, or stay always
+available. Categories now have schedules too, and the item editor shows the
+category's order-type limits and an advisory check against weekly
+restaurant hours that never blocks saving. Meal periods are part of the menu,
+so they use `FOODI_MENU_DATA_SOURCE` (add `FOODI_HOURS_DATA_SOURCE=preview`
+for the hours check). Details, the schedule shapes and backend dependencies:
+[docs/meal-periods-ui.md](docs/meal-periods-ui.md).
+
 ## Shared foundations and tests
 
 Data-source rules, preview mode, shared components and naming are described in
