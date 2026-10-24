@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -18,9 +19,25 @@ type SidebarNavProps = {
   onNavigate?: () => void
 }
 
-export function SidebarNav({ collapsed = false, onNavigate }: SidebarNavProps) {
-  const pathname = usePathname()
+// The pathname is request data on dynamic routes (e.g. /orders/[orderId]), so
+// it is read inside Suspense; the fallback is the same nav with nothing active.
+export function SidebarNav(props: SidebarNavProps) {
+  return (
+    <Suspense fallback={<SidebarNavList {...props} pathname={null} />}>
+      <SidebarNavForCurrentPath {...props} />
+    </Suspense>
+  )
+}
 
+function SidebarNavForCurrentPath(props: SidebarNavProps) {
+  return <SidebarNavList {...props} pathname={usePathname()} />
+}
+
+function SidebarNavList({
+  collapsed = false,
+  onNavigate,
+  pathname,
+}: SidebarNavProps & { pathname: string | null }) {
   return (
     <nav aria-label="Restaurant admin" className="flex flex-col gap-5">
       {dashboardNavigation.map((group) => (
@@ -38,7 +55,9 @@ export function SidebarNav({ collapsed = false, onNavigate }: SidebarNavProps) {
               <li key={item.title}>
                 <SidebarNavItem
                   item={item}
-                  active={item.href ? isNavItemActive(item.href, pathname) : false}
+                  active={
+                    item.href && pathname ? isNavItemActive(item.href, pathname) : false
+                  }
                   collapsed={collapsed}
                   onNavigate={onNavigate}
                 />
