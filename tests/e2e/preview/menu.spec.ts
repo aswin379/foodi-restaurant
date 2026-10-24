@@ -68,6 +68,23 @@ test("marking an item sold out asks how long, and one tap makes it available aga
   await expect(itemRow(page, "Paneer tikka")).toContainText("Available")
 })
 
+test("the sold-out choices work from the keyboard", async ({ page }) => {
+  await gotoAndSettle(page, "/menu?q=dal+makhani")
+  await itemRow(page, "Dal makhani").getByRole("switch", { name: "Available: Dal makhani" }).click()
+  const dialog = page.getByRole("alertdialog", { name: "Mark Dal makhani sold out?" })
+  await dialog.getByRole("radio", { name: "Until next opening" }).focus()
+  // Arrow keys move focus and select.
+  await page.keyboard.press("ArrowDown")
+  await expect(dialog.getByRole("radio", { name: "Until end of day" })).toBeChecked()
+  await page.keyboard.press("ArrowDown")
+  await expect(dialog.getByRole("radio", { name: "For 1 hour" })).toBeFocused()
+  await expect(dialog.getByRole("radio", { name: "For 1 hour" })).toBeChecked()
+  await expect(dialog.getByRole("radio", { name: "Until next opening" })).not.toBeChecked()
+  await dialog.getByRole("button", { name: "Mark sold out" }).click()
+  await expectPreviewToast(page, /Dal makhani marked sold out/)
+  await expect(itemRow(page, "Dal makhani")).toContainText(/Sold out until \d/)
+})
+
 test("a new item needs a name, a category and a price", async ({ page }) => {
   await gotoAndSettle(page, "/menu/new")
   await page.getByRole("button", { name: "Add item" }).click()

@@ -1,4 +1,6 @@
+import { Suspense } from "react"
 import type { Metadata } from "next"
+import Link from "next/link"
 import {
   ChartLine,
   CircleCheck,
@@ -23,6 +25,12 @@ import {
 import { EmptyState } from "@/components/dashboard/empty-state"
 import { PageHeader } from "@/components/dashboard/page-header"
 import { StatCard } from "@/components/dashboard/stat-card"
+import { HoursLoadFailure } from "@/components/hours/hours-states"
+import { PauseBanner } from "@/components/hours/pause-banner"
+import { StatusCard } from "@/components/hours/status-card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { PreviewNotice } from "@/components/shared/preview-notice"
+import { getAvailabilityStatus, getHoursContext, hoursMode } from "@/lib/hours/service"
 import { cn } from "@/lib/utils"
 
 export const metadata: Metadata = {
@@ -51,6 +59,10 @@ export default function DashboardPage() {
         title="Welcome to your restaurant dashboard"
         description="Your restaurant's day at a glance: orders, sales and the tasks that need attention. Figures appear here once your restaurant's data is connected to Foodi."
       />
+
+      <Suspense fallback={<Skeleton role="status" aria-label="Loading opening status" className="h-24 w-full rounded-xl" />}>
+        <OpeningStatus />
+      </Suspense>
 
       <section aria-labelledby="summary-heading">
         <h2 id="summary-heading" className="sr-only">
@@ -142,6 +154,31 @@ export default function DashboardPage() {
           </ul>
         </DashboardSection>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Pause banner (PRD §3.5) and whether each order type takes new orders, from
+ * the hours service. In production, until it's connected, it says so.
+ */
+async function OpeningStatus() {
+  let loaded
+  try {
+    const [context, status] = await Promise.all([getHoursContext(), getAvailabilityStatus()])
+    loaded = { context, status }
+  } catch (error) {
+    return <HoursLoadFailure error={error} retryHref="/dashboard" compact />
+  }
+  const { context, status } = loaded
+  return (
+    <div className="flex flex-col gap-3">
+      {hoursMode() === "preview" ? <PreviewNotice detail="Opening status and pause below use sample hours." /> : null}
+      {status.pause.paused ? <PauseBanner pause={status.pause} locale={context.locale} /> : null}
+      <StatusCard status={status} locale={context.locale} />
+      <Link href="/hours" className="w-fit text-sm font-medium text-primary underline-offset-4 hover:underline">
+        Manage hours and pause
+      </Link>
     </div>
   )
 }

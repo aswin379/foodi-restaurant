@@ -22,6 +22,8 @@ export type ApiRequest = {
   body?: unknown
   /** Sent with every mutation once the backend contract exists (PRD §7). */
   idempotencyKey?: string
+  /** PROPOSED optimistic-concurrency header (If-Match), pending backend agreement. */
+  ifMatch?: string
 }
 
 export type FoodiApiTransport = {

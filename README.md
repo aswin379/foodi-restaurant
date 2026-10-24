@@ -101,6 +101,23 @@ saved to Foodi") and reset when it restarts. Preview data is refused in
 production builds. Details and the proposed API contract:
 [docs/menu-ui.md](docs/menu-ui.md).
 
+## Availability and hours
+
+`/hours` (weekly hours per order type, All day, overnight windows, copy
+helpers, pause and status) and `/hours/special-dates` (closed or special
+hours on a date, for chosen order types) follow PRD v0.3 §3.3 with decisions
+H2–H9, P-1 and P-2. The dashboard shows the pause banner and each order
+type's status. No hours API exists yet, so these show "Hours aren't connected
+yet". To try them against labelled sample data in development:
+
+```bash
+FOODI_HOURS_DATA_SOURCE=preview npm run dev
+```
+
+In preview, status is a labelled estimate, never live availability. Details,
+the proposed API contract and open backend dependencies (H4, P-2):
+[docs/hours-ui.md](docs/hours-ui.md).
+
 ## Shared foundations and tests
 
 Data-source rules, preview mode, shared components and naming are described in
