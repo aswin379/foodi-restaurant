@@ -18,6 +18,10 @@ const pages = [
   { name: "order detail", path: "/orders/prv-1007", heading: /order prv-1007/i },
   { name: "order print view", path: "/print/orders/prv-1007", heading: /kitchen ticket and bill/i },
   { name: "menu", path: "/menu", heading: /menu/i },
+  { name: "menu item editor", path: "/menu/prv-item-13/edit", heading: /edit veg biryani/i },
+  { name: "scheduled item editor", path: "/menu/prv-item-14/edit", heading: /edit chicken biryani/i },
+  { name: "all-day item editor", path: "/menu/prv-item-19/edit", heading: /edit filter coffee/i },
+  { name: "new menu item", path: "/menu/new", heading: /add menu item/i },
   { name: "categories", path: "/menu/categories", heading: /categories/i },
 ]
 
@@ -52,7 +56,9 @@ test("order history filters by status", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Completed", exact: true })).toHaveAttribute("aria-current", "page")
 })
 
-test("menu preview is labelled", async ({ page }) => {
-  await gotoAndSettle(page, "/menu")
-  await expect(page.getByRole("note").first()).toBeVisible()
+test("menu pages label preview data", async ({ page }) => {
+  for (const path of ["/menu", "/menu/new", "/menu/prv-item-13/edit", "/menu/categories"]) {
+    await gotoAndSettle(page, path)
+    await expect(page.getByRole("note").filter({ hasText: PREVIEW_LABEL }).first()).toBeVisible()
+  }
 })

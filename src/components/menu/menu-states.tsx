@@ -4,6 +4,7 @@ import { AlertTriangle, PlugZap, Plus, SearchX, UtensilsCrossed } from "lucide-r
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/dashboard/empty-state"
+import { isServiceError } from "@/lib/data-source/errors"
 
 export function MenuNotConnected({ what = "menu" }: { what?: "menu" | "categories" }) {
   return (
@@ -45,7 +46,7 @@ export function MenuEmpty() {
       <p className="mt-3 text-sm font-medium">Your menu is empty</p>
       <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
         Add the dishes and drinks customers can order. You can group them into
-        categories and add optional variants, like sizes, or add-ons, like extras.
+        categories, and give them sizes or option groups, like extras.
       </p>
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         <Button asChild size="sm">
@@ -70,7 +71,7 @@ export function MenuNoResults({ clearHref }: { clearHref: string }) {
       </span>
       <p className="mt-3 text-sm font-medium">No items match these filters</p>
       <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
-        Try another name, category or availability.
+        Try another name, category or status.
       </p>
       <Button asChild variant="outline" size="sm" className="mt-4">
         <Link href={clearHref}>Clear filters</Link>
@@ -91,5 +92,26 @@ export function MenuListSkeleton({ label = "Loading menu items" }: { label?: str
         </div>
       ))}
     </div>
+  )
+}
+
+/** Not connected for a missing API; otherwise a retryable error. Never fallback data. */
+export function MenuLoadFailure({
+  error,
+  retryHref,
+  what = "menu",
+}: {
+  error: unknown
+  retryHref: string
+  what?: "menu" | "categories" | "item"
+}) {
+  if (isServiceError(error) && error.kind === "not_configured") {
+    return <MenuNotConnected what={what === "categories" ? "categories" : "menu"} />
+  }
+  return (
+    <MenuError
+      retryHref={retryHref}
+      what={what === "categories" ? "categories" : what === "item" ? "this item" : "menu items"}
+    />
   )
 }

@@ -26,7 +26,8 @@ async function referenceOf(card: Locator) {
 }
 
 async function expectPreviewToast(page: Page, text: RegExp) {
-  const toast = page.getByRole("status").filter({ hasText: text }).last()
+  // The toast itself; Radix's hidden "status" announcement only lasts about a second.
+  const toast = page.locator('[data-slot="toast"]').filter({ hasText: text }).last()
   await expect(toast).toBeVisible()
   await expect(toast).toContainText(PREVIEW_LABEL)
 }

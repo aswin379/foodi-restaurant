@@ -1,132 +1,191 @@
 "use client"
 
-import { useId, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import Link from "next/link"
-import { AlertCircle, PlugZap } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Loader2 } from "lucide-react"
 
+import { ActionResultMessage } from "@/components/shared/action-result-message"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { NativeSelect } from "@/components/ui/native-select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { BACKEND_PENDING_MESSAGE } from "@/lib/menu/labels"
-import type { MenuCategory, MenuItem } from "@/lib/menu/types"
+import { ORDER_TYPES, orderTypeLabels } from "@/lib/domain/order-types"
+import type { ZoneAndLocale } from "@/lib/orders/format"
+import {
+  allergenLabels,
+  dietaryLabels,
+  HIDDEN_FROM_CUSTOMERS_NOTE,
+  spiceLabels,
+  tagLabels,
+} from "@/lib/menu/labels"
+import { scheduleDraftFrom, schedulePaths, WEEKDAYS } from "@/lib/menu/schedule"
+import { ALLERGENS, DIETARY_TYPES, ITEM_TAGS, SPICE_LEVELS, type MenuCategory, type MenuItem } from "@/lib/menu/types"
 import {
   DESCRIPTION_MAX,
-  ITEM_NAME_MAX,
+  fieldId,
   hasErrors,
+  ITEM_NAME_MAX,
   toPriceInput,
   validateMenuItemDraft,
+  type FieldErrors,
   type MenuItemDraft,
-  type MenuItemErrors,
-  type OptionErrors,
+  type SoldOutChoice,
 } from "@/lib/menu/validation"
 
 import { ImagePicker } from "./image-picker"
-import { PricedOptionsEditor, optionFieldId } from "./priced-options-editor"
+import { errorProps, FieldError, OptionGroupsEditor, SizesEditor } from "./item-options-editors"
+import { soldOutUntilText } from "./item-status-badge"
+import { ScheduleEditor } from "./schedule-editor"
+import { SoldOutChoices } from "./sold-out-dialog"
+import { useMenuCommand } from "./use-menu-command"
 
-type Outcome = "idle" | "invalid" | "pending"
+/** Keys for new rows; the server mints real ids. Only [\w-] so they survive parsing. */
+const newKey = () => `new-${crypto.randomUUID().slice(0, 8)}`
 
 function draftFrom(item: MenuItem | undefined): MenuItemDraft {
   return {
     name: item?.name ?? "",
     description: item?.description ?? "",
     categoryId: item?.categoryId ?? "",
-    price: item ? toPriceInput(item.price.amountMinor) : "",
-    // PROVISIONAL default for new items (M5).
-    available: item ? item.availability === "available" : true,
-    variants: (item?.variants ?? []).map((variant) => ({
-      key: variant.id,
-      name: variant.name,
-      price: toPriceInput(variant.price.amountMinor),
+    price: item && item.sizes.length === 0 ? toPriceInput(item.price.amountMinor) : "",
+    sizes: (item?.sizes ?? []).map((size) => ({
+      key: size.id,
+      name: size.name,
+      price: toPriceInput(size.price.amountMinor),
+      available: size.available,
     })),
-    addOns: (item?.addOns ?? []).map((addOn) => ({
-      key: addOn.id,
-      name: addOn.name,
-      price: toPriceInput(addOn.price.amountMinor),
+    groups: (item?.optionGroups ?? []).map((group) => ({
+      key: group.id,
+      name: group.name,
+      selection: group.selection,
+      required: group.required,
+      min: String(group.min),
+      max: String(group.max),
+      options: group.options.map((option) => ({
+        key: option.id,
+        name: option.name,
+        price: toPriceInput(option.price.amountMinor),
+        available: option.available,
+      })),
     })),
+    dietary: item?.dietary ?? "veg",
+    allergens: item?.allergens ?? [],
+    spiceLevel: item?.spiceLevel ?? "none",
+    tags: item?.tags ?? [],
+    calories: item?.calories != null ? String(item.calories) : "",
+    channels: item?.channels ?? { delivery: true, takeaway: true, dine_in: true },
+    soldOut: item?.soldOut
+      ? { state: "sold_out", until: "unchanged", reason: item.soldOut.reason ?? "" }
+      : { state: "available" },
+    schedule: item ? scheduleDraftFrom(item.schedule) : { mode: "always" },
+    image: { kind: "keep" },
   }
 }
 
-type SummaryEntry = { fieldId: string; message: string }
-
-function summaryEntries(errors: MenuItemErrors, draft: MenuItemDraft): SummaryEntry[] {
-  const entries: SummaryEntry[] = []
-  if (errors.name) entries.push({ fieldId: "item-name", message: errors.name })
-  if (errors.description) entries.push({ fieldId: "item-description", message: errors.description })
-  if (errors.price) entries.push({ fieldId: "item-price", message: errors.price })
-  const options = (kind: string, label: string, list: MenuItemDraft["variants"], optionErrors?: OptionErrors) =>
-    list.forEach((option, index) => {
-      const entry = optionErrors?.[option.key]
-      if (entry?.name) entries.push({ fieldId: optionFieldId(kind, option.key, "name"), message: `${label} ${index + 1}: ${entry.name}` })
-      if (entry?.price) entries.push({ fieldId: optionFieldId(kind, option.key, "price"), message: `${label} ${index + 1}: ${entry.price}` })
-    })
-  options("variant", "Variant", draft.variants, errors.variants)
-  options("add-on", "Add-on", draft.addOns, errors.addOns)
-  return entries
+// Field paths in the order they appear, for the error summary.
+function summaryOrder(draft: MenuItemDraft) {
+  const schedule = draft.schedule
+  return [
+    "name",
+    "description",
+    "categoryId",
+    "price",
+    "sizes",
+    ...draft.sizes.flatMap((size) => [`sizes.${size.key}.name`, `sizes.${size.key}.price`]),
+    "groups",
+    ...draft.groups.flatMap((group) => [
+      `groups.${group.key}.name`,
+      `groups.${group.key}.min`,
+      `groups.${group.key}.max`,
+      `groups.${group.key}.options`,
+      ...group.options.flatMap((option) => [
+        `groups.${group.key}.options.${option.key}.name`,
+        `groups.${group.key}.options.${option.key}.price`,
+      ]),
+    ]),
+    "calories",
+    "channels",
+    schedulePaths.root,
+    ...(schedule.mode === "custom"
+      ? WEEKDAYS.flatMap((day) => [
+          schedulePaths.day(day),
+          schedulePaths.allDay(day),
+          ...schedule.days[day].windows.flatMap((window) => [
+            schedulePaths.start(day, window.key),
+            schedulePaths.end(day, window.key),
+            schedulePaths.window(day, window.key),
+            schedulePaths.channels(day, window.key),
+          ]),
+        ])
+      : []),
+    "image",
+    "soldOut.reason",
+  ]
 }
 
 /**
- * Create/edit form for a menu item. Validation runs locally; submitting never
- * saves anything. A valid submission stops with "Backend integration pending".
+ * Create/edit form for a menu item (PRD §5). Validation runs here and again on
+ * the server with the same rules; in preview mode a save is simulated and
+ * labelled "Preview only, not saved to Foodi".
  */
 export function MenuItemForm({
   mode,
   item,
   categories,
+  context,
 }: {
   mode: "create" | "edit"
   item?: MenuItem
   /** Null when categories couldn't be loaded. */
   categories: MenuCategory[] | null
+  context: ZoneAndLocale
 }) {
-  const keyPrefix = useId()
-  const nextKey = useRef(0)
-  const newKey = () => `${keyPrefix}-new-${nextKey.current++}`
-
+  const router = useRouter()
+  const command = useMenuCommand()
   const [draft, setDraft] = useState<MenuItemDraft>(() => draftFrom(item))
-  const [errors, setErrors] = useState<MenuItemErrors>({})
-  const [outcome, setOutcome] = useState<Outcome>("idle")
+  const [localErrors, setLocalErrors] = useState<FieldErrors>({})
+  const [attempted, setAttempted] = useState(false)
   const summaryRef = useRef<HTMLDivElement>(null)
-  const pendingRef = useRef<HTMLDivElement>(null)
+
+  const serverErrors = command.fieldErrors
+  const errors: FieldErrors = { ...serverErrors, ...localErrors }
+  const activeCategories = categories?.filter((category) => !category.archived) ?? null
 
   function update(patch: Partial<MenuItemDraft>) {
     const next = { ...draft, ...patch }
     setDraft(next)
     // After a failed attempt, keep errors in step with what the user fixes.
-    if (outcome === "invalid") {
-      const nextErrors = validateMenuItemDraft(next)
-      setErrors(nextErrors)
-      if (!hasErrors(nextErrors)) setOutcome("idle")
-    } else if (outcome === "pending") {
-      setOutcome("idle")
-    }
+    if (attempted) setLocalErrors(validateMenuItemDraft(next))
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setAttempted(true)
     const nextErrors = validateMenuItemDraft(draft)
-    setErrors(nextErrors)
+    setLocalErrors(nextErrors)
     if (hasErrors(nextErrors)) {
-      setOutcome("invalid")
       requestAnimationFrame(() => summaryRef.current?.focus())
       return
     }
-    // No API exists: stop here and say so. Nothing is persisted.
-    setOutcome("pending")
-    requestAnimationFrame(() => pendingRef.current?.focus())
+    const name = draft.name.trim()
+    command.run(
+      { type: "save_item", itemId: item?.id ?? null, draft },
+      mode === "create" ? `${name} added to the menu` : `${name} updated`,
+      () => router.push("/menu")
+    )
   }
 
-  const entries = outcome === "invalid" ? summaryEntries(errors, draft) : []
-  const fieldError = (id: string, message?: string) =>
-    message ? (
-      <p id={`${id}-error`} className="flex items-center gap-1.5 text-sm text-destructive">
-        <AlertCircle aria-hidden className="size-3.5 shrink-0" />
-        {message}
-      </p>
-    ) : null
+  const order = summaryOrder(draft)
+  const entries = attempted
+    ? Object.entries(errors).sort(([a], [b]) => order.indexOf(a) - order.indexOf(b))
+    : []
+  const generalFailure = command.result && !command.result.ok && !command.result.fieldErrors ? command.result : null
 
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
@@ -142,17 +201,17 @@ export function MenuItemForm({
             Fix {entries.length === 1 ? "this problem" : `these ${entries.length} problems`} before saving
           </p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-destructive">
-            {entries.map((entry) => (
-              <li key={entry.fieldId}>
+            {entries.map(([path, message]) => (
+              <li key={path}>
                 <a
-                  href={`#${entry.fieldId}`}
+                  href={`#${fieldId(path)}`}
                   onClick={(event) => {
                     event.preventDefault()
-                    document.getElementById(entry.fieldId)?.focus()
+                    document.getElementById(fieldId(path))?.focus()
                   }}
                   className="underline underline-offset-2"
                 >
-                  {entry.message}
+                  {message}
                 </a>
               </li>
             ))}
@@ -162,106 +221,176 @@ export function MenuItemForm({
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-2">
-          <FormSection title="Item details" description="Fields marked Required must be filled in. Everything else is optional.">
+          <FormSection title="Item details" description="Fields marked Required must be filled in.">
             <div className="flex flex-col gap-2">
-              <FieldLabel htmlFor="item-name" required>Item name</FieldLabel>
+              <FieldLabel htmlFor={fieldId("name")} required>
+                Item name
+              </FieldLabel>
               <Input
-                id="item-name"
+                {...errorProps("name", errors)}
                 value={draft.name}
                 onChange={(event) => update({ name: event.target.value })}
                 maxLength={ITEM_NAME_MAX + 20}
                 autoComplete="off"
                 aria-required="true"
-                aria-invalid={errors.name ? true : undefined}
-                aria-describedby={errors.name ? "item-name-error" : undefined}
                 className="h-10 bg-background"
               />
-              {fieldError("item-name", errors.name)}
+              <FieldError path="name" errors={errors} />
             </div>
             <div className="flex flex-col gap-2">
-              <FieldLabel htmlFor="item-description">Description</FieldLabel>
+              <FieldLabel htmlFor={fieldId("description")}>Description</FieldLabel>
               <Textarea
-                id="item-description"
+                {...errorProps("description", errors, "item-description-count")}
                 value={draft.description}
                 onChange={(event) => update({ description: event.target.value })}
                 rows={3}
-                aria-invalid={errors.description ? true : undefined}
-                aria-describedby={["item-description-count", errors.description ? "item-description-error" : null].filter(Boolean).join(" ")}
                 className="bg-background"
               />
               <p id="item-description-count" className="text-xs text-muted-foreground">
                 {draft.description.trim().length} of {DESCRIPTION_MAX} characters
               </p>
-              {fieldError("item-description", errors.description)}
+              <FieldError path="description" errors={errors} />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
-                <FieldLabel htmlFor="item-category">Category</FieldLabel>
+                <FieldLabel htmlFor={fieldId("categoryId")} required>
+                  Category
+                </FieldLabel>
                 <NativeSelect
-                  id="item-category"
+                  {...errorProps("categoryId", errors)}
                   value={draft.categoryId}
                   onChange={(event) => update({ categoryId: event.target.value })}
-                  disabled={!categories}
-                  aria-describedby="item-category-help"
+                  disabled={!activeCategories}
+                  aria-required="true"
                   className="h-10 bg-background"
                 >
-                  <option value="">No category</option>
-                  {categories?.map((category) => (
+                  <option value="">Choose a category</option>
+                  {activeCategories?.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
+                      {category.active ? "" : " (switched off)"}
                     </option>
                   ))}
                 </NativeSelect>
-                <p id="item-category-help" className="text-xs text-muted-foreground">
-                  {categories
-                    ? "Whether every item must be in a category isn't decided yet."
-                    : "Categories aren't connected yet."}
-                </p>
+                {!activeCategories ? (
+                  <p className="text-xs text-muted-foreground">Categories aren&apos;t connected yet.</p>
+                ) : null}
+                <FieldError path="categoryId" errors={errors} />
               </div>
               <div className="flex flex-col gap-2">
-                <FieldLabel htmlFor="item-price" required>Price (₹)</FieldLabel>
-                <Input
-                  id="item-price"
-                  value={draft.price}
-                  onChange={(event) => update({ price: event.target.value })}
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  aria-required="true"
-                  aria-invalid={errors.price ? true : undefined}
-                  aria-describedby={errors.price ? "item-price-error" : undefined}
-                  className="h-10 bg-background tabular-nums"
-                />
-                {fieldError("item-price", errors.price)}
+                {draft.sizes.length === 0 ? (
+                  <>
+                    <FieldLabel htmlFor={fieldId("price")} required>
+                      Price (₹)
+                    </FieldLabel>
+                    <Input
+                      {...errorProps("price", errors)}
+                      value={draft.price}
+                      onChange={(event) => update({ price: event.target.value })}
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      aria-required="true"
+                      className="h-10 bg-background tabular-nums"
+                    />
+                    <FieldError path="price" errors={errors} />
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm font-medium">Price (₹)</span>
+                    <p id={fieldId("price")} className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
+                      Set by sizes below. The customer pays the price of the size they pick.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
+            <fieldset className="grid gap-2">
+              <legend className="mb-1 text-sm font-medium">Food type</legend>
+              <RadioGroup
+                value={draft.dietary}
+                onValueChange={(dietary) => update({ dietary: dietary as MenuItemDraft["dietary"] })}
+                className="flex flex-wrap gap-4"
+              >
+                {DIETARY_TYPES.map((dietary) => (
+                  <div key={dietary} className="flex items-center gap-2">
+                    <RadioGroupItem value={dietary} id={fieldId(`dietary.${dietary}`)} />
+                    <Label htmlFor={fieldId(`dietary.${dietary}`)} className="font-normal">
+                      {dietaryLabels[dietary]}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </fieldset>
           </FormSection>
 
-          <FormSection title="Variants" optional description="Use variants when the same item comes in versions, like sizes or portions. Most items don't need any.">
-            <PricedOptionsEditor
-              kind="variant"
-              title="Variants"
-              description="Example: Half and Full portions."
-              emptyText="No variants. The item is sold at its price above."
-              namePlaceholder="e.g. Half"
-              priceHelp="How a variant price combines with the item price isn't decided yet."
-              options={draft.variants}
-              errors={errors.variants}
-              onChange={(variants) => update({ variants })}
-              newKey={newKey}
+          <FormSection
+            title="Sizes"
+            optional
+            description="Use sizes when the item comes in portions, like Half and Full. The customer picks exactly one, and its price replaces the price above."
+          >
+            <SizesEditor sizes={draft.sizes} errors={errors} newKey={newKey} onChange={(sizes) => update({ sizes })} />
+          </FormSection>
+
+          <FormSection
+            title="Option groups"
+            optional
+            description="Choices and extras, like a spice level or toppings. Each option adds its price (0 for free)."
+          >
+            <OptionGroupsEditor groups={draft.groups} errors={errors} newKey={newKey} onChange={(groups) => update({ groups })} />
+          </FormSection>
+
+          <FormSection title="More details" optional>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <FieldLabel htmlFor={fieldId("spiceLevel")}>Spice level</FieldLabel>
+                <NativeSelect
+                  id={fieldId("spiceLevel")}
+                  value={draft.spiceLevel}
+                  onChange={(event) => update({ spiceLevel: event.target.value as MenuItemDraft["spiceLevel"] })}
+                  className="h-10 bg-background"
+                >
+                  {SPICE_LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {spiceLabels[level]}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </div>
+              <div className="flex flex-col gap-2">
+                <FieldLabel htmlFor={fieldId("calories")}>Calories (kcal per serving)</FieldLabel>
+                <Input
+                  {...errorProps("calories", errors)}
+                  value={draft.calories}
+                  inputMode="numeric"
+                  onChange={(event) => update({ calories: event.target.value })}
+                  className="h-10 bg-background tabular-nums"
+                />
+                <FieldError path="calories" errors={errors} />
+              </div>
+            </div>
+            <CheckboxGroup
+              legend="Tags"
+              options={ITEM_TAGS.map((tag) => ({ value: tag, label: tagLabels[tag] }))}
+              values={draft.tags}
+              onChange={(tags) => update({ tags: tags as MenuItemDraft["tags"] })}
+            />
+            <CheckboxGroup
+              legend="Allergens"
+              options={ALLERGENS.map((allergen) => ({ value: allergen, label: allergenLabels[allergen] }))}
+              values={draft.allergens}
+              onChange={(allergens) => update({ allergens: allergens as MenuItemDraft["allergens"] })}
             />
           </FormSection>
 
-          <FormSection title="Add-ons" optional description="Extras a customer could add to this item, like a side or extra topping.">
-            <PricedOptionsEditor
-              kind="add-on"
-              title="Add-ons"
-              description="Example: Raita, Extra cheese."
-              emptyText="No add-ons for this item."
-              namePlaceholder="e.g. Extra cheese"
-              priceHelp="Grouping add-ons and limiting how many a customer can pick isn't decided yet."
-              options={draft.addOns}
-              errors={errors.addOns}
-              onChange={(addOns) => update({ addOns })}
+          <FormSection title="Order types and schedule" description="How and when customers can order this item.">
+            <ItemOrderTypes draft={draft} errors={errors} onChange={update} />
+            <ScheduleEditor
+              value={draft.schedule}
+              onChange={(schedule) => update({ schedule })}
+              errors={errors}
+              timeZone={context.timeZone}
+              savedTimeZone={item?.schedule.mode === "custom" ? item.schedule.timeZone : undefined}
+              itemChannels={draft.channels}
               newKey={newKey}
             />
           </FormSection>
@@ -269,55 +398,161 @@ export function MenuItemForm({
 
         <div className="flex flex-col gap-6">
           <FormSection title="Image" optional>
-            <ImagePicker initialUrl={item?.imageUrl ?? null} />
+            <ImagePicker
+              currentUrl={item?.imageUrl ?? null}
+              value={draft.image}
+              onChange={(image) => update({ image })}
+              error={errors.image}
+            />
           </FormSection>
 
           <FormSection title="Availability">
-            <div className="flex items-start gap-3">
-              <Checkbox
-                id="item-available"
-                checked={draft.available}
-                onCheckedChange={(checked) => update({ available: checked === true })}
-                aria-describedby="item-available-help"
-                className="mt-0.5 size-[18px]"
-              />
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="item-available" className="cursor-pointer">
-                  Available to order
-                </Label>
-                <p id="item-available-help" className="text-xs leading-relaxed text-muted-foreground">
-                  Part of this form only. It changes nothing until the item can be saved.
-                </p>
-              </div>
-            </div>
+            <AvailabilityFields draft={draft} item={item} errors={errors} context={context} onChange={update} />
           </FormSection>
         </div>
       </div>
 
-      {outcome === "pending" ? (
-        <div
-          ref={pendingRef}
-          tabIndex={-1}
-          role="alert"
-          className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 outline-none focus-visible:ring-[3px] focus-visible:ring-amber-400/50"
-        >
-          <PlugZap aria-hidden className="mt-0.5 size-4 shrink-0" />
-          <p className="leading-relaxed">
-            <span className="font-semibold">Not saved.</span> {BACKEND_PENDING_MESSAGE} Your
-            entries are still on this page but will be lost if you leave it.
-          </p>
-        </div>
-      ) : null}
+      {generalFailure ? <ActionResultMessage result={generalFailure} successText="" /> : null}
 
       <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-end">
         <Button asChild variant="ghost">
           <Link href="/menu">Cancel</Link>
         </Button>
-        <Button type="submit" className="sm:min-w-36">
-          {mode === "create" ? "Save item" : "Save changes"}
+        <Button type="submit" className="sm:min-w-36" aria-disabled={command.pending || undefined}>
+          {command.pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
+          {mode === "create" ? "Add item" : "Save changes"}
         </Button>
       </div>
     </form>
+  )
+}
+
+function AvailabilityFields({
+  draft,
+  item,
+  errors,
+  context,
+  onChange,
+}: {
+  draft: MenuItemDraft
+  item?: MenuItem
+  errors: FieldErrors
+  context: ZoneAndLocale
+  onChange: (patch: Partial<MenuItemDraft>) => void
+}) {
+  const soldOut = draft.soldOut
+  const existing = item?.soldOut
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-start gap-3">
+        <Switch
+          id={fieldId("available")}
+          checked={soldOut.state === "available"}
+          aria-describedby="item-available-help"
+          onCheckedChange={(available) =>
+            onChange({
+              soldOut: available
+                ? { state: "available" }
+                : { state: "sold_out", until: existing ? "unchanged" : "next_opening", reason: existing?.reason ?? "" },
+            })
+          }
+          className="mt-0.5"
+        />
+        <div className="flex flex-col gap-1">
+          <Label htmlFor={fieldId("available")}>Available now</Label>
+          <p id="item-available-help" className="text-xs leading-relaxed text-muted-foreground">
+            Turn off to mark it sold out. {HIDDEN_FROM_CUSTOMERS_NOTE} Orders already placed aren&apos;t changed.
+          </p>
+        </div>
+      </div>
+
+      {soldOut.state === "sold_out" ? (
+        <SoldOutChoices
+          idPrefix="item-sold-out"
+          value={soldOut.until}
+          onChange={(until) => onChange({ soldOut: { ...soldOut, until: until as SoldOutChoice | "unchanged" } })}
+          reason={soldOut.reason}
+          onReasonChange={(reason) => onChange({ soldOut: { ...soldOut, reason } })}
+          reasonError={errors["soldOut.reason"]}
+          extraChoice={
+            existing ? { value: "unchanged", label: `Keep as is: sold out ${soldOutUntilText(existing.until, context)}` } : undefined
+          }
+        />
+      ) : null}
+    </div>
+  )
+}
+
+/** The item's own order types (PRD §3.4 Channels). Schedule windows narrow these. */
+function ItemOrderTypes({
+  draft,
+  errors,
+  onChange,
+}: {
+  draft: MenuItemDraft
+  errors: FieldErrors
+  onChange: (patch: Partial<MenuItemDraft>) => void
+}) {
+  const describedBy = ["item-channels-help", errors.channels ? `${fieldId("channels")}-error` : null].filter(Boolean).join(" ")
+  return (
+    <fieldset className="grid gap-2" aria-describedby={describedBy}>
+      <legend id={fieldId("channels")} tabIndex={-1} className="text-sm font-medium outline-none">
+        Order types
+      </legend>
+      <p id="item-channels-help" className="text-xs text-muted-foreground">
+        What the item is offered for. A schedule can narrow these by time, never add to them.
+      </p>
+      <div className="flex flex-wrap gap-x-5 gap-y-2">
+        {ORDER_TYPES.map((type) => (
+          <div key={type} className="flex items-center gap-2.5">
+            <Checkbox
+              id={fieldId(`channels.${type}`)}
+              checked={draft.channels[type]}
+              onCheckedChange={(checked) => onChange({ channels: { ...draft.channels, [type]: checked === true } })}
+            />
+            <Label htmlFor={fieldId(`channels.${type}`)} className="font-normal">
+              {orderTypeLabels[type]}
+            </Label>
+          </div>
+        ))}
+      </div>
+      <FieldError path="channels" errors={errors} />
+    </fieldset>
+  )
+}
+
+function CheckboxGroup({
+  legend,
+  options,
+  values,
+  onChange,
+}: {
+  legend: string
+  options: { value: string; label: string }[]
+  values: readonly string[]
+  onChange: (values: string[]) => void
+}) {
+  const id = `item-${legend.toLowerCase()}`
+  return (
+    <fieldset className="grid gap-2">
+      <legend className="mb-1 text-sm font-medium">{legend}</legend>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {options.map((option) => (
+          <div key={option.value} className="flex items-center gap-2.5">
+            <Checkbox
+              id={`${id}-${option.value}`}
+              checked={values.includes(option.value)}
+              onCheckedChange={(checked) =>
+                onChange(checked === true ? [...values, option.value] : values.filter((value) => value !== option.value))
+              }
+            />
+            <Label htmlFor={`${id}-${option.value}`} className="font-normal">
+              {option.label}
+            </Label>
+          </div>
+        ))}
+      </div>
+    </fieldset>
   )
 }
 
@@ -361,9 +596,7 @@ function FieldLabel({
     <Label htmlFor={htmlFor} className="gap-2">
       {children}
       {required ? (
-        <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-          Required
-        </span>
+        <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">Required</span>
       ) : (
         <span className="text-xs font-normal text-muted-foreground">Optional</span>
       )}

@@ -6,14 +6,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { NativeSelect } from "@/components/ui/native-select"
 import { hasActiveMenuFilters, menuHref } from "@/lib/menu/query"
-import type { MenuCategory, MenuItemListQuery } from "@/lib/menu/types"
+import { listFilterLabels } from "@/lib/menu/labels"
+import { MENU_LIST_FILTERS, type MenuCategory, type MenuItemListQuery } from "@/lib/menu/types"
 import { cn } from "@/lib/utils"
 
-const availabilityTabs = [
-  { value: "all" as const, label: "All items" },
-  { value: "available" as const, label: "Available" },
-  { value: "unavailable" as const, label: "Unavailable" },
-]
+const filterTabs = MENU_LIST_FILTERS.map((value) => ({ value, label: listFilterLabels[value] }))
 
 /** Links and a GET form, so filters work before hydration and are shareable. */
 export function MenuToolbar({
@@ -26,14 +23,14 @@ export function MenuToolbar({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <nav aria-label="Filter items by availability" className="-mx-1 overflow-x-auto px-1 pb-1">
+      <nav aria-label="Filter items by status" className="-mx-1 overflow-x-auto px-1 pb-1">
         <ul className="flex w-max gap-1 rounded-lg border bg-card p-1">
-          {availabilityTabs.map((tab) => {
-            const active = query.availability === tab.value
+          {filterTabs.map((tab) => {
+            const active = query.filter === tab.value
             return (
               <li key={tab.value}>
                 <Link
-                  href={menuHref(query, { availability: tab.value, page: 1 })}
+                  href={menuHref(query, { filter: tab.value, page: 1 })}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "inline-flex h-8 items-center rounded-md px-3 text-sm font-medium whitespace-nowrap outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50",
@@ -57,9 +54,7 @@ export function MenuToolbar({
         aria-label="Search and filter menu items"
         className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_auto] lg:items-end"
       >
-        {query.availability !== "all" ? (
-          <input type="hidden" name="availability" value={query.availability} />
-        ) : null}
+        {query.filter !== "all" ? <input type="hidden" name="filter" value={query.filter} /> : null}
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="menu-search">Item name</Label>
           <div className="relative">
@@ -89,7 +84,7 @@ export function MenuToolbar({
               className="h-10 bg-background"
             >
               <option value="">All categories</option>
-              {categories.map((category) => (
+              {categories.filter((category) => !category.archived).map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>

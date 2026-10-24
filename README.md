@@ -84,17 +84,22 @@ production builds. Details and the proposed API contract:
 
 ## Menu UI
 
-`/menu`, `/menu/new`, `/menu/[itemId]/edit` and `/menu/categories` are built on
-a **provisional** menu model. Nothing can be saved: forms validate, then stop
-with "Backend integration pending". No menu API exists yet, so the pages show
-"Menu isn't connected yet". To preview with labelled sample data in development:
+`/menu`, `/menu/new`, `/menu/[itemId]/edit` and `/menu/categories` follow PRD
+v0.3 §5: categories are required, items can have sizes and option groups,
+food type, allergens and tags, an availability schedule (always, or set
+days with All day or time windows in the restaurant's time zone, each for
+chosen order types), and can be marked sold out, archived or deleted. No menu
+API exists yet, so the pages show "Menu isn't connected yet". To try every
+change against labelled sample data in development:
 
 ```bash
-FOODI_MENU_DATA_SOURCE=fixtures npm run dev
+FOODI_MENU_DATA_SOURCE=preview npm run dev
 ```
 
-Fixtures are refused in production builds. Details, open decisions and the
-proposed API: [docs/menu-ui.md](docs/menu-ui.md).
+Changes are simulated on the development server only ("Preview only, not
+saved to Foodi") and reset when it restarts. Preview data is refused in
+production builds. Details and the proposed API contract:
+[docs/menu-ui.md](docs/menu-ui.md).
 
 ## Shared foundations and tests
 

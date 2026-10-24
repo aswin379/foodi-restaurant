@@ -1,11 +1,12 @@
 import { Suspense } from "react"
 import type { Metadata } from "next"
+
 import { PageHeader } from "@/components/dashboard/page-header"
 import { MenuItemForm } from "@/components/menu/menu-item-form"
 import { BackToMenuLink, MenuFormSkeleton } from "@/components/menu/menu-page-parts"
-import { BackendPendingNotice, MenuPreviewNotice } from "@/components/menu/menu-notices"
-import { listMenuCategories, menuDataSource } from "@/lib/menu/service"
-import type { MenuCategory } from "@/lib/menu/types"
+import { MenuLoadFailure } from "@/components/menu/menu-states"
+import { PreviewNotice } from "@/components/shared/preview-notice"
+import { getMenuContext, listMenuCategories, menuMode } from "@/lib/menu/service"
 
 export const metadata: Metadata = {
   title: "Add menu item",
@@ -17,7 +18,7 @@ export default function NewMenuItemPage() {
       <BackToMenuLink />
       <PageHeader
         title="Add menu item"
-        description="Describe the item, set its price and choose where it appears on your menu."
+        description="Describe the item, set its price, sizes and options, and choose its category."
       />
       <Suspense fallback={<MenuFormSkeleton />}>
         <NewItemForm />
@@ -27,21 +28,22 @@ export default function NewMenuItemPage() {
 }
 
 async function NewItemForm() {
-  let categories: MenuCategory[] | null = null
+  let loaded
   try {
-    categories = await listMenuCategories()
-  } catch {
-    // The form still works without categories; the field explains why it's empty.
-    categories = null
+    const [context, categories] = await Promise.all([getMenuContext(), listMenuCategories()])
+    loaded = { context, categories }
+  } catch (error) {
+    // Every item needs a category (D7), so the form can't work without them.
+    return <MenuLoadFailure error={error} retryHref="/menu/new" what="categories" />
   }
   return (
     <div className="flex flex-col gap-6">
-      {menuDataSource() === "fixtures" ? <MenuPreviewNotice /> : null}
-      <BackendPendingNotice>
-        You can fill in and check this form, but saving isn&apos;t available yet.
-        Backend integration pending.
-      </BackendPendingNotice>
-      <MenuItemForm mode="create" categories={categories} />
+      {menuMode() === "preview" ? <PreviewNotice /> : null}
+      <MenuItemForm
+        mode="create"
+        categories={loaded.categories}
+        context={{ timeZone: loaded.context.timeZone, locale: loaded.context.locale }}
+      />
     </div>
   )
 }
