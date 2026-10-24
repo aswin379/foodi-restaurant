@@ -17,7 +17,7 @@ const viewports = {
 }
 
 const PREVIEW_ENV = {
-  FOODI_ORDERS_DATA_SOURCE: "fixtures",
+  FOODI_ORDERS_DATA_SOURCE: "preview",
   FOODI_MENU_DATA_SOURCE: "fixtures",
   FOODI_RESTAURANT_DATA_SOURCE: "preview",
 }
@@ -38,11 +38,19 @@ export default defineConfig({
       testDir: "./tests/e2e/production",
       use: { baseURL: `http://localhost:${PRODUCTION_PORT}`, viewport },
     })),
-    ...(["desktop", "mobile"] as const).map((name) => ({
-      name: `preview-${name}`,
+    // Preview tests share one in-memory preview store, so the mobile run waits
+    // for the desktop run instead of changing the same orders at the same time.
+    {
+      name: "preview-desktop",
       testDir: "./tests/e2e/preview",
-      use: { baseURL: `http://localhost:${PREVIEW_PORT}`, viewport: viewports[name] },
-    })),
+      use: { baseURL: `http://localhost:${PREVIEW_PORT}`, viewport: viewports.desktop },
+    },
+    {
+      name: "preview-mobile",
+      testDir: "./tests/e2e/preview",
+      dependencies: ["preview-desktop"],
+      use: { baseURL: `http://localhost:${PREVIEW_PORT}`, viewport: viewports.mobile },
+    },
   ],
   webServer: [
     {

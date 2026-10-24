@@ -9,15 +9,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { formatDateTime, formatMoney } from "@/lib/orders/format"
+import { formatDateTime, formatMoney, type ZoneAndLocale } from "@/lib/orders/format"
 import type { OrderSummary } from "@/lib/orders/types"
 
-import { FulfilmentLabel, OrderStatusBadge, PaymentStatusText } from "./status-badges"
+import { OrderStatusBadge, OrderTypeLabel, PaymentStatusText } from "./status-badges"
 
 const orderHref = (order: OrderSummary) => `/orders/${encodeURIComponent(order.id)}`
 
 /** Table from md up, cards below, both rendered from the same summaries. */
-export function OrdersList({ orders }: { orders: OrderSummary[] }) {
+export function OrdersList({
+  orders,
+  context,
+}: {
+  orders: OrderSummary[]
+  context: ZoneAndLocale
+}) {
   return (
     <>
       <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
@@ -47,11 +53,11 @@ export function OrdersList({ orders }: { orders: OrderSummary[] }) {
                     {order.reference}
                   </Link>
                   <div className="mt-0.5">
-                    <FulfilmentLabel method={order.fulfilment} />
+                    <OrderTypeLabel order={order} />
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  <time dateTime={order.placedAt}>{formatDateTime(order.placedAt)}</time>
+                  <time dateTime={order.placedAt}>{formatDateTime(order.placedAt, context)}</time>
                 </TableCell>
                 <TableCell>{order.customerName ?? "—"}</TableCell>
                 <TableCell className="max-w-56 lg:max-w-72">
@@ -60,7 +66,7 @@ export function OrdersList({ orders }: { orders: OrderSummary[] }) {
                   </span>
                 </TableCell>
                 <TableCell className="text-right font-medium tabular-nums">
-                  {formatMoney(order.total)}
+                  {formatMoney(order.total, context.locale)}
                 </TableCell>
                 <TableCell>
                   <PaymentStatusText status={order.paymentStatus} />
@@ -95,7 +101,7 @@ export function OrdersList({ orders }: { orders: OrderSummary[] }) {
                 <div className="min-w-0">
                   <p className="font-medium">{order.reference}</p>
                   <p className="text-xs text-muted-foreground">
-                    <time dateTime={order.placedAt}>{formatDateTime(order.placedAt)}</time>
+                    <time dateTime={order.placedAt}>{formatDateTime(order.placedAt, context)}</time>
                     {order.customerName ? ` · ${order.customerName}` : null}
                   </p>
                 </div>
@@ -105,10 +111,10 @@ export function OrdersList({ orders }: { orders: OrderSummary[] }) {
                 {order.itemsPreview}
               </p>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t pt-3">
-                <FulfilmentLabel method={order.fulfilment} />
+                <OrderTypeLabel order={order} />
                 <span className="flex items-center gap-3">
                   <PaymentStatusText status={order.paymentStatus} />
-                  <span className="font-semibold tabular-nums">{formatMoney(order.total)}</span>
+                  <span className="font-semibold tabular-nums">{formatMoney(order.total, context.locale)}</span>
                 </span>
               </div>
             </Link>

@@ -4,6 +4,7 @@ import { AlertTriangle, Inbox, PlugZap, SearchX } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/dashboard/empty-state"
+import { isServiceError } from "@/lib/data-source/errors"
 
 export function OrdersNotConnected() {
   return (
@@ -78,6 +79,29 @@ export function OrdersListSkeleton() {
           <Skeleton className="hidden h-4 w-24 sm:block" />
           <Skeleton className="h-4 flex-1" />
           <Skeleton className="h-6 w-20 rounded-full" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Not connected for a missing API; otherwise a retryable error. Never fallback data. */
+export function OrdersLoadFailure({ error, retryHref }: { error: unknown; retryHref: string }) {
+  return isServiceError(error) && error.kind === "not_configured" ? (
+    <OrdersNotConnected />
+  ) : (
+    <OrdersError retryHref={retryHref} />
+  )
+}
+
+export function OrdersBoardSkeleton() {
+  return (
+    <div role="status" aria-label="Loading orders" className="grid gap-5 lg:grid-cols-3">
+      {Array.from({ length: 3 }, (_, column) => (
+        <div key={column} className="flex flex-col gap-3 rounded-2xl border bg-muted/40 p-3">
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-40 rounded-xl" />
+          <Skeleton className="h-40 rounded-xl" />
         </div>
       ))}
     </div>

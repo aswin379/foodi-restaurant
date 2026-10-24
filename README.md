@@ -67,17 +67,20 @@ production:
 
 ## Orders UI
 
-`/orders` and `/orders/[orderId]` are built on a **provisional** order model, and
-all order actions are disabled until the order lifecycle and API are approved.
-No orders API exists yet, so the pages show "Orders aren't connected yet". To
-preview with clearly labelled sample data in development:
+`/orders` is the live order board, `/orders/history` the order history,
+`/orders/[orderId]` the order detail and `/print/orders/[orderId]` the kitchen
+ticket and bill. They follow PRD v0.3 §4. No orders API exists yet, so the
+pages show "Orders aren't connected yet". To try every order action against
+labelled sample data in development:
 
 ```bash
-FOODI_ORDERS_DATA_SOURCE=fixtures npm run dev
+FOODI_ORDERS_DATA_SOURCE=preview npm run dev
 ```
 
-Fixtures are refused in production builds. Details, open decisions and the
-proposed API contract: [docs/orders-ui.md](docs/orders-ui.md).
+Changes are simulated on the development server only ("Preview only, not
+saved to Foodi") and reset when it restarts. Preview data is refused in
+production builds. Details and the proposed API contract:
+[docs/orders-ui.md](docs/orders-ui.md).
 
 ## Menu UI
 

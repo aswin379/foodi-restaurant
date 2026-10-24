@@ -19,11 +19,10 @@ and no seller API yet.
 | Name mapping | `src/lib/api/mapping.ts` | The only place backend enum names appear (G6). |
 | Restaurant context | `src/lib/restaurant/context.ts` | Time zone, currency, locale. Preview restaurant in preview mode, `not_configured` otherwise. |
 
-The existing Orders (`FOODI_ORDERS_DATA_SOURCE`) and Menu
-(`FOODI_MENU_DATA_SOURCE`) services keep their own selection code until B1 and
-B2 move them onto `selectAdapter()`. Their production refusal and no-fallback
-behaviour is now covered by tests (`src/lib/orders/service.test.ts`,
-`src/lib/menu/service.test.ts`).
+Orders (`FOODI_ORDERS_DATA_SOURCE`) uses `selectAdapter()` since B1. Menu
+(`FOODI_MENU_DATA_SOURCE`) keeps its own selection code until B2. Production
+refusal and no-fallback behaviour are covered by tests for both
+(`src/lib/orders/service.test.ts`, `src/lib/menu/service.test.ts`).
 
 ## Preview wording (G1)
 
@@ -53,8 +52,7 @@ behaviour is now covered by tests (`src/lib/orders/service.test.ts`,
 
 Frontend models and labels use PRD terms: order types `delivery`, `takeaway`,
 `dine_in`, and delivery by `foodi` or `restaurant` (own rider), in
-`src/lib/domain/order-types.ts`. The Orders module still says "Pickup"; B1
-moves it to these types.
+`src/lib/domain/order-types.ts`. Orders uses these since B1.
 
 ## Time
 

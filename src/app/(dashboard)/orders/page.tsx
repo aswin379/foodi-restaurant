@@ -2,92 +2,71 @@ import { Suspense } from "react"
 import type { Metadata } from "next"
 
 import { PageHeader } from "@/components/dashboard/page-header"
-import { OrdersList } from "@/components/orders/orders-list"
-import { OrdersPagination } from "@/components/orders/orders-pagination"
-import {
-  OrdersEmpty,
-  OrdersError,
-  OrdersListSkeleton,
-  OrdersNoResults,
-  OrdersNotConnected,
-} from "@/components/orders/orders-states"
-import { OrdersToolbar } from "@/components/orders/orders-toolbar"
-import { PreviewDataNotice } from "@/components/orders/preview-data-notice"
-import { OrdersServiceError } from "@/lib/orders/errors"
-import {
-  hasActiveFilters,
-  ordersHref,
-  parseOrderListQuery,
-  type RawSearchParams,
-} from "@/lib/orders/query"
-import { listOrders, ordersDataSource } from "@/lib/orders/service"
-import type { OrderListQuery } from "@/lib/orders/types"
+import { OrdersBoard } from "@/components/orders/orders-board"
+import { OrdersBoardSkeleton, OrdersLoadFailure } from "@/components/orders/orders-states"
+import { OrdersSubnav } from "@/components/orders/orders-subnav"
+import { PreviewOrderControls } from "@/components/orders/preview-order-controls"
+import { PreviewNotice } from "@/components/shared/preview-notice"
+import { getOrderBoard, getOrdersContext, listRiders, ordersMode } from "@/lib/orders/service"
+import type { Rider } from "@/lib/orders/types"
 
 export const metadata: Metadata = {
   title: "Orders",
 }
 
-export default function OrdersPage({ searchParams }: PageProps<"/orders">) {
+export default function OrdersBoardPage({ searchParams }: PageProps<"/orders">) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Orders"
-        description="Track incoming and past orders for your restaurant. Find an order by its reference, filter by status or date, and open it for the full details."
+        description="New and in-progress orders for your restaurant. Accept new orders, mark them ready and hand them over."
       />
-      <Suspense fallback={<OrdersListSkeleton />}>
-        <OrdersView searchParams={searchParams} />
+      <OrdersSubnav current="board" />
+      <Suspense fallback={<OrdersBoardSkeleton />}>
+        <BoardView searchParams={searchParams} />
       </Suspense>
     </div>
   )
 }
 
-async function OrdersView({
+async function BoardView({
   searchParams,
 }: {
-  searchParams: Promise<RawSearchParams>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const params = await searchParams
-  const query = parseOrderListQuery(params)
+  const { preview } = await searchParams
 
-  return (
-    <div className="flex flex-col gap-4">
-      {ordersDataSource() === "fixtures" ? <PreviewDataNotice /> : null}
-      <OrdersToolbar query={query} />
-      {/* Keyed so a new filter shows the loading state instead of stale rows. */}
-      <Suspense key={ordersHref(query)} fallback={<OrdersListSkeleton />}>
-        <OrdersResults query={query} preview={params.preview} />
-      </Suspense>
-    </div>
-  )
-}
-
-async function OrdersResults({
-  query,
-  preview,
-}: {
-  query: OrderListQuery
-  preview: unknown
-}) {
-  let result
+  let loaded
   try {
-    result = await listOrders(query, preview)
+    const [context, orders] = await Promise.all([getOrdersContext(), getOrderBoard(preview)])
+    loaded = { context, orders }
   } catch (error) {
-    if (error instanceof OrdersServiceError && error.kind === "not_configured") {
-      return <OrdersNotConnected />
-    }
     // No fallback data: a failed request is shown as a failure.
-    return <OrdersError retryHref={ordersHref(query)} />
+    return <OrdersLoadFailure error={error} retryHref="/orders" />
   }
 
-  if (result.totalItems === 0) {
-    const filtered = query.status !== "all" || hasActiveFilters(query)
-    return filtered ? <OrdersNoResults clearHref="/orders" /> : <OrdersEmpty />
+  // Riders are only needed for Dispatch; the dialog explains when they're missing.
+  let riders: Rider[] = []
+  try {
+    riders = await listRiders()
+  } catch {
+    riders = []
   }
 
+  const isPreview = ordersMode() === "preview"
   return (
-    <div className="flex flex-col gap-4">
-      <OrdersList orders={result.items} />
-      <OrdersPagination query={query} result={result} />
+    <div className="flex flex-col gap-5">
+      {isPreview ? (
+        <>
+          <PreviewNotice detail="Sample orders use PRV- references." />
+          <PreviewOrderControls />
+        </>
+      ) : null}
+      <OrdersBoard
+        orders={loaded.orders}
+        riders={riders}
+        context={{ timeZone: loaded.context.timeZone, locale: loaded.context.locale }}
+      />
     </div>
   )
 }

@@ -14,7 +14,7 @@ export default function OrderNotFound() {
         This order doesn&apos;t exist or isn&apos;t available to your restaurant.
       </p>
       <Button asChild variant="outline" size="sm" className="mt-4">
-        <Link href="/orders">Back to orders</Link>
+        <Link href="/orders">Back to the orders board</Link>
       </Button>
     </div>
   )

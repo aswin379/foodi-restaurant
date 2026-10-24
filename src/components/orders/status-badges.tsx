@@ -1,21 +1,13 @@
-import { Bike, Store, Truck, UtensilsCrossed } from "lucide-react"
+import { Bike, CalendarClock, Store, Truck, UtensilsCrossed } from "lucide-react"
 
-import {
-  fulfilmentLabels,
-  orderStatusLabels,
-  paymentStatusLabels,
-} from "@/lib/orders/lifecycle"
-import type {
-  FulfilmentMethod,
-  OrderStatus,
-  PaymentStatus,
-} from "@/lib/orders/types"
+import { orderStatusLabels, orderTypeLabel, paymentStatusLabels } from "@/lib/orders/lifecycle"
+import type { OrderStatus, OrderSummary, PaymentStatus } from "@/lib/orders/types"
 import { cn } from "@/lib/utils"
 
 const orderStatusTone: Record<OrderStatus, string> = {
+  scheduled: "border-indigo-200 bg-indigo-50 text-indigo-800",
   pending: "border-amber-200 bg-amber-50 text-amber-800",
   accepted: "border-sky-200 bg-sky-50 text-sky-800",
-  preparing: "border-violet-200 bg-violet-50 text-violet-800",
   ready: "border-emerald-200 bg-emerald-50 text-emerald-800",
   out_for_delivery: "border-teal-200 bg-teal-50 text-teal-800",
   completed: "border-stone-200 bg-stone-100 text-stone-700",
@@ -24,10 +16,10 @@ const orderStatusTone: Record<OrderStatus, string> = {
 }
 
 const paymentStatusTone: Record<PaymentStatus, string> = {
-  unpaid: "text-amber-700",
-  paid: "text-emerald-700",
+  unpaid: "text-amber-800",
+  paid: "text-emerald-800",
   failed: "text-red-700",
-  refund_pending: "text-amber-700",
+  refund_pending: "text-amber-800",
   refunded: "text-stone-600",
 }
 
@@ -51,19 +43,36 @@ export function PaymentStatusText({ status }: { status: PaymentStatus }) {
   )
 }
 
-const fulfilmentIcon = {
-  foodi_delivery: Bike,
-  restaurant_delivery: Truck,
-  pickup: Store,
-  dine_in: UtensilsCrossed,
-} satisfies Record<FulfilmentMethod, unknown>
-
-export function FulfilmentLabel({ method }: { method: FulfilmentMethod }) {
-  const Icon = fulfilmentIcon[method]
+export function OrderTypeLabel({
+  order,
+  className,
+}: {
+  order: Pick<OrderSummary, "orderType" | "deliveryMode" | "scheduledFor">
+  className?: string
+}) {
+  const Icon =
+    order.orderType === "delivery"
+      ? order.deliveryMode === "restaurant"
+        ? Truck
+        : Bike
+      : order.orderType === "takeaway"
+        ? Store
+        : UtensilsCrossed
   return (
-    <span className="inline-flex items-center gap-1.5 text-sm whitespace-nowrap text-muted-foreground">
+    <span
+      className={cn(
+        "inline-flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground",
+        className
+      )}
+    >
       <Icon aria-hidden className="size-3.5" />
-      {fulfilmentLabels[method]}
+      {orderTypeLabel(order)}
+      {order.scheduledFor ? (
+        <>
+          <CalendarClock aria-hidden className="ml-1 size-3.5" />
+          <span>Scheduled</span>
+        </>
+      ) : null}
     </span>
   )
 }
