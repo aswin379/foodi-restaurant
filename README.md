@@ -37,4 +37,80 @@ npm run build
    `public/images/` and set `heroImage` in
    `src/app/(auth)/login/brand-panel.tsx`.
 
+## Dashboard shell
+
+- Route: `/dashboard` (`src/app/(dashboard)/`). Every page added under the
+  `(dashboard)` route group gets the shell from its `layout.tsx`.
+- Shared components live in `src/components/dashboard/`:
+  - `dashboard-shell.tsx`: sidebar, header, content container and the
+    development notice.
+  - `navigation.ts`: the single nav config. A module with `href: null`
+    shows as a disabled "Soon" item. Give it a route once its page exists.
+  - `page-header.tsx`, `stat-card.tsx`, `empty-state.tsx`: building blocks
+    for module pages.
+- KPI cards and dashboard sections show empty states. No sample or live data
+  is rendered.
+
+### Not yet protected
+
+`/dashboard` is an **unprotected development preview**: anyone who can reach
+the app can open it. A banner on every dashboard page says so. Before
+production:
+
+1. Add a session check in `src/app/(dashboard)/layout.tsx` (or `proxy.ts`)
+   that redirects to `/login` when there's no valid restaurant session.
+2. Load the restaurant's name for the header from that session instead of the
+   "Your restaurant" placeholder.
+3. End the session in `src/lib/auth/sign-out.ts`. Today it only redirects to
+   `/login`, because no session is ever created.
+4. Remove the development notice from `dashboard-shell.tsx`.
+
+## Orders UI
+
+`/orders` is the live order board, `/orders/history` the order history,
+`/orders/[orderId]` the order detail and `/print/orders/[orderId]` the kitchen
+ticket and bill. They follow PRD v0.3 §4. No orders API exists yet, so the
+pages show "Orders aren't connected yet". To try every order action against
+labelled sample data in development:
+
+```bash
+FOODI_ORDERS_DATA_SOURCE=preview npm run dev
+```
+
+Changes are simulated on the development server only ("Preview only, not
+saved to Foodi") and reset when it restarts. Preview data is refused in
+production builds. Details and the proposed API contract:
+[docs/orders-ui.md](docs/orders-ui.md).
+
+## Menu UI
+
+`/menu`, `/menu/new`, `/menu/[itemId]/edit` and `/menu/categories` follow PRD
+v0.3 §5: categories are required, items can have sizes and option groups,
+food type, allergens and tags, an availability schedule (always, or set
+days with All day or time windows in the restaurant's time zone, each for
+chosen order types), and can be marked sold out, archived or deleted. No menu
+API exists yet, so the pages show "Menu isn't connected yet". To try every
+change against labelled sample data in development:
+
+```bash
+FOODI_MENU_DATA_SOURCE=preview npm run dev
+```
+
+Changes are simulated on the development server only ("Preview only, not
+saved to Foodi") and reset when it restarts. Preview data is refused in
+production builds. Details and the proposed API contract:
+[docs/menu-ui.md](docs/menu-ui.md).
+
+## Shared foundations and tests
+
+Data-source rules, preview mode, shared components and naming are described in
+[docs/foundations.md](docs/foundations.md).
+
+```bash
+npm run typecheck   # TypeScript
+npm run lint        # ESLint
+npm test            # Vitest unit and component tests
+npm run test:e2e    # Playwright + axe, against a production build and a preview dev server
+```
+
 Brand logo: `public/brand/foodi-logo.png`.
