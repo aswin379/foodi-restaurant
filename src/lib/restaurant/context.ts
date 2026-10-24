@@ -8,8 +8,8 @@ import { resolveDataSourceMode } from "@/lib/data-source/mode"
  * zone (PRD §3.2), currency and locale. In api mode these will come from the
  * restaurant's session and profile, which don't exist yet.
  *
- * Only B0+ code reads this. Orders and Menu still use their own hard-coded
- * Asia/Kolkata / ₹ formatting until B1 and B2 move them over.
+ * Orders, Menu and Hours read the zone and locale from here (through their
+ * own data sources) rather than hard-coding them.
  */
 export type RestaurantContext = {
   restaurantId: string

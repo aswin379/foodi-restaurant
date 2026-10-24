@@ -6,14 +6,43 @@ import { RadioGroup as RadioGroupPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
+const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"])
+
 function RadioGroup({
   className,
+  onKeyDown,
   ...props
 }: React.ComponentProps<typeof RadioGroupPrimitive.Root>) {
   return (
     <RadioGroupPrimitive.Root
       data-slot="radio-group"
       className={cn("grid gap-3", className)}
+      onKeyDown={(event) => {
+        onKeyDown?.(event)
+        // Arrow keys move focus and select the newly focused option (WAI-ARIA
+        // radio group). Radix only selects if the key is still held down when its
+        // roving focus moves (in a timeout), so a quick tap could move focus
+        // without selecting. Radix still decides where focus goes (skipping
+        // disabled options, wrapping, orientation, direction); this selects
+        // whatever option it moved to, through the option's own click.
+        // (Radix's roving focus has already called preventDefault on the arrow key.)
+        if (!ARROW_KEYS.has(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+        const group = event.currentTarget
+        const from = event.target
+        setTimeout(() => {
+          const option = document.activeElement
+          if (
+            option instanceof HTMLButtonElement &&
+            option !== from &&
+            option.getAttribute("role") === "radio" &&
+            group.contains(option) &&
+            option.getAttribute("aria-checked") !== "true" &&
+            !option.disabled
+          ) {
+            option.click()
+          }
+        })
+      }}
       {...props}
     />
   )

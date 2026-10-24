@@ -19,10 +19,15 @@ and no seller API yet.
 | Name mapping | `src/lib/api/mapping.ts` | The only place backend enum names appear (G6). |
 | Restaurant context | `src/lib/restaurant/context.ts` | Time zone, currency, locale. Preview restaurant in preview mode, `not_configured` otherwise. |
 
-Orders (`FOODI_ORDERS_DATA_SOURCE`, since B1) and Menu
-(`FOODI_MENU_DATA_SOURCE`, since B2) both use `selectAdapter()`. Production
-refusal and no-fallback behaviour are covered by tests for both
-(`src/lib/orders/service.test.ts`, `src/lib/menu/service.test.ts`).
+Orders (`FOODI_ORDERS_DATA_SOURCE`, since B1), Menu
+(`FOODI_MENU_DATA_SOURCE`, since B2) and Hours (`FOODI_HOURS_DATA_SOURCE`,
+since B3a) all use `selectAdapter()`. Production refusal and no-fallback
+behaviour are covered by tests for each (`src/lib/orders/service.test.ts`,
+`src/lib/menu/service.test.ts`, `src/lib/hours/service.test.ts`).
+
+`ApiRequest` has an optional `ifMatch` field for the PROPOSED
+optimistic-concurrency header Hours uses; like every API detail, it awaits
+backend agreement.
 
 ## Preview wording (G1)
 
@@ -58,9 +63,18 @@ Frontend models and labels use PRD terms: order types `delivery`, `takeaway`,
 
 - `src/lib/time/format.ts`: shows instants in the restaurant's IANA zone, so
   daylight-saving changes are handled by the zone rules.
-- `src/lib/time/windows.ts`: validates and merges "HH:MM" schedule windows for
-  editors (overnight windows, 15-minute minimum). It does **not** evaluate
-  availability; where that evaluation runs is a backend decision (§9.1).
+- `src/lib/time/windows.ts`: validates "HH:MM" windows for editors (overnight
+  windows, 15-minute minimum).
+- `src/lib/time/weekly.ts` (B3a): weekdays and labels, per-day merging that
+  keeps overnight windows on their start day, per-order-type merging, the
+  All-day overlap check and day ranges. Shared by item schedules (Menu
+  re-exports them unchanged) and restaurant hours.
+- `src/lib/time/calendar.ts` (B3a): calendar dates, the local clock in a zone,
+  local midnight and day length (23 or 25 hours on a DST change), for display
+  and the preview data source.
+
+None of these evaluate availability; where that evaluation runs is a backend
+decision (§9.1).
 
 ## Navigation
 

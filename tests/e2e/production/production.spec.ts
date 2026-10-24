@@ -12,7 +12,7 @@ import {
 
 const routes = [
   { path: "/login", heading: /welcome back/i },
-  { path: "/dashboard", heading: /welcome to your restaurant dashboard/i },
+  { path: "/dashboard", heading: /welcome to your restaurant dashboard/i, disconnected: /hours aren.t connected yet/i },
   { path: "/orders", heading: /^orders$/i, disconnected: /orders aren.t connected yet/i },
   { path: "/orders/history", heading: /order history/i, disconnected: /orders aren.t connected yet/i },
   { path: "/orders/prv-1003", heading: null, disconnected: /orders aren.t connected yet/i },
@@ -20,6 +20,8 @@ const routes = [
   { path: "/menu/new", heading: /add menu item/i, disconnected: /categories aren.t connected yet/i },
   { path: "/menu/prv-item-01/edit", heading: null, disconnected: /menu isn.t connected yet/i },
   { path: "/menu/categories", heading: /categories/i, disconnected: /categories aren.t connected yet/i },
+  { path: "/hours", heading: /availability & hours/i, disconnected: /hours aren.t connected yet/i },
+  { path: "/hours/special-dates", heading: /availability & hours/i, disconnected: /hours aren.t connected yet/i },
 ]
 
 for (const route of routes) {
@@ -71,6 +73,18 @@ test("the menu offers no preview tools or item controls in production", async ({
   await expect(page.getByRole("button", { name: /add item/i })).toHaveCount(0)
 })
 
+test("hours offer no preview tools, editor, pause or estimate in production", async ({ page }) => {
+  for (const path of ["/hours", "/hours/special-dates", "/hours?preview=slow"]) {
+    await gotoAndSettle(page, path)
+    await expect(page.getByText(/hours aren.t connected yet/i).first()).toBeVisible()
+    await expect(page.getByRole("button", { name: /reset sample hours|pause new orders|save hours|add special date|resume/i })).toHaveCount(0)
+    await expect(page.locator("body")).not.toContainText(/preview estimate|\(preview\)/i)
+  }
+  await gotoAndSettle(page, "/dashboard")
+  await expect(page.getByRole("region", { name: /restaurant paused/i })).toHaveCount(0)
+  await expect(page.getByRole("region", { name: /new orders right now/i })).toHaveCount(0)
+})
+
 test("fixture preview scenarios are ignored in production", async ({ page }) => {
   await gotoAndSettle(page, "/orders?preview=slow")
   await expect(page.getByText(/orders aren.t connected yet/i).first()).toBeVisible()
@@ -88,7 +102,7 @@ test("navigation links only to built modules", async ({ page }) => {
   const hrefs = await visibleNav.getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href"))
   )
-  expect(hrefs.sort()).toEqual(["/dashboard", "/menu", "/menu/categories", "/orders"])
+  expect(hrefs.sort()).toEqual(["/dashboard", "/hours", "/menu", "/menu/categories", "/orders"])
   await expect(visibleNav.getByText("Availability & hours")).toBeVisible()
   await expect(visibleNav).not.toContainText(/POS|QR/)
 })

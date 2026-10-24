@@ -1,14 +1,15 @@
 import { isOrderType, ORDER_TYPES, orderTypeLabels, type OrderType } from "@/lib/domain/order-types"
 import {
-  formatLocalTime,
-  isOvernight,
-  MINUTES_PER_DAY,
-  nominalWindowMinutes,
-  parseLocalTime,
-  validateWindow,
-  windowProblemMessages,
-  type TimeWindow,
-} from "@/lib/time/windows"
+  coveredBy,
+  formatDays,
+  MAX_WINDOWS_PER_DAY,
+  mergeDayWindows,
+  WEEKDAYS,
+  weekdayLabels,
+  type ChannelWindow,
+  type Weekday,
+} from "@/lib/time/weekly"
+import { isOvernight, parseLocalTime, validateWindow, windowProblemMessages } from "@/lib/time/windows"
 
 import type { ChannelSettings } from "./types"
 
@@ -30,33 +31,20 @@ import type { ChannelSettings } from "./types"
 // zone, with its own order types. Timed windows on that day may only cover
 // other order types, so nothing is redundant or contradictory.
 
-export const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const
-export type Weekday = (typeof WEEKDAYS)[number]
-
-export const weekdayLabels: Record<Weekday, string> = {
-  mon: "Monday",
-  tue: "Tuesday",
-  wed: "Wednesday",
-  thu: "Thursday",
-  fri: "Friday",
-  sat: "Saturday",
-  sun: "Sunday",
-}
-
-export const weekdayShortLabels: Record<Weekday, string> = {
-  mon: "Mon",
-  tue: "Tue",
-  wed: "Wed",
-  thu: "Thu",
-  fri: "Fri",
-  sat: "Sat",
-  sun: "Sun",
-}
-
-export const MAX_WINDOWS_PER_DAY = 6
+// Shared with restaurant hours; re-exported so Menu imports stay unchanged.
+export {
+  formatDays,
+  MAX_WINDOWS_PER_DAY,
+  mergeDayWindows,
+  mergeTimes,
+  WEEKDAYS,
+  weekdayLabels,
+  weekdayShortLabels,
+  type Weekday,
+} from "@/lib/time/weekly"
 
 /** A timed window and the order types it applies to (PRD `channels`). */
-export type ScheduleWindow = TimeWindow & { channels: OrderType[] }
+export type ScheduleWindow = ChannelWindow
 
 /** The whole calendar day in the restaurant's zone, for these order types. */
 export type AllDay = { channels: OrderType[] }
@@ -191,7 +179,7 @@ export function validateScheduleDraft(draft: ScheduleDraft, itemChannels: Channe
 
       const problem = channelProblem(window.channels, offForItem)
       // A timed window for an order type that's already available all day adds nothing.
-      const covered = allDay ? window.channels.filter((type) => allDay.channels.includes(type)) : []
+      const covered = allDay ? coveredBy(allDay.channels, window.channels) : []
       if (problem) errors[schedulePaths.channels(day, window.key)] = problem
       else if (covered.length > 0) {
         const pronoun = covered.length === 1 ? "it" : "them"
@@ -204,60 +192,6 @@ export function validateScheduleDraft(draft: ScheduleDraft, itemChannels: Channe
 }
 
 // ----- Saving -----------------------------------------------------------------
-
-/**
- * Merges overlapping or touching times of one day (§3.2), keeping overnight
- * windows on their start day. Unlike a "same every day" schedule, an overnight
- * tail never wraps round to merge with the same day's morning.
- */
-export function mergeTimes(windows: TimeWindow[]): TimeWindow[] {
-  const intervals = windows
-    .filter((window) => validateWindow(window) === null)
-    .map((window) => {
-      const start = parseLocalTime(window.start)!
-      return [start, start + nominalWindowMinutes(window)!] as [number, number]
-    })
-    .sort((a, b) => a[0] - b[0])
-
-  const merged: Array<[number, number]> = []
-  for (const [start, end] of intervals) {
-    const last = merged.at(-1)
-    if (last && start <= last[1]) last[1] = Math.max(last[1], end)
-    else merged.push([start, end])
-  }
-  // Two overnight windows can't merge past a full day; cap at 24 hours less a minute.
-  return merged.map(([start, end]) => ({
-    start: formatLocalTime(start),
-    end: formatLocalTime(Math.min(end, start + MINUTES_PER_DAY - 1)),
-  }))
-}
-
-/**
- * Merges one day's windows per order type (§3.2 with Q12), then puts order
- * types with identical times back into one window. So 11:00–15:00 for
- * dine-in and takeaway stays one window, and 18:00–22:00 delivery stays
- * separate; two overlapping delivery windows become one.
- */
-export function mergeDayWindows(windows: ScheduleWindow[]): ScheduleWindow[] {
-  const byTimes = new Map<string, ScheduleWindow>()
-  for (const type of ORDER_TYPES) {
-    for (const times of mergeTimes(windows.filter((window) => window.channels.includes(type)))) {
-      const key = `${times.start}-${times.end}`
-      const window = byTimes.get(key) ?? { ...times, channels: [] }
-      window.channels.push(type)
-      byTimes.set(key, window)
-    }
-  }
-  const sortKey = (window: TimeWindow) => {
-    const start = parseLocalTime(window.start)!
-    return [start, start + nominalWindowMinutes(window)!] as const
-  }
-  return [...byTimes.values()].sort((a, b) => {
-    const [aStart, aEnd] = sortKey(a)
-    const [bStart, bEnd] = sortKey(b)
-    return aStart - bStart || aEnd - bEnd
-  })
-}
 
 /** Stored schedule from a valid draft. Days with the same rule are grouped. */
 export function scheduleFromDraft(draft: ScheduleDraft, timeZone: string): ItemSchedule {
@@ -300,25 +234,6 @@ export function formatWindow(window: ScheduleWindow, itemChannels?: ChannelSetti
 export function formatAllDay(allDay: AllDay, itemChannels?: ChannelSettings) {
   const note = channelNote(allDay.channels, itemChannels)
   return `All day${note ? ` (${note})` : ""}`
-}
-
-/** "Mon–Fri", "Sat, Sun", "Mon, Wed, Fri": consecutive days become ranges. */
-export function formatDays(days: readonly Weekday[]) {
-  const indexes = [...new Set(days)].map((day) => WEEKDAYS.indexOf(day)).sort((a, b) => a - b)
-  if (indexes.length === 7) return "Every day"
-  const runs: number[][] = []
-  for (const index of indexes) {
-    const run = runs.at(-1)
-    if (run && index === run[run.length - 1] + 1) run.push(index)
-    else runs.push([index])
-  }
-  return runs
-    .flatMap((run) =>
-      run.length >= 3
-        ? [`${weekdayShortLabels[WEEKDAYS[run[0]]]}–${weekdayShortLabels[WEEKDAYS[run.at(-1)!]]}`]
-        : run.map((index) => weekdayShortLabels[WEEKDAYS[index]])
-    )
-    .join(", ")
 }
 
 /**

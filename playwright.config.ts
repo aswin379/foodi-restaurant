@@ -20,6 +20,7 @@ const PREVIEW_ENV = {
   FOODI_ORDERS_DATA_SOURCE: "preview",
   FOODI_MENU_DATA_SOURCE: "preview",
   FOODI_RESTAURANT_DATA_SOURCE: "preview",
+  FOODI_HOURS_DATA_SOURCE: "preview",
 }
 
 export default defineConfig({

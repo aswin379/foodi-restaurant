@@ -23,6 +23,9 @@ const pages = [
   { name: "all-day item editor", path: "/menu/prv-item-19/edit", heading: /edit filter coffee/i },
   { name: "new menu item", path: "/menu/new", heading: /add menu item/i },
   { name: "categories", path: "/menu/categories", heading: /categories/i },
+  { name: "weekly hours", path: "/hours", heading: /availability & hours/i },
+  { name: "special dates", path: "/hours/special-dates", heading: /availability & hours/i },
+  { name: "dashboard with opening status", path: "/dashboard", heading: /welcome to your restaurant dashboard/i },
 ]
 
 for (const { name, path, heading } of pages) {
@@ -61,4 +64,12 @@ test("menu pages label preview data", async ({ page }) => {
     await gotoAndSettle(page, path)
     await expect(page.getByRole("note").filter({ hasText: PREVIEW_LABEL }).first()).toBeVisible()
   }
+})
+
+test("hours pages and the dashboard status label preview data", async ({ page }) => {
+  for (const path of ["/hours", "/hours/special-dates", "/dashboard"]) {
+    await gotoAndSettle(page, path)
+    await expect(page.getByRole("note").filter({ hasText: PREVIEW_LABEL }).first()).toBeVisible()
+  }
+  await expect(page.getByText(/Preview estimate: not Foodi.s live availability/)).toBeVisible()
 })
