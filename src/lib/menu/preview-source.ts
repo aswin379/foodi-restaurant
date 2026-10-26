@@ -6,7 +6,7 @@ import { PREVIEW_RESTAURANT } from "@/lib/restaurant/context"
 
 import type { MenuAdapter } from "./adapter"
 import { buildFixtureMenu } from "./fixtures/menu"
-import { applyMenuCommand, itemStatus, withItemCount, type MenuCommandResult, type MenuState } from "./rules"
+import { applyMenuCommand, itemStatus, withItemCount, withUsage, type MenuCommandResult, type MenuState } from "./rules"
 import type { MenuItemListQuery, MenuItemListResult } from "./types"
 
 // PREVIEW ADAPTER (development only). The whole menu lives as one record in
@@ -95,6 +95,15 @@ export function createPreviewMenuAdapter(): MenuAdapter {
       return state.categories
         .map((category) => withItemCount(category, state.items))
         .sort((a, b) => Number(a.archived) - Number(b.archived) || a.position - b.position)
+    },
+
+    async listMealPeriods(previewScenario?: unknown) {
+      const scenario = await applyScenario(previewScenario)
+      if (scenario === "empty") return []
+      const state = current()
+      return state.mealPeriods
+        .map((period) => withUsage(period, state))
+        .sort((a, b) => Number(a.status === "archived") - Number(b.status === "archived") || a.name.localeCompare(b.name))
     },
 
     async act(command, idempotencyKey) {

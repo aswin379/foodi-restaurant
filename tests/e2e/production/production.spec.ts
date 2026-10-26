@@ -20,6 +20,7 @@ const routes = [
   { path: "/menu/new", heading: /add menu item/i, disconnected: /categories aren.t connected yet/i },
   { path: "/menu/prv-item-01/edit", heading: null, disconnected: /menu isn.t connected yet/i },
   { path: "/menu/categories", heading: /categories/i, disconnected: /categories aren.t connected yet/i },
+  { path: "/menu/meal-periods", heading: /meal periods/i, disconnected: /meal periods aren.t connected yet/i },
   { path: "/hours", heading: /availability & hours/i, disconnected: /hours aren.t connected yet/i },
   { path: "/hours/special-dates", heading: /availability & hours/i, disconnected: /hours aren.t connected yet/i },
 ]
@@ -71,6 +72,10 @@ test("the menu offers no preview tools or item controls in production", async ({
   await gotoAndSettle(page, "/menu/new")
   await expect(page.getByRole("radio", { name: /only at set times/i })).toHaveCount(0)
   await expect(page.getByRole("button", { name: /add item/i })).toHaveCount(0)
+  // No meal periods, no editor for them, and no hours check (B3b).
+  await gotoAndSettle(page, "/menu/meal-periods")
+  await expect(page.getByRole("button", { name: /add meal period|archive|restore|delete/i })).toHaveCount(0)
+  await expect(page.locator("body")).not.toContainText(/used by|07:00–11:00|check against restaurant hours/i)
 })
 
 test("hours offer no preview tools, editor, pause or estimate in production", async ({ page }) => {
@@ -102,7 +107,7 @@ test("navigation links only to built modules", async ({ page }) => {
   const hrefs = await visibleNav.getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href"))
   )
-  expect(hrefs.sort()).toEqual(["/dashboard", "/hours", "/menu", "/menu/categories", "/orders"])
+  expect(hrefs.sort()).toEqual(["/dashboard", "/hours", "/menu", "/menu/categories", "/menu/meal-periods", "/orders"])
   await expect(visibleNav.getByText("Availability & hours")).toBeVisible()
   await expect(visibleNav).not.toContainText(/POS|QR/)
 })

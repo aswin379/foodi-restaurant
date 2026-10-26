@@ -4,8 +4,8 @@ import type { OrderType } from "@/lib/domain/order-types"
 
 import { PREVIEW_RESTAURANT } from "@/lib/restaurant/context"
 
-import type { MenuState, StoredCategory } from "../rules"
-import { enabledChannels, type ItemSchedule, type Weekday } from "../schedule"
+import type { MenuState, StoredCategory, StoredMealPeriod } from "../rules"
+import { enabledChannels, type ItemSchedule, type MealPeriodRef, type Weekday } from "../schedule"
 import type {
   Allergen,
   ChannelSettings,
@@ -21,7 +21,9 @@ import type {
 // while the menu API is built. Ids start with "prv-", descriptions say they
 // are previews, and "used on orders" flags are invented for testing archive
 // and delete. Prices and option rules are examples, not approved pricing.
-// Only src/lib/menu/preview-source.ts may import this file.
+// The meal periods are sample data for trying B3b, not presets: a real
+// restaurant starts with none. Only src/lib/menu/preview-source.ts may import
+// this file.
 
 const CURRENCY = "INR"
 const money = (amountMinor: number) => ({ amountMinor, currency: CURRENCY })
@@ -31,6 +33,61 @@ const channelsWithout = (...off: OrderType[]): ChannelSettings => ({
   ...Object.fromEntries(off.map((type) => [type, false])),
 })
 
+const EVERY_DAY: Weekday[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+// Sample meal periods (B3b), in the preview restaurant's zone. Lunch runs to
+// 16:00 at weekends, past the sample delivery and dine-in hours, to show the
+// hours warning.
+type PeriodSeed = Pick<StoredMealPeriod, "id" | "name" | "weekly" | "usedOnOrders"> & Partial<Pick<StoredMealPeriod, "status">>
+const PERIOD_SEEDS: PeriodSeed[] = [
+  {
+    id: "prv-meal-breakfast",
+    name: "Breakfast",
+    weekly: [{ days: EVERY_DAY, allDay: false, windows: [{ start: "07:00", end: "11:00" }] }],
+    usedOnOrders: true,
+  },
+  {
+    id: "prv-meal-lunch",
+    name: "Lunch",
+    weekly: [
+      { days: ["mon", "tue", "wed", "thu", "fri"], allDay: false, windows: [{ start: "12:00", end: "15:00" }] },
+      { days: ["sat", "sun"], allDay: false, windows: [{ start: "12:00", end: "16:00" }] },
+    ],
+    usedOnOrders: true,
+  },
+  {
+    id: "prv-meal-dinner",
+    name: "Dinner",
+    weekly: [{ days: EVERY_DAY, allDay: false, windows: [{ start: "19:00", end: "23:00" }] }],
+    usedOnOrders: true,
+  },
+  // Never used, so it can be deleted.
+  {
+    id: "prv-meal-late-night",
+    name: "Late night",
+    weekly: [{ days: ["fri", "sat"], allDay: false, windows: [{ start: "23:00", end: "02:00" }] }],
+    usedOnOrders: false,
+  },
+  // Archived, to try restoring.
+  {
+    id: "prv-meal-afternoon-tea",
+    name: "Afternoon tea",
+    status: "archived",
+    weekly: [{ days: ["sat", "sun"], allDay: false, windows: [{ start: "15:00", end: "17:00" }] }],
+    usedOnOrders: false,
+  },
+]
+const MEAL_PERIODS: StoredMealPeriod[] = PERIOD_SEEDS.map((period) => ({
+  status: "active",
+  version: `${period.id}-1`,
+  updatedAt: null,
+  updatedBy: "Preview staff",
+  ...period,
+}))
+
+const ALL_TYPES: OrderType[] = ["delivery", "takeaway", "dine_in"]
+const mealPeriods = (...periods: MealPeriodRef[]): ItemSchedule => ({ mode: "meal_periods", periods })
+
 const CATEGORIES: StoredCategory[] = [
   { id: "prv-cat-starters", name: "Starters", description: "Small plates (preview)", position: 1 },
   { id: "prv-cat-mains", name: "Mains", description: null, position: 2 },
@@ -38,8 +95,15 @@ const CATEGORIES: StoredCategory[] = [
   { id: "prv-cat-rice", name: "Rice & biryani", description: "Preview description", position: 4 },
   { id: "prv-cat-desserts", name: "Desserts", description: null, position: 5 },
   { id: "prv-cat-drinks", name: "Drinks", description: "Hot and cold drinks (preview)", position: 6 },
-  // Switched off, to preview items in an inactive category.
-  { id: "prv-cat-breakfast", name: "Breakfast", description: "Switched off (preview)", position: 7, active: false },
+  // Switched off, to preview items in an inactive category. Its schedule uses the Breakfast meal period.
+  {
+    id: "prv-cat-breakfast",
+    name: "Breakfast",
+    description: "Switched off (preview)",
+    position: 7,
+    active: false,
+    schedule: mealPeriods({ periodId: "prv-meal-breakfast", channels: ALL_TYPES }),
+  },
   // Deliberately empty, so it can be archived or deleted.
   { id: "prv-cat-seasonal", name: "Seasonal specials", description: "No items yet (preview)", position: 8, usedOnOrders: false },
   // Archived, with order history.
@@ -47,6 +111,7 @@ const CATEGORIES: StoredCategory[] = [
 ].map((category) => ({
   active: true,
   channels: ALL_CHANNELS,
+  schedule: { mode: "always" } as ItemSchedule,
   archived: false,
   usedOnOrders: true,
   ...category,
@@ -68,6 +133,8 @@ type Seed = {
   neverOrdered?: boolean
   /** Order types left out apply to all of the item's order types. */
   schedule?: Array<[days: Weekday[], rule: { allDay?: OrderType[]; windows?: Array<[string, string, OrderType[]?]> }]>
+  /** Meal periods instead of a custom schedule (B3b). */
+  mealPeriods?: MealPeriodRef[]
 }
 
 // Sample schedules use the preview restaurant's own time zone (PRD §3.2).
@@ -93,7 +160,18 @@ const ITEMS: Seed[] = [
   { name: "Chicken 65", categoryId: "prv-cat-starters", priceMinor: 24000, dietary: "non_veg", spiceLevel: "hot", soldOut: true },
   { name: "Hara bhara kebab", categoryId: "prv-cat-starters", priceMinor: 19000, dietary: "vegan", neverOrdered: true },
   { name: "Dal makhani", categoryId: "prv-cat-mains", priceMinor: 19000, allergens: ["dairy"], calories: 420 },
-  { name: "Paneer butter masala", categoryId: "prv-cat-mains", priceMinor: 24000, allergens: ["dairy", "nuts"], tags: ["chefs_special"] },
+  {
+    name: "Paneer butter masala",
+    categoryId: "prv-cat-mains",
+    priceMinor: 24000,
+    allergens: ["dairy", "nuts"],
+    tags: ["chefs_special"],
+    // Lunch for every order type, Dinner for delivery and dine-in only (H1).
+    mealPeriods: [
+      { periodId: "prv-meal-lunch", channels: ALL_TYPES },
+      { periodId: "prv-meal-dinner", channels: ["delivery", "dine_in"] },
+    ],
+  },
   {
     name: "Butter chicken",
     categoryId: "prv-cat-mains",
@@ -124,7 +202,14 @@ const ITEMS: Seed[] = [
       [["sat", "sun"], { windows: [["12:00", "23:30"]] }],
     ],
   },
-  { name: "Lemon rice", categoryId: "prv-cat-rice", priceMinor: 12000, dietary: "vegan", allergens: ["peanuts", "mustard"] },
+  {
+    name: "Lemon rice",
+    categoryId: "prv-cat-rice",
+    priceMinor: 12000,
+    dietary: "vegan",
+    allergens: ["peanuts", "mustard"],
+    mealPeriods: [{ periodId: "prv-meal-lunch", channels: ALL_TYPES }],
+  },
   { name: "Gulab jamun (2 pcs)", categoryId: "prv-cat-desserts", priceMinor: 9000, allergens: ["dairy", "gluten"] },
   { name: "Rasmalai", categoryId: "prv-cat-desserts", priceMinor: 11000, allergens: ["dairy", "nuts"], tags: ["new"] },
   { name: "Kulfi", categoryId: "prv-cat-desserts", priceMinor: 8000, allergens: ["dairy", "nuts"], channels: channelsWithout("delivery") },
@@ -245,10 +330,14 @@ export function buildFixtureMenu(now: number): MenuState {
           }
         : null,
       channels: seed.channels ?? ALL_CHANNELS,
-      schedule: sampleSchedule(seed.schedule, seed.channels ?? ALL_CHANNELS),
+      schedule: seed.mealPeriods ? mealPeriods(...seed.mealPeriods) : sampleSchedule(seed.schedule, seed.channels ?? ALL_CHANNELS),
       archived: seed.archived ?? false,
       usedOnOrders: !seed.neverOrdered,
     }
   })
-  return { items, categories: CATEGORIES.map((category) => ({ ...category })) }
+  return {
+    items,
+    categories: CATEGORIES.map((category) => ({ ...category })),
+    mealPeriods: MEAL_PERIODS.map((period) => ({ ...period })),
+  }
 }

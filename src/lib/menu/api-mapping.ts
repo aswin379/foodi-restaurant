@@ -3,6 +3,7 @@ import { ServiceError } from "@/lib/data-source/errors"
 import { ORDER_TYPES, type OrderType } from "@/lib/domain/order-types"
 
 import type { MenuCommand } from "./commands"
+import { mealPeriodFromApi } from "./meal-periods-api"
 import type { MenuCommandResult } from "./rules"
 import { scheduleDraftToApi, scheduleFromApi } from "./schedule-api"
 import type { ChannelSettings, MenuCategory, MenuItem, MenuItemListResult } from "./types"
@@ -41,8 +42,10 @@ export function itemFromApi(item: MenuItem): MenuItem {
   return { ...item, channels, schedule: scheduleFromApi(item.schedule, channels) }
 }
 
+/** A category: its order types first, then its schedule (B3b; missing = always), read against them. */
 export function categoryFromApi(category: MenuCategory): MenuCategory {
-  return { ...category, channels: channelSettingsFromApi(category.channels) }
+  const channels = channelSettingsFromApi(category.channels)
+  return { ...category, channels, schedule: scheduleFromApi(category.schedule, channels) }
 }
 
 export function itemListFromApi(result: MenuItemListResult): MenuItemListResult {
@@ -52,6 +55,7 @@ export function itemListFromApi(result: MenuItemListResult): MenuItemListResult 
 export function commandResultFromApi(result: MenuCommandResult): MenuCommandResult {
   if (result.kind === "item") return { ...result, item: itemFromApi(result.item) }
   if (result.kind === "category") return { ...result, category: categoryFromApi(result.category) }
+  if (result.kind === "meal_period") return { ...result, period: mealPeriodFromApi(result.period) }
   return result
 }
 
@@ -68,7 +72,14 @@ export function commandToApi(command: MenuCommand): unknown {
         },
       }
     case "save_category":
-      return { ...command, draft: { ...command.draft, channels: channelSettingsToApi(command.draft.channels) } }
+      return {
+        ...command,
+        draft: {
+          ...command.draft,
+          channels: channelSettingsToApi(command.draft.channels),
+          ...(command.draft.schedule ? { schedule: scheduleDraftToApi(command.draft.schedule) } : {}),
+        },
+      }
     default:
       return command
   }

@@ -24,6 +24,7 @@ function category(overrides: Partial<StoredCategory> = {}): StoredCategory {
     position: 1,
     active: true,
     channels: ALL,
+    schedule: { mode: "always" },
     archived: false,
     usedOnOrders: true,
     ...overrides,
@@ -58,6 +59,7 @@ function item(overrides: Partial<MenuItem> = {}): MenuItem {
 const state = (overrides: Partial<MenuState> = {}): MenuState => ({
   items: [item()],
   categories: [category(), category({ id: "cat-drinks", name: "Drinks", position: 2 })],
+  mealPeriods: [],
   ...overrides,
 })
 

@@ -1,5 +1,6 @@
 import { ORDER_TYPES } from "@/lib/domain/order-types"
 
+import { mealPeriodDraftFromInput, validateMealPeriodDraft, type MealPeriodDraft } from "./meal-periods"
 import { scheduleDraftFromInput } from "./schedule"
 import type { ChannelSettings } from "./types"
 import {
@@ -35,6 +36,9 @@ export type MenuCommand =
   | { type: "save_category"; categoryId: string | null; draft: CategoryDraft }
   | { type: "move_category"; categoryId: string; direction: "up" | "down" }
   | { type: "archive_category" | "restore_category" | "delete_category"; categoryId: string }
+  /** B3b. `version` is the one loaded for editing; null for a new period. */
+  | { type: "save_meal_period"; periodId: string | null; version: string | null; draft: MealPeriodDraft }
+  | { type: "archive_meal_period" | "restore_meal_period" | "delete_meal_period"; periodId: string }
 
 export type ParsedMenuCommand = { ok: true; command: MenuCommand } | { ok: false; fieldErrors: FieldErrors }
 
@@ -121,6 +125,8 @@ export function categoryDraftFrom(value: unknown): CategoryDraft {
     description: text(raw.description, 1000),
     active: raw.active !== false,
     channels: channels(raw.channels),
+    // Not sent = keep the saved schedule, so a caller can't wipe it by leaving it out.
+    ...(raw.schedule === undefined ? {} : { schedule: scheduleDraftFromInput(raw.schedule) }),
   }
 }
 
@@ -177,6 +183,26 @@ export function parseMenuCommand(input: unknown): ParsedMenuCommand {
     case "delete_category": {
       const categoryId = id(input.categoryId)
       return categoryId ? { ok: true, command: { type: input.type, categoryId } } : unknownCommand
+    }
+
+    case "save_meal_period": {
+      const periodId = input.periodId === null ? null : id(input.periodId)
+      if (periodId === null && input.periodId !== null) return unknownCommand
+      // Editing needs the version that was loaded, so a stale edit can be refused.
+      const version = typeof input.version === "string" && input.version.length <= 100 ? input.version : null
+      if (periodId !== null && version === null) return unknownCommand
+      const draft = mealPeriodDraftFromInput(input.draft)
+      const errors = validateMealPeriodDraft(draft)
+      return hasErrors(errors)
+        ? { ok: false, fieldErrors: errors }
+        : { ok: true, command: { type: "save_meal_period", periodId, version: periodId ? version : null, draft } }
+    }
+
+    case "archive_meal_period":
+    case "restore_meal_period":
+    case "delete_meal_period": {
+      const periodId = id(input.periodId)
+      return periodId ? { ok: true, command: { type: input.type, periodId } } : unknownCommand
     }
 
     default:

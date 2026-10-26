@@ -23,6 +23,8 @@ const pages = [
   { name: "all-day item editor", path: "/menu/prv-item-19/edit", heading: /edit filter coffee/i },
   { name: "new menu item", path: "/menu/new", heading: /add menu item/i },
   { name: "categories", path: "/menu/categories", heading: /categories/i },
+  { name: "meal periods", path: "/menu/meal-periods", heading: /meal periods/i },
+  { name: "meal-period item editor with hours check", path: "/menu/prv-item-06/edit", heading: /edit paneer butter masala/i },
   { name: "weekly hours", path: "/hours", heading: /availability & hours/i },
   { name: "special dates", path: "/hours/special-dates", heading: /availability & hours/i },
   { name: "dashboard with opening status", path: "/dashboard", heading: /welcome to your restaurant dashboard/i },
@@ -60,7 +62,7 @@ test("order history filters by status", async ({ page }) => {
 })
 
 test("menu pages label preview data", async ({ page }) => {
-  for (const path of ["/menu", "/menu/new", "/menu/prv-item-13/edit", "/menu/categories"]) {
+  for (const path of ["/menu", "/menu/new", "/menu/prv-item-13/edit", "/menu/categories", "/menu/meal-periods"]) {
     await gotoAndSettle(page, path)
     await expect(page.getByRole("note").filter({ hasText: PREVIEW_LABEL }).first()).toBeVisible()
   }

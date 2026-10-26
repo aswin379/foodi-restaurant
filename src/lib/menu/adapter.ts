@@ -1,6 +1,7 @@
 import type { RestaurantContext } from "@/lib/restaurant/context"
 
 import type { MenuCommand } from "./commands"
+import type { MealPeriod } from "./meal-periods"
 import type { MenuCommandResult } from "./rules"
 import type { MenuCategory, MenuItem, MenuItemListQuery, MenuItemListResult } from "./types"
 
@@ -16,6 +17,8 @@ export type MenuAdapter = {
   getItem(itemId: string, previewScenario?: unknown): Promise<MenuItem | null>
   /** Every category, archived ones included, in display order. */
   listCategories(previewScenario?: unknown): Promise<MenuCategory[]>
+  /** Every meal period, archived ones included, with what uses each (B3b). */
+  listMealPeriods(previewScenario?: unknown): Promise<MealPeriod[]>
   /** Applies a restaurant command. Replays the stored result for a repeated key. */
   act(command: MenuCommand, idempotencyKey: string): Promise<MenuCommandResult>
 }

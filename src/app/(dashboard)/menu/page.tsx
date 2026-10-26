@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Plus, Tags } from "lucide-react"
+import { CalendarClock, Plus, Tags } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/dashboard/page-header"
@@ -12,7 +12,8 @@ import { MenuToolbar } from "@/components/menu/menu-toolbar"
 import { PreviewMenuControls } from "@/components/menu/preview-menu-controls"
 import { PreviewNotice } from "@/components/shared/preview-notice"
 import { hasActiveMenuFilters, menuHref, parseMenuItemListQuery, type RawSearchParams } from "@/lib/menu/query"
-import { getMenuContext, listMenuCategories, listMenuItems, menuMode } from "@/lib/menu/service"
+import type { MealPeriod } from "@/lib/menu/meal-periods"
+import { getMenuContext, listMealPeriods, listMenuCategories, listMenuItems, menuMode } from "@/lib/menu/service"
 import type { MenuCategory, MenuItemListQuery } from "@/lib/menu/types"
 
 export const metadata: Metadata = {
@@ -26,11 +27,18 @@ export default function MenuPage({ searchParams }: PageProps<"/menu">) {
         title="Menu"
         description="Manage the dishes and drinks on your menu, their prices and options, and whether they can be ordered."
         actions={
-          <>
+          // Three actions: let them wrap on narrow screens.
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
             <Button asChild variant="outline">
               <Link href="/menu/categories">
                 <Tags aria-hidden />
                 Categories
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/menu/meal-periods">
+                <CalendarClock aria-hidden />
+                Meal periods
               </Link>
             </Button>
             <Button asChild>
@@ -39,7 +47,7 @@ export default function MenuPage({ searchParams }: PageProps<"/menu">) {
                 Add item
               </Link>
             </Button>
-          </>
+          </div>
         }
       />
       <Suspense fallback={<MenuListSkeleton />}>
@@ -60,6 +68,13 @@ async function MenuView({ searchParams }: { searchParams: Promise<RawSearchParam
   } catch {
     categories = null
   }
+  // Only for naming meal periods in schedule summaries; the list says when they couldn't load.
+  let mealPeriods: MealPeriod[] | null = null
+  try {
+    mealPeriods = await listMealPeriods()
+  } catch {
+    mealPeriods = null
+  }
 
   const isPreview = menuMode() === "preview"
   return (
@@ -68,7 +83,13 @@ async function MenuView({ searchParams }: { searchParams: Promise<RawSearchParam
       <MenuToolbar query={query} categories={categories} />
       {/* Keyed so a new filter shows the loading state instead of stale rows. */}
       <Suspense key={menuHref(query)} fallback={<MenuListSkeleton />}>
-        <MenuResults query={query} preview={params.preview} categories={categories ?? []} isPreview={isPreview} />
+        <MenuResults
+          query={query}
+          preview={params.preview}
+          categories={categories ?? []}
+          mealPeriods={mealPeriods}
+          isPreview={isPreview}
+        />
       </Suspense>
     </div>
   )
@@ -78,11 +99,13 @@ async function MenuResults({
   query,
   preview,
   categories,
+  mealPeriods,
   isPreview,
 }: {
   query: MenuItemListQuery
   preview: unknown
   categories: MenuCategory[]
+  mealPeriods: MealPeriod[] | null
   isPreview: boolean
 }) {
   let loaded
@@ -120,6 +143,7 @@ async function MenuResults({
       <MenuItemsList
         items={result.items}
         categories={categories}
+        mealPeriods={mealPeriods}
         context={{ timeZone: context.timeZone, locale: context.locale }}
       />
       <MenuPagination query={query} result={result} />

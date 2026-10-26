@@ -24,7 +24,9 @@ import {
   spiceLabels,
   tagLabels,
 } from "@/lib/menu/labels"
-import { scheduleDraftFrom, schedulePaths, WEEKDAYS } from "@/lib/menu/schedule"
+import type { HoursForCheck } from "@/lib/menu/hours-warnings"
+import type { MealPeriod } from "@/lib/menu/meal-periods"
+import { listOrderTypes, scheduleDraftFrom, schedulePaths, WEEKDAYS } from "@/lib/menu/schedule"
 import { ALLERGENS, DIETARY_TYPES, ITEM_TAGS, SPICE_LEVELS, type MenuCategory, type MenuItem } from "@/lib/menu/types"
 import {
   DESCRIPTION_MAX,
@@ -38,6 +40,7 @@ import {
   type SoldOutChoice,
 } from "@/lib/menu/validation"
 
+import { HoursCheckPanel } from "./hours-check-panel"
 import { ImagePicker } from "./image-picker"
 import { errorProps, FieldError, OptionGroupsEditor, SizesEditor } from "./item-options-editors"
 import { soldOutUntilText } from "./item-status-badge"
@@ -124,6 +127,9 @@ function summaryOrder(draft: MenuItemDraft) {
           ]),
         ])
       : []),
+    ...(schedule.mode === "meal_periods"
+      ? schedule.periods.flatMap((ref) => [schedulePaths.period(ref.periodId), schedulePaths.periodChannels(ref.periodId)])
+      : []),
     "image",
     "soldOut.reason",
   ]
@@ -139,12 +145,18 @@ export function MenuItemForm({
   item,
   categories,
   context,
+  mealPeriods,
+  hours,
 }: {
   mode: "create" | "edit"
   item?: MenuItem
   /** Null when categories couldn't be loaded. */
   categories: MenuCategory[] | null
   context: ZoneAndLocale
+  /** B3b: null when meal periods couldn't be loaded. */
+  mealPeriods: MealPeriod[] | null
+  /** B3b: restaurant hours for the advisory check. */
+  hours: HoursForCheck
 }) {
   const router = useRouter()
   const command = useMenuCommand()
@@ -156,6 +168,7 @@ export function MenuItemForm({
   const serverErrors = command.fieldErrors
   const errors: FieldErrors = { ...serverErrors, ...localErrors }
   const activeCategories = categories?.filter((category) => !category.archived) ?? null
+  const category = categories?.find((candidate) => candidate.id === draft.categoryId) ?? null
 
   function update(patch: Partial<MenuItemDraft>) {
     const next = { ...draft, ...patch }
@@ -383,7 +396,7 @@ export function MenuItemForm({
           </FormSection>
 
           <FormSection title="Order types and schedule" description="How and when customers can order this item.">
-            <ItemOrderTypes draft={draft} errors={errors} onChange={update} />
+            <ItemOrderTypes draft={draft} category={category} errors={errors} onChange={update} />
             <ScheduleEditor
               value={draft.schedule}
               onChange={(schedule) => update({ schedule })}
@@ -392,6 +405,14 @@ export function MenuItemForm({
               savedTimeZone={item?.schedule.mode === "custom" ? item.schedule.timeZone : undefined}
               itemChannels={draft.channels}
               newKey={newKey}
+              mealPeriods={mealPeriods}
+            />
+            <HoursCheckPanel
+              draft={draft}
+              categories={categories}
+              mealPeriods={mealPeriods}
+              hours={hours}
+              timeZone={context.timeZone}
             />
           </FormSection>
         </div>
@@ -483,17 +504,35 @@ function AvailabilityFields({
   )
 }
 
-/** The item's own order types (PRD §3.4 Channels). Schedule windows narrow these. */
+/**
+ * The item's own order types (PRD §3.4 Channels). Schedule windows narrow
+ * these. B3b: the category is the outer limit. An order type that's off for
+ * the category can't be turned on here; one the item already has stays as
+ * configured (the save rule is unchanged), and the editor shows that it
+ * isn't orderable.
+ */
 function ItemOrderTypes({
   draft,
+  category,
   errors,
   onChange,
 }: {
   draft: MenuItemDraft
+  category: MenuCategory | null
   errors: FieldErrors
   onChange: (patch: Partial<MenuItemDraft>) => void
 }) {
-  const describedBy = ["item-channels-help", errors.channels ? `${fieldId("channels")}-error` : null].filter(Boolean).join(" ")
+  const offForCategory = category ? ORDER_TYPES.filter((type) => !category.channels[type]) : []
+  const configured = ORDER_TYPES.filter((type) => draft.channels[type])
+  const effective = configured.filter((type) => !offForCategory.includes(type))
+  const kept = configured.filter((type) => offForCategory.includes(type))
+  const describedBy = [
+    "item-channels-help",
+    offForCategory.length ? "item-channels-category" : null,
+    errors.channels ? `${fieldId("channels")}-error` : null,
+  ]
+    .filter(Boolean)
+    .join(" ")
   return (
     <fieldset className="grid gap-2" aria-describedby={describedBy}>
       <legend id={fieldId("channels")} tabIndex={-1} className="text-sm font-medium outline-none">
@@ -503,19 +542,40 @@ function ItemOrderTypes({
         What the item is offered for. A schedule can narrow these by time, never add to them.
       </p>
       <div className="flex flex-wrap gap-x-5 gap-y-2">
-        {ORDER_TYPES.map((type) => (
-          <div key={type} className="flex items-center gap-2.5">
-            <Checkbox
-              id={fieldId(`channels.${type}`)}
-              checked={draft.channels[type]}
-              onCheckedChange={(checked) => onChange({ channels: { ...draft.channels, [type]: checked === true } })}
-            />
-            <Label htmlFor={fieldId(`channels.${type}`)} className="font-normal">
-              {orderTypeLabels[type]}
-            </Label>
-          </div>
-        ))}
+        {ORDER_TYPES.map((type) => {
+          const off = offForCategory.includes(type)
+          return (
+            <div key={type} className="flex items-center gap-2.5">
+              <Checkbox
+                id={fieldId(`channels.${type}`)}
+                checked={draft.channels[type]}
+                // A child never turns on what its category has off; an existing setting can still be cleared.
+                disabled={off && !draft.channels[type]}
+                onCheckedChange={(checked) => onChange({ channels: { ...draft.channels, [type]: checked === true } })}
+              />
+              <Label htmlFor={fieldId(`channels.${type}`)} className="font-normal">
+                {orderTypeLabels[type]}
+                {off ? <span className="text-xs text-muted-foreground">(off for category)</span> : null}
+              </Label>
+            </div>
+          )
+        })}
       </div>
+      {category && offForCategory.length ? (
+        <div id="item-channels-category" className="rounded-md border bg-muted/40 px-3 py-2 text-xs">
+          <p>
+            {listOrderTypes(offForCategory)} {offForCategory.length === 1 ? "is" : "are"} off for the {category.name}{" "}
+            category, so this item can&apos;t be ordered for {offForCategory.length === 1 ? "it" : "them"}.
+          </p>
+          {kept.length ? (
+            <p className="mt-1">
+              Configured: {listOrderTypes(configured)}. Orderable for: {effective.length ? listOrderTypes(effective) : "none"}.
+              The item&apos;s setting for {listOrderTypes(kept)} is kept and applies again if the category turns{" "}
+              {kept.length === 1 ? "it" : "them"} back on.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <FieldError path="channels" errors={errors} />
     </fieldset>
   )

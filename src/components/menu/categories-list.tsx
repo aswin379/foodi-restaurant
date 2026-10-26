@@ -8,9 +8,11 @@ import { ActionResultMessage } from "@/components/shared/action-result-message"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { Button } from "@/components/ui/button"
 import { ORDER_TYPES, orderTypeLabels } from "@/lib/domain/order-types"
+import { mealPeriodLabels } from "@/lib/menu/meal-periods"
+import { scheduleLines } from "@/lib/menu/schedule"
 import type { MenuCategory } from "@/lib/menu/types"
 
-import { CategoryDialog } from "./category-dialog"
+import { CategoryDialog, type CategoryScheduleSupport } from "./category-dialog"
 import { useMenuCommand } from "./use-menu-command"
 
 const itemsHref = (category: MenuCategory) => `/menu?category=${encodeURIComponent(category.id)}`
@@ -20,7 +22,13 @@ const itemsHref = (category: MenuCategory) => `/menu?category=${encodeURICompone
  * Move down), plus archive, restore and delete. The menu rules on the server
  * decide what's allowed; refusals are shown next to the category.
  */
-export function CategoriesList({ categories }: { categories: MenuCategory[] }) {
+export function CategoriesList({
+  categories,
+  scheduleSupport = null,
+}: {
+  categories: MenuCategory[]
+  scheduleSupport?: CategoryScheduleSupport
+}) {
   const active = categories.filter((category) => !category.archived).sort((a, b) => a.position - b.position)
   const archived = categories.filter((category) => category.archived)
 
@@ -35,6 +43,7 @@ export function CategoriesList({ categories }: { categories: MenuCategory[] }) {
             <CategoryRow
               key={category.id}
               category={category}
+              scheduleSupport={scheduleSupport}
               index={index}
               isFirst={index === 0}
               isLast={index === active.length - 1}
@@ -50,7 +59,7 @@ export function CategoriesList({ categories }: { categories: MenuCategory[] }) {
           </h2>
           <ul className="flex flex-col gap-2">
             {archived.map((category) => (
-              <CategoryRow key={category.id} category={category} />
+              <CategoryRow key={category.id} category={category} scheduleSupport={scheduleSupport} />
             ))}
           </ul>
         </section>
@@ -63,11 +72,13 @@ type Dialog = "archive" | "delete" | null
 
 function CategoryRow({
   category,
+  scheduleSupport,
   index,
   isFirst = false,
   isLast = false,
 }: {
   category: MenuCategory
+  scheduleSupport: CategoryScheduleSupport
   index?: number
   isFirst?: boolean
   isLast?: boolean
@@ -125,6 +136,7 @@ function CategoryRow({
             )}
             {offFor.length > 0 ? ` · Not for ${offFor.map((type) => orderTypeLabels[type].toLowerCase()).join(", ")}` : null}
           </p>
+          <CategorySchedule category={category} scheduleSupport={scheduleSupport} />
         </div>
       </div>
 
@@ -179,6 +191,7 @@ function CategoryRow({
             </Button>
             <CategoryDialog
               category={category}
+              scheduleSupport={scheduleSupport}
               trigger={
                 <Button variant="ghost" size="sm">
                   <Pencil aria-hidden />
@@ -246,5 +259,24 @@ function CategoryRow({
         </ConfirmDialog>
       ) : null}
     </li>
+  )
+}
+
+/** The category's schedule, if it has one (B3b). Meal-period names need the loaded periods. */
+function CategorySchedule({ category, scheduleSupport }: { category: MenuCategory; scheduleSupport: CategoryScheduleSupport }) {
+  const { schedule } = category
+  if (schedule.mode === "always") return null
+  const periods = scheduleSupport?.mealPeriods
+  const lines =
+    schedule.mode === "meal_periods" && !periods
+      ? ["Meal periods (names couldn't be loaded)"]
+      : scheduleLines(schedule, category.channels, periods ? mealPeriodLabels(periods) : undefined)
+  const zone = schedule.mode === "custom" && scheduleSupport && schedule.timeZone !== scheduleSupport.timeZone ? schedule.timeZone : null
+  return (
+    <p className="mt-1 text-xs text-muted-foreground">
+      <span className="font-medium text-foreground">{schedule.mode === "meal_periods" ? "During: " : "Only: "}</span>
+      {lines.join(" · ")}
+      {zone ? ` (times in ${zone})` : null}
+    </p>
   )
 }

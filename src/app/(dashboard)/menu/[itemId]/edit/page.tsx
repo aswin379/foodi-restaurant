@@ -7,6 +7,7 @@ import { MenuItemForm } from "@/components/menu/menu-item-form"
 import { BackToMenuLink, MenuFormSkeleton } from "@/components/menu/menu-page-parts"
 import { MenuLoadFailure } from "@/components/menu/menu-states"
 import { PreviewNotice } from "@/components/shared/preview-notice"
+import { loadScheduleSupport } from "@/lib/menu/schedule-support"
 import { getMenuContext, getMenuItem, listMenuCategories, menuMode } from "@/lib/menu/service"
 
 export const metadata: Metadata = {
@@ -36,12 +37,13 @@ async function EditItemView({
 
   let loaded
   try {
-    const [context, item, categories] = await Promise.all([
+    const [context, item, categories, support] = await Promise.all([
       getMenuContext(),
       getMenuItem(decodeURIComponent(itemId), preview),
       listMenuCategories(),
+      loadScheduleSupport(),
     ])
-    loaded = { context, item, categories }
+    loaded = { context, item, categories, support }
   } catch (error) {
     return <MenuLoadFailure error={error} retryHref={`/menu/${itemId}/edit`} what="item" />
   }
@@ -58,6 +60,8 @@ async function EditItemView({
         item={item}
         categories={loaded.categories}
         context={{ timeZone: loaded.context.timeZone, locale: loaded.context.locale }}
+        mealPeriods={loaded.support.mealPeriods}
+        hours={loaded.support.hours}
       />
     </div>
   )

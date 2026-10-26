@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 
-import { expectNoConsoleErrors, gotoAndSettle } from "../helpers"
+import { expectNoConsoleErrors, expectNoHorizontalOverflow, expectNoSeriousA11yViolations, gotoAndSettle } from "../helpers"
 
 // Menu workflows against preview data. They change the shared preview store,
 // so they run one at a time and each starts from the reset sample menu.
@@ -424,4 +424,231 @@ test("sample schedules show in the list and the editor", async ({ page }) => {
   await expect(page.getByLabel("To, Sunday window 1")).toHaveValue("23:30")
   // The item's order types sit beside the schedule.
   await expect(page.getByRole("group", { name: "Order types", exact: true }).getByRole("checkbox", { name: "Delivery" })).toBeChecked()
+})
+
+// ----- B3b: meal periods, category schedules and the restaurant-hours check -----
+// In this file so they run in series with the other menu tests: they share the
+// preview menu store. Restaurant hours are the B3a sample hours (delivery
+// Mon–Thu 11:00–15:00 and 18:00–23:30, dine-in every day 12:00–15:00 and
+// 19:00–23:00).
+test.describe("meal periods and category schedules (B3b)", () => {
+  const periodRow = (page: Page, name: string) =>
+    page.locator("main li").filter({ has: page.getByText(name, { exact: true }) }).first()
+  const hoursCheck = (page: Page) => page.getByRole("region", { name: "Check against restaurant hours" })
+
+  // The hours check reads the preview restaurant hours, so start from the
+  // sample hours too, whatever ran before.
+  test.beforeEach(async ({ page }) => {
+    await gotoAndSettle(page, "/hours")
+    await page.getByRole("button", { name: "Reset sample hours" }).click()
+    await page.getByRole("alertdialog").getByRole("button", { name: "Reset" }).click()
+    await expect(page.getByRole("alertdialog")).toHaveCount(0)
+  })
+
+  test("add a meal period with validation, then edit a shared one and see what uses it", async ({ page }) => {
+    await gotoAndSettle(page, "/menu/meal-periods")
+    await expect(page.getByRole("note").filter({ hasText: PREVIEW_LABEL })).toContainText("A real restaurant starts with none.")
+
+    await page.getByRole("button", { name: "Add meal period" }).click()
+    let dialog = page.getByRole("dialog", { name: "Add meal period" })
+    await dialog.getByRole("button", { name: "Add meal period" }).click()
+    await expect(dialog.getByText("Enter the meal period name.")).toBeVisible()
+    await expect(dialog.getByText("Choose at least one day.")).toBeVisible()
+    await expect(dialog.getByRole("textbox", { name: /Name/ })).toBeFocused()
+
+    await dialog.getByRole("textbox", { name: /Name/ }).fill("lunch")
+    await dialog.getByRole("checkbox", { name: "Sunday", exact: true }).check()
+    await dialog.getByLabel("From, Sunday window 1").fill("10:00")
+    await dialog.getByLabel("To, Sunday window 1").fill("13:00")
+    await expect(dialog.getByLabel("Saves as")).toContainText("Sun 10:00–13:00")
+    await dialog.getByRole("button", { name: "Add meal period" }).click()
+    await expect(dialog.getByText("Another meal period already has this name.")).toBeVisible()
+    await dialog.getByRole("textbox", { name: /Name/ }).fill("Brunch")
+    await dialog.getByRole("button", { name: "Add meal period" }).click()
+    await expectPreviewToast(page, /Brunch added/)
+    await expect(periodRow(page, "Brunch")).toContainText("Not used by any item or category")
+
+    // Editing a shared period lists what uses it; their order types stay as they are.
+    await page.getByRole("button", { name: "Edit Lunch" }).click()
+    dialog = page.getByRole("dialog", { name: "Edit Lunch" })
+    await expect(dialog.getByRole("note")).toContainText("Changing the times changes them for the 2 items that use Lunch")
+    await expect(dialog.getByRole("note")).toContainText("Lemon rice")
+    await expect(dialog.getByRole("note")).toContainText("Paneer butter masala")
+    await dialog.getByLabel("To, Monday window 1").fill("15:30")
+    await dialog.getByRole("button", { name: "Save changes" }).click()
+    await expectPreviewToast(page, /Lunch updated/)
+    await expect(periodRow(page, "Lunch")).toContainText("Mon 12:00–15:30 · Tue–Fri 12:00–15:00 · Sat, Sun 12:00–16:00")
+  })
+
+  test("archive is refused while in use; unused periods archive, restore and delete", async ({ page }) => {
+    await gotoAndSettle(page, "/menu/meal-periods")
+    // Used on orders, so it can't be deleted at all.
+    await expect(periodRow(page, "Lunch").getByRole("button", { name: /Delete/ })).toHaveCount(0)
+
+    await page.getByRole("button", { name: "Archive Lunch" }).click()
+    let confirm = page.getByRole("alertdialog", { name: "Archive Lunch?" })
+    await expect(confirm).toContainText("Lunch is used by 2 items.")
+    await confirm.getByRole("button", { name: "Archive meal period" }).click()
+    await expect(confirm.getByText("Lunch is used by 2 items. Change their schedules first.")).toBeVisible()
+    await confirm.getByRole("button", { name: "Go back" }).click()
+
+    await page.getByRole("button", { name: "Archive Late night" }).click()
+    confirm = page.getByRole("alertdialog", { name: "Archive Late night?" })
+    await confirm.getByRole("button", { name: "Archive meal period" }).click()
+    await expectPreviewToast(page, /Late night archived/)
+    const archived = page.getByRole("list", { name: /Archived/ })
+    await expect(archived).toContainText("Late night")
+    await page.getByRole("button", { name: "Restore Late night" }).click()
+    await expectPreviewToast(page, /Late night restored/)
+    await expect(archived).not.toContainText("Late night")
+
+    await page.getByRole("button", { name: "Delete Afternoon tea" }).click()
+    confirm = page.getByRole("alertdialog", { name: "Delete Afternoon tea?" })
+    await confirm.getByRole("button", { name: "Delete meal period" }).click()
+    await expectPreviewToast(page, /Afternoon tea deleted/)
+    await expect(page.locator("main")).not.toContainText("Afternoon tea")
+  })
+
+  test("an item uses a meal period for some of its order types, with an hours warning", async ({ page }) => {
+    await gotoAndSettle(page, "/menu/prv-item-05/edit")
+    await page.getByRole("radio", { name: "During meal periods" }).check()
+    await page.getByRole("checkbox", { name: "Dinner" }).check()
+    // H1: the item chooses which of its order types use the period.
+    const dinnerTypes = page.getByRole("group", { name: "Order types for Dinner" })
+    await dinnerTypes.getByRole("checkbox", { name: "Takeaway" }).uncheck()
+    await dinnerTypes.getByRole("checkbox", { name: "Dine-in" }).uncheck()
+
+    // Dinner runs to 23:00; Sunday delivery ends at 22:00.
+    const check = hoursCheck(page)
+    await expect(check).toContainText("Delivery: part of the schedule is outside delivery hours.")
+    await expect(check).toContainText("Sun 22:00–23:00")
+    await expect(check).toContainText("Advisory only; it never stops you saving.")
+    await expect(check).toContainText("special dates")
+
+    await page.getByRole("button", { name: "Save changes" }).click()
+    await expectPreviewToast(page, /Dal makhani updated/)
+    await expect(itemRow(page, "Dal makhani")).toContainText("Dinner (Delivery)")
+    await gotoAndSettle(page, "/menu/meal-periods")
+    await expect(periodRow(page, "Dinner")).toContainText("Used by 2 items")
+  })
+
+  test("Convert to custom times copies the current times and warns when the period changed", async ({ page, context }) => {
+    await gotoAndSettle(page, "/menu/prv-item-15/edit")
+
+    // Someone changes Lunch after this editor loaded.
+    const other = await context.newPage()
+    await other.goto("/menu/meal-periods")
+    await other.waitForLoadState("networkidle")
+    await other.getByRole("button", { name: "Edit Lunch" }).click()
+    const edit = other.getByRole("dialog", { name: "Edit Lunch" })
+    await edit.getByLabel("To, Monday window 1").fill("15:30")
+    await edit.getByRole("button", { name: "Save changes" }).click()
+    await expect(other.locator('[data-slot="toast"]').filter({ hasText: /Lunch updated/ }).last()).toBeVisible()
+    await other.close()
+
+    await page.getByRole("button", { name: "Convert to custom times" }).click()
+    const confirm = page.getByRole("alertdialog", { name: "Meal periods changed since you opened this page" })
+    await expect(confirm).toContainText("Lunch: now Mon 12:00–15:30; Tue–Fri 12:00–15:00; Sat, Sun 12:00–16:00")
+    await expect(confirm).toContainText("This page showed Mon–Fri 12:00–15:00; Sat, Sun 12:00–16:00.")
+    await confirm.getByRole("button", { name: "Convert with current times" }).click()
+
+    await expect(page.getByRole("radio", { name: "Only at set times" })).toBeChecked()
+    await expect(page.getByRole("status").filter({ hasText: "Converted from Lunch." })).toContainText("the meal period isn't changed")
+    await expect(page.getByText("Saves as").locator("..")).toContainText("Mon 12:00–15:30")
+    await expect(page.getByText("Saves as").locator("..")).toContainText("Sat, Sun 12:00–16:00")
+    await page.getByRole("button", { name: "Save changes" }).click()
+    await expectPreviewToast(page, /Lemon rice updated/)
+    await gotoAndSettle(page, "/menu?q=lemon+rice")
+    await expect(itemRow(page, "Lemon rice")).toContainText("Mon 12:00–15:30")
+
+    // The shared definition isn't changed by converting; Lemon rice just stops using it.
+    await gotoAndSettle(page, "/menu/meal-periods")
+    await expect(periodRow(page, "Lunch")).toContainText("Mon 12:00–15:30 · Tue–Fri 12:00–15:00")
+    await expect(periodRow(page, "Lunch")).toContainText("Used by 1 item")
+
+    // Unchanged since loading: converts straight away.
+    await gotoAndSettle(page, "/menu/prv-item-06/edit")
+    await page.getByRole("button", { name: "Convert to custom times" }).click()
+    await expect(page.getByRole("radio", { name: "Only at set times" })).toBeChecked()
+    await expect(page.getByRole("alertdialog")).toHaveCount(0)
+    await expect(page.getByRole("status").filter({ hasText: "Converted from Lunch, Dinner." })).toBeVisible()
+  })
+
+  test("a category schedule stays within the category's order types; items show the category's limits", async ({ page }) => {
+    await gotoAndSettle(page, "/menu/categories")
+    await page.getByRole("button", { name: "Edit Desserts" }).click()
+    const dialog = page.getByRole("dialog", { name: "Edit Desserts" })
+    await dialog.getByRole("group", { name: "Order types", exact: true }).getByRole("checkbox", { name: "Delivery" }).uncheck()
+    await dialog.getByRole("radio", { name: "Only at set times" }).check()
+    await dialog.getByRole("checkbox", { name: "Monday", exact: true }).check()
+    await dialog.getByLabel("From, Monday window 1").fill("12:00")
+    await dialog.getByLabel("To, Monday window 1").fill("16:00")
+    // A child never enables an order type its category has off.
+    const windowTypes = dialog.getByRole("group", { name: "Order types for Monday window 1" })
+    await expect(windowTypes.getByRole("checkbox", { name: "Delivery" })).toBeDisabled()
+    await expect(windowTypes).toContainText("Delivery is off for this category.")
+    await expectNoSeriousA11yViolations(page)
+    await expectNoHorizontalOverflow(page)
+    await dialog.getByRole("button", { name: "Save changes" }).click()
+    await expectPreviewToast(page, /Desserts updated/)
+    await expect(page.locator("main li").filter({ hasText: "Desserts" }).first()).toContainText("Only: Mon 12:00–16:00")
+
+    // Rasmalai keeps its own delivery setting (B2 save rule) but isn't orderable for it.
+    await gotoAndSettle(page, "/menu/prv-item-17/edit")
+    const types = page.getByRole("group", { name: "Order types", exact: true })
+    await expect(types.getByRole("checkbox", { name: /Delivery/ })).toBeChecked()
+    await expect(types.getByRole("checkbox", { name: /Delivery/ })).toBeEnabled()
+    await expect(types).toContainText("Delivery is off for the Desserts category, so this item can't be ordered for it.")
+    await expect(types).toContainText("Configured: Delivery, Takeaway and Dine-in. Orderable for: Takeaway and Dine-in.")
+    // The category's Monday 12:00–16:00 runs past dine-in's 15:00.
+    await expect(hoursCheck(page)).toContainText("Dine-in: part of the schedule is outside dine-in hours.")
+    await expect(hoursCheck(page)).toContainText("Mon 15:00–16:00")
+
+    // An item schedule that never meets its category's gets the stronger warning, and still saves.
+    await page.getByRole("radio", { name: "Only at set times" }).check()
+    await page.getByRole("checkbox", { name: "Tuesday", exact: true }).check()
+    await page.getByLabel("From, Tuesday window 1").fill("12:00")
+    await page.getByLabel("To, Tuesday window 1").fill("13:00")
+    await expect(hoursCheck(page)).toContainText("This item may never be orderable")
+    await page.getByRole("button", { name: "Save changes" }).click()
+    await expectPreviewToast(page, /Rasmalai updated/)
+
+    // Kulfi has delivery off itself; with the category off too, it can't be turned on here.
+    await gotoAndSettle(page, "/menu/prv-item-18/edit")
+    await expect(page.getByRole("group", { name: "Order types", exact: true }).getByRole("checkbox", { name: /Delivery/ })).toBeDisabled()
+  })
+
+  test("a fully contained schedule shows no conflicts", async ({ page }) => {
+    await gotoAndSettle(page, "/menu/prv-item-05/edit")
+    await expect(hoursCheck(page)).toContainText("No conflicts with weekly restaurant hours.")
+    // A takeaway-only item during Lunch: takeaway is open weekdays 11:00–22:00 and all day at weekends.
+    const types = page.getByRole("group", { name: "Order types", exact: true })
+    await types.getByRole("checkbox", { name: "Delivery" }).uncheck()
+    await types.getByRole("checkbox", { name: "Dine-in" }).uncheck()
+    await page.getByRole("radio", { name: "During meal periods" }).check()
+    await page.getByRole("checkbox", { name: "Lunch" }).check()
+    await expect(page.getByRole("group", { name: "Order types for Lunch" }).getByRole("checkbox", { name: "Takeaway" })).toBeChecked()
+    await expect(hoursCheck(page)).toContainText("No conflicts with weekly restaurant hours.")
+    await expect(hoursCheck(page)).not.toContainText("Unable to evaluate schedule")
+  })
+
+  test("meal periods can be chosen with the keyboard", async ({ page }) => {
+    await gotoAndSettle(page, "/menu/prv-item-05/edit")
+    await page.getByRole("radio", { name: "Always available" }).focus()
+    await page.keyboard.press("ArrowDown")
+    await expect(page.getByRole("radio", { name: "During meal periods" })).toBeChecked()
+    await expect(page.getByRole("radio", { name: "During meal periods" })).toBeFocused()
+
+    await page.keyboard.press("Tab")
+    await expect(page.getByRole("checkbox", { name: "Breakfast" })).toBeFocused()
+    await page.keyboard.press("Space")
+    await expect(page.getByRole("checkbox", { name: "Breakfast" })).toBeChecked()
+    await page.keyboard.press("Tab")
+    const breakfastTypes = page.getByRole("group", { name: "Order types for Breakfast" })
+    await expect(breakfastTypes.getByRole("checkbox", { name: "Delivery" })).toBeFocused()
+    await page.keyboard.press("Space")
+    await expect(breakfastTypes.getByRole("checkbox", { name: "Delivery" })).not.toBeChecked()
+    // Breakfast (07:00–11:00) is before every restaurant opening on weekdays.
+    await expect(hoursCheck(page)).toContainText("Dine-in: the schedule is never within dine-in hours.")
+  })
 })

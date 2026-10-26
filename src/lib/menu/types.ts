@@ -112,6 +112,11 @@ export type MenuCategory = {
   /** Category switched on or off (PRD §3.4). */
   active: boolean
   channels: ChannelSettings
+  /**
+   * When the category's items can be ordered (B3b). Only narrows: an item's
+   * own schedule applies on top. "always" when the API doesn't send one.
+   */
+  schedule: ItemSchedule
   archived: boolean
   usedOnOrders: boolean
   /** Active (not archived) items in this category. */
