@@ -31,6 +31,9 @@ const pages = [
   { name: "settings overview", path: "/settings", heading: /^settings$/i },
   { name: "restaurant profile", path: "/settings/profile", heading: /restaurant profile/i },
   { name: "order settings", path: "/settings/orders", heading: /order settings/i },
+  { name: "reviews list", path: "/reviews", heading: /^reviews$/i },
+  { name: "filtered reviews", path: "/reviews?rating=5&replied=unreplied", heading: /^reviews$/i },
+  { name: "review detail", path: "/reviews/prv-rev-007", heading: /review by kabir m\./i },
 ]
 
 for (const { name, path, heading } of pages) {
@@ -75,6 +78,14 @@ test("settings pages label preview data", async ({ page }) => {
   for (const path of ["/settings/profile", "/settings/orders"]) {
     await gotoAndSettle(page, path)
     await expect(page.getByRole("note").filter({ hasText: PREVIEW_LABEL }).first()).toBeVisible()
+  }
+})
+
+test("reviews pages label preview data and make clear the reviews are samples", async ({ page }) => {
+  for (const path of ["/reviews", "/reviews/prv-rev-007"]) {
+    await gotoAndSettle(page, path)
+    await expect(page.getByRole("note").filter({ hasText: PREVIEW_LABEL })).toBeVisible()
+    await expect(page.getByRole("note").filter({ hasText: /Sample reviews and reviewer names are made up/ })).toBeVisible()
   }
 })
 

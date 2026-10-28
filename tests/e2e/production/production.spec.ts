@@ -26,6 +26,9 @@ const routes = [
   { path: "/settings/profile", heading: /restaurant profile/i, disconnected: /settings aren.t connected yet/i },
   { path: "/settings/orders", heading: /order settings/i, disconnected: /settings aren.t connected yet/i },
   { path: "/hours/special-dates", heading: /availability & hours/i, disconnected: /hours aren.t connected yet/i },
+  { path: "/reviews", heading: /^reviews$/i, disconnected: /reviews aren.t connected yet/i },
+  { path: "/reviews?rating=5&replied=unreplied&page=2", heading: /^reviews$/i, disconnected: /reviews aren.t connected yet/i },
+  { path: "/reviews/prv-rev-005", heading: null, disconnected: /reviews aren.t connected yet/i },
 ]
 
 for (const route of routes) {
@@ -124,6 +127,37 @@ test("settings offer no preview tools, forms or sample data in production", asyn
   }
 })
 
+test("reviews show no sample reviews, figures, controls or preview tools in production", async ({ page }) => {
+  const paths = [
+    "/reviews",
+    "/reviews?rating=5&replied=unreplied&page=2",
+    "/reviews?preview=slow",
+    "/reviews?preview=empty",
+    "/reviews?preview=error",
+    "/reviews?preview=forbidden",
+    "/reviews/prv-rev-005",
+    "/reviews/prv-rev-005?preview=forbidden",
+    "/reviews/prv-rev-999?preview=empty",
+  ]
+  for (const path of paths) {
+    await gotoAndSettle(page, path)
+    // Whatever the URL asks for, production is not connected: never empty, failed, refused or "not found".
+    await expect(page.getByText(/reviews aren.t connected yet/i).first()).toBeVisible()
+    // (Next's own route announcer is an empty alert, so look for one with text.)
+    await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /send reply|report abuse|submit report|reset sample reviews/i })).toHaveCount(0)
+    await expect(page.getByRole("textbox")).toHaveCount(0)
+    await expect(page.getByRole("switch")).toHaveCount(0)
+    await expect(page.getByRole("radio")).toHaveCount(0)
+    await expect(page.getByRole("img", { name: /out of 5 stars/ })).toHaveCount(0)
+    await expect(page.locator('main a[href^="/reviews/"]')).toHaveCount(0)
+    const body = page.locator("body")
+    await expect(body).not.toContainText(/preview only, not saved to foodi|\(preview\)|sample reviews|rating only|name not shared|showing \d/i)
+    // None of the sample reviewers, texts or order references.
+    await expect(body).not.toContainText(/Aarav|Meera|Vikram|Kabir|Promo Account|dosa was still crisp|PRV-/)
+  }
+})
+
 test("fixture preview scenarios are ignored in production", async ({ page }) => {
   await gotoAndSettle(page, "/orders?preview=slow")
   await expect(page.getByText(/orders aren.t connected yet/i).first()).toBeVisible()
@@ -148,6 +182,7 @@ test("navigation links only to built modules", async ({ page }) => {
     "/menu/categories",
     "/menu/meal-periods",
     "/orders",
+    "/reviews",
     "/settings",
     "/settings/profile",
   ])

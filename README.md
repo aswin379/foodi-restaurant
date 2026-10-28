@@ -161,6 +161,27 @@ Tax and packaging (B4b) and auto-accept aren't included. Details, the
 proposed API contract and backend dependencies:
 [docs/settings-ui.md](docs/settings-ui.md).
 
+## Reviews
+
+`/reviews` (a list filtered by star rating and by replied or not, with
+pagination kept in the URL) and `/reviews/[reviewId]` (the full review, a
+one-time reply, and report abuse) follow PRD v0.3 module 13 with the B6a
+decisions R1–R9: five-star ratings, optional text, display names only, an
+order link only when the review carries an order reference, replies of at
+most 1,000 characters that can't be edited or deleted, statuses shown only
+when the source supplies them, and reports that never hide a review. No
+reviews API exists yet, so they show "Reviews aren't connected yet". To try
+them against labelled sample data in development:
+
+```bash
+FOODI_REVIEWS_DATA_SOURCE=preview npm run dev
+```
+
+Replies and reports are simulated on the development server only ("Preview
+only, not saved to Foodi") and reset when it restarts. Preview data is
+refused in production builds. Details and the proposed API contract:
+[docs/reviews-ui.md](docs/reviews-ui.md).
+
 ## Shared foundations and tests
 
 Data-source rules, preview mode, shared components and naming are described in

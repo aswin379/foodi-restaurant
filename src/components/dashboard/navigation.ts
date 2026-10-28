@@ -70,7 +70,7 @@ export const dashboardNavigation: NavGroup[] = [
       { title: "Reports", icon: ChartColumn, href: null, prdModule: 16 },
       { title: "Wallet & settlements", icon: Wallet, href: null, prdModule: 17 },
       { title: "Plan & billing", icon: CreditCard, href: null, prdModule: 19 },
-      { title: "Reviews", icon: Star, href: null, prdModule: 13 },
+      { title: "Reviews", icon: Star, href: "/reviews", prdModule: 13 },
       { title: "Customers", icon: Contact, href: null, prdModule: 14 },
     ],
   },
