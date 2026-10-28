@@ -68,7 +68,7 @@ export const dashboardNavigation: NavGroup[] = [
     label: "Business",
     items: [
       { title: "Reports", icon: ChartColumn, href: null, prdModule: 16 },
-      { title: "Wallet & settlements", icon: Wallet, href: null, prdModule: 17 },
+      { title: "Wallet & settlements", icon: Wallet, href: "/wallet", prdModule: 17 },
       { title: "Plan & billing", icon: CreditCard, href: null, prdModule: 19 },
       { title: "Reviews", icon: Star, href: "/reviews", prdModule: 13 },
       { title: "Customers", icon: Contact, href: "/customers", prdModule: 14 },

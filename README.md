@@ -203,6 +203,29 @@ PROPOSAL and nothing about customer identity, scoping or masking is
 implemented. Details and the proposed contract:
 [docs/customers-ui.md](docs/customers-ui.md).
 
+## Wallet and settlements
+
+`/wallet` (named balances, a masked payout destination and the latest
+settlements), `/wallet/settlements` (a paginated list) and
+`/wallet/settlements/[settlementId]` (status, labelled commission, fee, tax and
+adjustment lines, and a paginated order breakdown) follow PRD v0.3 module 17,
+Release 1. Every amount is shown exactly as the settlement service supplies it,
+or as unavailable: nothing is calculated, summed or verified in the panel, a
+refund stays pending until the payment provider confirms it, and an unknown
+status is an error, never "paid". The payout policy is undecided, so there are
+no withdrawal, payout, bank-detail or export controls. No wallet API exists yet,
+so they show "Wallet isn't connected yet". To try them against labelled sample
+data in development:
+
+```bash
+FOODI_WALLET_DATA_SOURCE=preview npm run dev
+```
+
+Preview is read-only and refused in production builds. The API contract is a
+PROPOSAL and nothing about settlement calculation, refunds, payouts or
+authorization is implemented. Details and the proposed contract:
+[docs/wallet-ui.md](docs/wallet-ui.md).
+
 ## Shared foundations and tests
 
 Data-source rules, preview mode, shared components and naming are described in

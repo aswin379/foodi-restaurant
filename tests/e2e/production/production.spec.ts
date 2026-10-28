@@ -33,6 +33,10 @@ const routes = [
   { path: "/customers?q=preview&sort=name&page=2", heading: /^customers$/i, disconnected: /customers aren.t connected yet/i },
   { path: "/customers?preview=empty", heading: /^customers$/i, disconnected: /customers aren.t connected yet/i },
   { path: "/customers/prv-cus-01", heading: null, disconnected: /customers aren.t connected yet/i },
+  { path: "/wallet", heading: /^wallet & settlements$/i, disconnected: /wallet isn.t connected yet/i },
+  { path: "/wallet/settlements", heading: /^settlements$/i, disconnected: /wallet isn.t connected yet/i },
+  { path: "/wallet/settlements?page=2", heading: /^settlements$/i, disconnected: /wallet isn.t connected yet/i },
+  { path: "/wallet/settlements/prv-set-01", heading: null, disconnected: /wallet isn.t connected yet/i },
 ]
 
 for (const route of routes) {
@@ -191,6 +195,35 @@ test("customers show no sample customers, contact details, controls or preview t
   }
 })
 
+test("wallet shows no sample amounts, settlements, payout details, controls or preview tools in production", async ({ page }) => {
+  const paths = [
+    "/wallet",
+    "/wallet?preview=slow",
+    "/wallet?preview=empty",
+    "/wallet?preview=error",
+    "/wallet?preview=forbidden",
+    "/wallet/settlements",
+    "/wallet/settlements?page=2&preview=empty",
+    "/wallet/settlements/prv-set-01",
+    "/wallet/settlements/prv-set-01?orders=2&preview=forbidden",
+    "/wallet/settlements/prv-set-99?preview=empty",
+  ]
+  for (const path of paths) {
+    await gotoAndSettle(page, path)
+    // Whatever the URL asks for, production is not connected: never empty, failed, refused or "not found".
+    await expect(page.getByText(/wallet isn.t connected yet/i).first()).toBeVisible()
+    await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /withdraw|payout|export|download|statement|reset sample/i })).toHaveCount(0)
+    await expect(page.getByRole("textbox")).toHaveCount(0)
+    await expect(page.locator('main a[href^="/wallet/settlements/"], main a[href^="/orders/"]')).toHaveCount(0)
+    const body = page.locator("body")
+    // No amount of any kind, no sample label, no payout destination and no status.
+    await expect(body).not.toContainText(/₹|INR|\d,\d{3}\.\d{2}|preview bank|•|preview only, not saved to foodi|\(preview\)|showing \d/i)
+    await expect(body).not.toContainText(/not available|pending settlement|paid out|on hold|refund|commission|platform/i)
+    await expect(body).not.toContainText(/PRV-|prv-set/)
+  }
+})
+
 test("fixture preview scenarios are ignored in production", async ({ page }) => {
   await gotoAndSettle(page, "/orders?preview=slow")
   await expect(page.getByText(/orders aren.t connected yet/i).first()).toBeVisible()
@@ -219,6 +252,7 @@ test("navigation links only to built modules", async ({ page }) => {
     "/reviews",
     "/settings",
     "/settings/profile",
+    "/wallet",
   ])
   await expect(visibleNav.getByText("Availability & hours")).toBeVisible()
   await expect(visibleNav).not.toContainText(/POS|QR/)
