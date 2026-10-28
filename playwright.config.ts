@@ -24,6 +24,7 @@ const PREVIEW_ENV = {
   FOODI_RESTAURANT_DATA_SOURCE: "preview",
   FOODI_HOURS_DATA_SOURCE: "preview",
   FOODI_REVIEWS_DATA_SOURCE: "preview",
+  FOODI_CUSTOMERS_DATA_SOURCE: "preview",
 }
 
 export default defineConfig({
@@ -88,6 +89,7 @@ export default defineConfig({
         FOODI_MENU_DATA_SOURCE: "",
         FOODI_RESTAURANT_DATA_SOURCE: "",
         FOODI_REVIEWS_DATA_SOURCE: "",
+        FOODI_CUSTOMERS_DATA_SOURCE: "",
       },
     },
     {

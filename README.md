@@ -182,6 +182,27 @@ only, not saved to Foodi") and reset when it restarts. Preview data is
 refused in production builds. Details and the proposed API contract:
 [docs/reviews-ui.md](docs/reviews-ui.md).
 
+## Customers
+
+`/customers` (a directory with case-insensitive name search, sorting by last
+order or name, and pagination kept in the URL) and `/customers/[customerId]`
+(masked contact, order count, lifetime spend, last order and a paginated order
+history linking to the existing order pages) follow PRD v0.3 module 14 with
+the B6b decisions C1-C9. Customers are identified by a backend-issued opaque
+ID, contact details arrive already masked and are never revealed, copied or
+exported, and every figure is server-provided or shown as unavailable. No
+customers API exists yet, so they show "Customers aren't connected yet". To
+try them against labelled sample data in development:
+
+```bash
+FOODI_CUSTOMERS_DATA_SOURCE=preview npm run dev
+```
+
+Preview is read-only and refused in production builds. The API contract is a
+PROPOSAL and nothing about customer identity, scoping or masking is
+implemented. Details and the proposed contract:
+[docs/customers-ui.md](docs/customers-ui.md).
+
 ## Shared foundations and tests
 
 Data-source rules, preview mode, shared components and naming are described in

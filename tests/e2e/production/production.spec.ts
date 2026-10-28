@@ -29,6 +29,10 @@ const routes = [
   { path: "/reviews", heading: /^reviews$/i, disconnected: /reviews aren.t connected yet/i },
   { path: "/reviews?rating=5&replied=unreplied&page=2", heading: /^reviews$/i, disconnected: /reviews aren.t connected yet/i },
   { path: "/reviews/prv-rev-005", heading: null, disconnected: /reviews aren.t connected yet/i },
+  { path: "/customers", heading: /^customers$/i, disconnected: /customers aren.t connected yet/i },
+  { path: "/customers?q=preview&sort=name&page=2", heading: /^customers$/i, disconnected: /customers aren.t connected yet/i },
+  { path: "/customers?preview=empty", heading: /^customers$/i, disconnected: /customers aren.t connected yet/i },
+  { path: "/customers/prv-cus-01", heading: null, disconnected: /customers aren.t connected yet/i },
 ]
 
 for (const route of routes) {
@@ -45,6 +49,7 @@ for (const route of routes) {
 
       const body = page.locator("body")
       await expect(body).not.toContainText("PRV-")
+      await expect(body).not.toContainText(/preview customer/i)
       await expect(body).not.toContainText(/preview only, not saved to foodi/i)
       await expect(body).not.toContainText(/illustrative preview data|sample (menu|data)/i)
 
@@ -158,6 +163,34 @@ test("reviews show no sample reviews, figures, controls or preview tools in prod
   }
 })
 
+test("customers show no sample customers, contact details, controls or preview tools in production", async ({ page }) => {
+  const paths = [
+    "/customers",
+    "/customers?q=preview&sort=name&page=2",
+    "/customers?preview=slow",
+    "/customers?preview=empty",
+    "/customers?preview=error",
+    "/customers?preview=forbidden",
+    "/customers/prv-cus-01",
+    "/customers/prv-cus-01?orders=2&preview=forbidden",
+    "/customers/prv-cus-999?preview=empty",
+  ]
+  for (const path of paths) {
+    await gotoAndSettle(page, path)
+    // Whatever the URL asks for, production is not connected: never empty, failed, refused or "not found".
+    await expect(page.getByText(/customers aren.t connected yet/i).first()).toBeVisible()
+    await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toHaveCount(0)
+    // Nothing to search or sort while nothing is connected, and no reveal, copy, export or preview controls.
+    await expect(page.getByRole("textbox")).toHaveCount(0)
+    await expect(page.getByRole("searchbox")).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /reveal|copy|export|show phone|show email|reset sample/i })).toHaveCount(0)
+    await expect(page.locator('main a[href^="/customers/"], main a[href^="tel:"], main a[href^="mailto:"], main a[href^="/orders/"]')).toHaveCount(0)
+    const body = page.locator("body")
+    await expect(body).not.toContainText(/preview only, not saved to foodi|\(preview\)|preview customer|name not shared|no contact details|•|showing \d/i)
+    await expect(body).not.toContainText(/PRV-|prv-cus/)
+  }
+})
+
 test("fixture preview scenarios are ignored in production", async ({ page }) => {
   await gotoAndSettle(page, "/orders?preview=slow")
   await expect(page.getByText(/orders aren.t connected yet/i).first()).toBeVisible()
@@ -176,6 +209,7 @@ test("navigation links only to built modules", async ({ page }) => {
     links.map((link) => link.getAttribute("href"))
   )
   expect(hrefs.sort()).toEqual([
+    "/customers",
     "/dashboard",
     "/hours",
     "/menu",
