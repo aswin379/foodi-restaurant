@@ -48,8 +48,7 @@ npm run build
     shows as a disabled "Soon" item. Give it a route once its page exists.
   - `page-header.tsx`, `stat-card.tsx`, `empty-state.tsx`: building blocks
     for module pages.
-- KPI cards and dashboard sections show empty states. No sample or live data
-  is rendered.
+- The dashboard page's sections (B5a) are described under "Dashboard" below.
 
 ### Not yet protected
 
@@ -64,6 +63,20 @@ production:
 3. End the session in `src/lib/auth/sign-out.ts`. Today it only redirects to
    `/login`, because no session is ever created.
 4. Remove the development notice from `dashboard-shell.tsx`.
+
+## Dashboard
+
+`/dashboard` shows, below the opening status and pause banner: live orders by
+status, today's orders by status (by restaurant-local placement date), what
+needs attention (pause, waiting and late orders, items marked unavailable,
+sold-out dishes), the five most recent orders and quick links. Each section
+reads its module's own data and loads and fails on its own; it refreshes
+every 15 seconds while the tab is visible. Sales and other analytics are
+deferred to B5b. With the `FOODI_*_DATA_SOURCE=preview` variables described
+below, figures are labelled "Preview: sample orders" or "Preview estimate
+from sample orders"; production shows "not connected".
+Details and the proposed orders summary endpoint:
+[docs/dashboard-ui.md](docs/dashboard-ui.md).
 
 ## Orders UI
 

@@ -93,6 +93,28 @@ test("hours offer no preview tools, editor, pause or estimate in production", as
   await expect(page.getByRole("region", { name: /new orders right now/i })).toHaveCount(0)
 })
 
+test("the dashboard shows no figures, sample data or placeholders in production", async ({ page }) => {
+  for (const path of ["/dashboard", "/dashboard?previewOrders=slow&previewMenu=empty&previewHours=error"]) {
+    await gotoAndSettle(page, path)
+    const main = page.locator("main")
+    for (const name of ["Live orders", "Today's orders", "Recent orders"]) {
+      await expect(page.getByRole("region", { name: new RegExp(`^${name}`) })).toContainText(/orders aren.t connected yet/i)
+    }
+    const attention = page.getByRole("region", { name: /^Needs attention/ })
+    await expect(attention).toContainText("Not checked: Pause status (not connected yet).")
+    await expect(attention).toContainText("Not checked: Waiting, late and unavailable-item orders (not connected yet).")
+    await expect(attention).toContainText("Not checked: Sold-out menu items (not connected yet).")
+    await expect(attention).not.toContainText(/nothing needs attention/i)
+    await expect(main).not.toContainText(/preview:|preview estimate|\(preview\)|\bSoon\b/i)
+    // No counts at all: the only links in the order sections would be counts.
+    await expect(page.getByRole("region", { name: /^Live orders/ }).getByRole("link")).toHaveCount(0)
+    await expect(page.getByRole("region", { name: /^Today's orders/ }).getByRole("link")).toHaveCount(0)
+    expect(
+      await page.getByRole("region", { name: "Quick links" }).getByRole("link").evaluateAll((links) => links.map((link) => link.getAttribute("href")))
+    ).toEqual(["/orders", "/menu", "/hours", "/settings/profile", "/settings/orders"])
+  }
+})
+
 test("settings offer no preview tools, forms or sample data in production", async ({ page }) => {
   for (const path of ["/settings/profile", "/settings/orders", "/settings/profile?preview=forbidden"]) {
     await gotoAndSettle(page, path)

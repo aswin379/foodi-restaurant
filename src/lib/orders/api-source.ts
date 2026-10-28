@@ -4,6 +4,7 @@ import { getApiTransport } from "@/lib/api/transport"
 import { getRestaurantContext } from "@/lib/restaurant/context"
 
 import type { OrdersAdapter } from "./adapter"
+import { daySummaryFromApi } from "./api-mapping"
 import type { OrderDetail, OrderListResult, Rider } from "./types"
 
 /**
@@ -21,6 +22,8 @@ const PROPOSED_PATHS = {
   order: (id: string) => `/seller/orders/${encodeURIComponent(id)}`,
   commands: (id: string) => `/seller/orders/${encodeURIComponent(id)}/commands`,
   riders: "/seller/riders",
+  /** B5a, PROPOSED (docs/dashboard-ui.md): `?date=YYYY-MM-DD`, restaurant-local. */
+  summary: "/seller/orders/summary",
 }
 
 export const apiOrdersAdapter: OrdersAdapter = {
@@ -50,6 +53,15 @@ export const apiOrdersAdapter: OrdersAdapter = {
       method: "GET",
       path: PROPOSED_PATHS.order(orderId),
     })
+  },
+
+  async daySummary(date) {
+    // The restaurant's zone comes from the session context, so the summary can be checked against it.
+    const [context, response] = await Promise.all([
+      getRestaurantContext(),
+      getApiTransport().request<unknown>({ method: "GET", path: PROPOSED_PATHS.summary, query: { date } }),
+    ])
+    return daySummaryFromApi(response, { date, timeZone: context.timeZone })
   },
 
   riders() {
