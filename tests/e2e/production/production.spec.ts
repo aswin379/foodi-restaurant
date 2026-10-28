@@ -22,6 +22,9 @@ const routes = [
   { path: "/menu/categories", heading: /categories/i, disconnected: /categories aren.t connected yet/i },
   { path: "/menu/meal-periods", heading: /meal periods/i, disconnected: /meal periods aren.t connected yet/i },
   { path: "/hours", heading: /availability & hours/i, disconnected: /hours aren.t connected yet/i },
+  { path: "/settings", heading: /^settings$/i },
+  { path: "/settings/profile", heading: /restaurant profile/i, disconnected: /settings aren.t connected yet/i },
+  { path: "/settings/orders", heading: /order settings/i, disconnected: /settings aren.t connected yet/i },
   { path: "/hours/special-dates", heading: /availability & hours/i, disconnected: /hours aren.t connected yet/i },
 ]
 
@@ -90,6 +93,15 @@ test("hours offer no preview tools, editor, pause or estimate in production", as
   await expect(page.getByRole("region", { name: /new orders right now/i })).toHaveCount(0)
 })
 
+test("settings offer no preview tools, forms or sample data in production", async ({ page }) => {
+  for (const path of ["/settings/profile", "/settings/orders", "/settings/profile?preview=forbidden"]) {
+    await gotoAndSettle(page, path)
+    await expect(page.getByText(/settings aren.t connected yet/i).first()).toBeVisible()
+    await expect(page.getByRole("button", { name: /reset sample settings|save profile|save order settings/i })).toHaveCount(0)
+    await expect(page.locator("body")).not.toContainText(/\(preview\)|sample street|₹150/i)
+  }
+})
+
 test("fixture preview scenarios are ignored in production", async ({ page }) => {
   await gotoAndSettle(page, "/orders?preview=slow")
   await expect(page.getByText(/orders aren.t connected yet/i).first()).toBeVisible()
@@ -107,7 +119,16 @@ test("navigation links only to built modules", async ({ page }) => {
   const hrefs = await visibleNav.getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href"))
   )
-  expect(hrefs.sort()).toEqual(["/dashboard", "/hours", "/menu", "/menu/categories", "/menu/meal-periods", "/orders"])
+  expect(hrefs.sort()).toEqual([
+    "/dashboard",
+    "/hours",
+    "/menu",
+    "/menu/categories",
+    "/menu/meal-periods",
+    "/orders",
+    "/settings",
+    "/settings/profile",
+  ])
   await expect(visibleNav.getByText("Availability & hours")).toBeVisible()
   await expect(visibleNav).not.toContainText(/POS|QR/)
 })

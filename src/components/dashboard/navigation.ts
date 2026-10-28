@@ -59,8 +59,8 @@ export const dashboardNavigation: NavGroup[] = [
   {
     label: "Restaurant",
     items: [
-      { title: "Restaurant profile", icon: Store, href: null, prdModule: 18 },
-      { title: "Settings", icon: Settings, href: null, prdModule: 18 },
+      { title: "Restaurant profile", icon: Store, href: "/settings/profile", prdModule: 18 },
+      { title: "Settings", icon: Settings, href: "/settings", prdModule: 18 },
       { title: "Staff & roles", icon: Users, href: null, prdModule: 20 },
     ],
   },

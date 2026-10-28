@@ -20,8 +20,9 @@ and no seller API yet.
 | Restaurant context | `src/lib/restaurant/context.ts` | Time zone, currency, locale. Preview restaurant in preview mode, `not_configured` otherwise. |
 
 Orders (`FOODI_ORDERS_DATA_SOURCE`, since B1), Menu
-(`FOODI_MENU_DATA_SOURCE`, since B2) and Hours (`FOODI_HOURS_DATA_SOURCE`,
-since B3a) all use `selectAdapter()`. Production refusal and no-fallback
+(`FOODI_MENU_DATA_SOURCE`, since B2), Hours (`FOODI_HOURS_DATA_SOURCE`,
+since B3a) and Settings (`FOODI_RESTAURANT_DATA_SOURCE`, the restaurant's own
+variable, since B4a) all use `selectAdapter()`. Production refusal and no-fallback
 behaviour are covered by tests for each (`src/lib/orders/service.test.ts`,
 `src/lib/menu/service.test.ts`, `src/lib/hours/service.test.ts`).
 

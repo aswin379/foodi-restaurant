@@ -130,6 +130,24 @@ so they use `FOODI_MENU_DATA_SOURCE` (add `FOODI_HOURS_DATA_SOURCE=preview`
 for the hours check). Details, the schedule shapes and backend dependencies:
 [docs/meal-periods-ui.md](docs/meal-periods-ui.md).
 
+## Restaurant settings
+
+`/settings` (overview), `/settings/profile` (name, description, contact,
+address and coordinates, logo and cover; time zone, currency and language
+read-only) and `/settings/orders` (order types offered, one restaurant-wide
+minimum order, default prep time per order type, pickup-code requirement)
+follow PRD v0.3 module 18 with the B4a decisions. No settings API exists yet,
+so they show "Settings aren't connected yet". To try them against labelled
+sample data in development:
+
+```bash
+FOODI_RESTAURANT_DATA_SOURCE=preview npm run dev
+```
+
+Tax and packaging (B4b) and auto-accept aren't included. Details, the
+proposed API contract and backend dependencies:
+[docs/settings-ui.md](docs/settings-ui.md).
+
 ## Shared foundations and tests
 
 Data-source rules, preview mode, shared components and naming are described in

@@ -28,6 +28,9 @@ const pages = [
   { name: "weekly hours", path: "/hours", heading: /availability & hours/i },
   { name: "special dates", path: "/hours/special-dates", heading: /availability & hours/i },
   { name: "dashboard with opening status", path: "/dashboard", heading: /welcome to your restaurant dashboard/i },
+  { name: "settings overview", path: "/settings", heading: /^settings$/i },
+  { name: "restaurant profile", path: "/settings/profile", heading: /restaurant profile/i },
+  { name: "order settings", path: "/settings/orders", heading: /order settings/i },
 ]
 
 for (const { name, path, heading } of pages) {
@@ -63,6 +66,13 @@ test("order history filters by status", async ({ page }) => {
 
 test("menu pages label preview data", async ({ page }) => {
   for (const path of ["/menu", "/menu/new", "/menu/prv-item-13/edit", "/menu/categories", "/menu/meal-periods"]) {
+    await gotoAndSettle(page, path)
+    await expect(page.getByRole("note").filter({ hasText: PREVIEW_LABEL }).first()).toBeVisible()
+  }
+})
+
+test("settings pages label preview data", async ({ page }) => {
+  for (const path of ["/settings/profile", "/settings/orders"]) {
     await gotoAndSettle(page, path)
     await expect(page.getByRole("note").filter({ hasText: PREVIEW_LABEL }).first()).toBeVisible()
   }
