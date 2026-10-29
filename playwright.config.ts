@@ -26,6 +26,7 @@ const PREVIEW_ENV = {
   FOODI_REVIEWS_DATA_SOURCE: "preview",
   FOODI_CUSTOMERS_DATA_SOURCE: "preview",
   FOODI_WALLET_DATA_SOURCE: "preview",
+  FOODI_BILLING_DATA_SOURCE: "preview",
 }
 
 export default defineConfig({
@@ -92,6 +93,7 @@ export default defineConfig({
         FOODI_REVIEWS_DATA_SOURCE: "",
         FOODI_CUSTOMERS_DATA_SOURCE: "",
         FOODI_WALLET_DATA_SOURCE: "",
+        FOODI_BILLING_DATA_SOURCE: "",
       },
     },
     {

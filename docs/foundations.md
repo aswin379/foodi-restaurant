@@ -22,10 +22,10 @@ and no seller API yet.
 Orders (`FOODI_ORDERS_DATA_SOURCE`, since B1), Menu
 (`FOODI_MENU_DATA_SOURCE`, since B2), Hours (`FOODI_HOURS_DATA_SOURCE`,
 since B3a), Settings (`FOODI_RESTAURANT_DATA_SOURCE`, the restaurant's own
-variable, since B4a), Reviews (`FOODI_REVIEWS_DATA_SOURCE`, since B6a), Customers (`FOODI_CUSTOMERS_DATA_SOURCE`, since B6b) and Wallet (`FOODI_WALLET_DATA_SOURCE`, since B6c) all
+variable, since B4a), Reviews (`FOODI_REVIEWS_DATA_SOURCE`, since B6a), Customers (`FOODI_CUSTOMERS_DATA_SOURCE`, since B6b), Wallet (`FOODI_WALLET_DATA_SOURCE`, since B6c) and Billing (`FOODI_BILLING_DATA_SOURCE`, since B6d) all
 use `selectAdapter()`. Production refusal and no-fallback
 behaviour are covered by tests for each (`src/lib/orders/service.test.ts`,
-`src/lib/menu/service.test.ts`, `src/lib/hours/service.test.ts`, `src/lib/reviews/service.test.ts`, `src/lib/customers/service.test.ts`, `src/lib/wallet/service.test.ts`).
+`src/lib/menu/service.test.ts`, `src/lib/hours/service.test.ts`, `src/lib/reviews/service.test.ts`, `src/lib/customers/service.test.ts`, `src/lib/wallet/service.test.ts`, `src/lib/billing/service.test.ts`).
 
 `ApiRequest` has an optional `ifMatch` field for the PROPOSED
 optimistic-concurrency header Hours uses; like every API detail, it awaits

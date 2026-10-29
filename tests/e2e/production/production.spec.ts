@@ -37,6 +37,8 @@ const routes = [
   { path: "/wallet/settlements", heading: /^settlements$/i, disconnected: /wallet isn.t connected yet/i },
   { path: "/wallet/settlements?page=2", heading: /^settlements$/i, disconnected: /wallet isn.t connected yet/i },
   { path: "/wallet/settlements/prv-set-01", heading: null, disconnected: /wallet isn.t connected yet/i },
+  { path: "/billing", heading: /^plan & billing$/i, disconnected: /billing isn.t connected yet/i },
+  { path: "/billing?preview=empty", heading: /^plan & billing$/i, disconnected: /billing isn.t connected yet/i },
 ]
 
 for (const route of routes) {
@@ -224,6 +226,33 @@ test("wallet shows no sample amounts, settlements, payout details, controls or p
   }
 })
 
+test("billing shows no sample plan, fees, dates, statuses or controls in production", async ({ page }) => {
+  const paths = [
+    "/billing",
+    "/billing?preview=slow",
+    "/billing?preview=empty",
+    "/billing?preview=error",
+    "/billing?preview=forbidden",
+    "/billing?preview=past_due",
+    "/billing?preview=trial",
+    "/billing?preview=minimal",
+    "/billing?restaurantId=other&plan=premium&status=expired",
+  ]
+  for (const path of paths) {
+    await gotoAndSettle(page, path)
+    // Whatever the URL asks for, production is not connected: never a plan, empty, failed or refused.
+    await expect(page.getByText(/billing isn.t connected yet/i).first()).toBeVisible()
+    await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /upgrade|downgrade|cancel|pay|payment|invoice|download|compare/i })).toHaveCount(0)
+    await expect(page.getByRole("textbox")).toHaveCount(0)
+    const body = page.locator("body")
+    // No plan, fee, rate, date, status, entitlement or notice of any kind.
+    await expect(body).not.toContainText(/preview plan|preview entitlement|preview fee|preview tax|preview notice|prv-plan/i)
+    await expect(body).not.toContainText(/₹|INR|\d%|per order|of order value|per billing period|GST|renewal|trial|current period|entitlement|message from foodi/i)
+    await expect(body).not.toContainText(/past due|in trial|expired|not available|no plan found|preview only, not saved to foodi|\(preview\)/i)
+  }
+})
+
 test("fixture preview scenarios are ignored in production", async ({ page }) => {
   await gotoAndSettle(page, "/orders?preview=slow")
   await expect(page.getByText(/orders aren.t connected yet/i).first()).toBeVisible()
@@ -242,6 +271,7 @@ test("navigation links only to built modules", async ({ page }) => {
     links.map((link) => link.getAttribute("href"))
   )
   expect(hrefs.sort()).toEqual([
+    "/billing",
     "/customers",
     "/dashboard",
     "/hours",

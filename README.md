@@ -226,6 +226,27 @@ PROPOSAL and nothing about settlement calculation, refunds, payouts or
 authorization is implemented. Details and the proposed contract:
 [docs/wallet-ui.md](docs/wallet-ui.md).
 
+## Plan & billing
+
+`/billing` shows the restaurant's plan (model and status), optional billing
+period, renewal and trial dates, the plan's entitlements and its fee terms, and
+an optional notice from Foodi, all read-only and exactly as the billing service
+supplies them (PRD v0.3 module 19, Release 1). The panel calculates no fee, tax
+or total, derives no status, doesn't reconcile billing with Wallet, and neither
+enforces nor describes any access restriction. No fee amount is hard-coded:
+a "₹10 + GST" platform fee is an unconfirmed business input, not a PRD or code
+rule. There is no invoice, payment, upgrade, cancellation or download control.
+No billing API exists yet, so the page shows "Billing isn't connected yet". To
+try it against labelled sample data in development:
+
+```bash
+FOODI_BILLING_DATA_SOURCE=preview npm run dev
+```
+
+Preview is read-only and refused in production builds. The API contract is a
+PROPOSAL and nothing about plans, fees, tax or renewal is implemented. Details
+and the proposed contract: [docs/billing-ui.md](docs/billing-ui.md).
+
 ## Shared foundations and tests
 
 Data-source rules, preview mode, shared components and naming are described in
