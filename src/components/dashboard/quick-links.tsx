@@ -12,22 +12,22 @@ export const QUICK_LINKS = [
   { title: "Order settings", description: "Order types, minimum order and prep times", href: "/settings/orders", icon: Settings },
 ] as const
 
-export function QuickLinks() {
+export function QuickLinks({ className }: { className?: string }) {
   return (
-    <DashboardSection id="quick-links" title="Quick links" description="Shortcuts to common tasks.">
-      <ul className="flex flex-col gap-2">
+    <DashboardSection id="quick-links" title="Quick links" description="Shortcuts to common tasks." className={className}>
+      <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
         {QUICK_LINKS.map(({ title, description, href, icon: Icon }) => (
           <li key={href}>
             <Link
               href={href}
-              className="flex items-center gap-3 rounded-lg border px-3 py-2.5 outline-none hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="group flex h-full items-center gap-3 rounded-2xl border border-border-soft bg-background/60 p-3 outline-none transition-[border-color,background-color] hover:border-primary-line hover:bg-primary-faint"
             >
-              <span className="grid size-8 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
-                <Icon aria-hidden className="size-4" />
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-soft text-primary">
+                <Icon aria-hidden strokeWidth={1.75} className="size-5" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium">{title}</span>
-                <span className="block text-xs text-muted-foreground">{description}</span>
+                <span className="block text-sm font-semibold">{title}</span>
+                <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{description}</span>
               </span>
             </Link>
           </li>

@@ -12,7 +12,7 @@ export function SectionSkeleton({ label, rows = 3 }: { label: string; rows?: num
   return (
     <div role="status" aria-label={label} className="flex flex-col gap-3">
       {Array.from({ length: rows }, (_, index) => (
-        <Skeleton key={index} className="h-9 w-full" />
+        <Skeleton key={index} className="h-10 w-full rounded-xl" />
       ))}
     </div>
   )
@@ -22,7 +22,7 @@ export function SectionSkeleton({ label, rows = 3 }: { label: string; rows?: num
 export function SectionFailure({ error, what, retryHref }: { error: unknown; what: string; retryHref: string }) {
   if (isServiceError(error) && error.kind === "not_configured") {
     return (
-      <p className="flex items-start gap-2 rounded-md border border-dashed px-3 py-3 text-sm text-muted-foreground">
+      <p className="flex items-start gap-3 rounded-xl border border-dashed bg-muted/50 px-4 py-4 text-sm text-muted-foreground">
         <PlugZap aria-hidden className="mt-0.5 size-4 shrink-0" />
         <span>
           {capitalize(what)} {what.endsWith("s") ? "aren't" : "isn't"} connected yet. Nothing is shown until the Foodi
@@ -33,16 +33,16 @@ export function SectionFailure({ error, what, retryHref }: { error: unknown; wha
   }
   if (isServiceError(error) && error.kind === "forbidden") {
     return (
-      <p role="alert" className="flex items-start gap-2 rounded-md border border-dashed px-3 py-3 text-sm">
+      <p role="alert" className="flex items-start gap-3 rounded-xl border border-dashed bg-muted/50 px-4 py-4 text-sm">
         <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
         You don&apos;t have permission to see {what}.
       </p>
     )
   }
   return (
-    <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed px-3 py-3 text-sm">
-      <span className="flex items-center gap-2">
-        <AlertTriangle aria-hidden className="size-4 shrink-0 text-red-600" />
+    <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed bg-muted/50 px-4 py-4 text-sm">
+      <span className="flex items-center gap-3">
+        <AlertTriangle aria-hidden className="size-4 shrink-0 text-danger-foreground" />
         We couldn&apos;t load {what}. Nothing has changed.
       </span>
       <Button asChild variant="outline" size="sm">
@@ -58,7 +58,7 @@ export function SectionFailure({ error, what, retryHref }: { error: unknown; wha
  */
 export function PreviewDataBadge({ source, estimate = false }: { source: string; estimate?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+    <span className="inline-flex items-center gap-1 rounded-full border border-warning-line bg-warning-soft px-2 py-0.5 text-[11px] font-medium text-warning-foreground">
       <FlaskConical aria-hidden className="size-3" />
       {estimate ? `Preview estimate from ${source}` : `Preview: ${source}`}
     </span>
