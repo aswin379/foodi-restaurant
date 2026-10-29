@@ -39,6 +39,9 @@ const routes = [
   { path: "/wallet/settlements/prv-set-01", heading: null, disconnected: /wallet isn.t connected yet/i },
   { path: "/billing", heading: /^plan & billing$/i, disconnected: /billing isn.t connected yet/i },
   { path: "/billing?preview=empty", heading: /^plan & billing$/i, disconnected: /billing isn.t connected yet/i },
+  { path: "/promotions", heading: /^promotions$/i, disconnected: /promotions aren.t connected yet/i },
+  { path: "/promotions?status=active&page=2", heading: /^promotions$/i, disconnected: /promotions aren.t connected yet/i },
+  { path: "/promotions/prv-promo-01", heading: null, disconnected: /promotions aren.t connected yet/i },
 ]
 
 for (const route of routes) {
@@ -253,6 +256,38 @@ test("billing shows no sample plan, fees, dates, statuses or controls in product
   }
 })
 
+test("promotions show no sample coupons, values, dates, counts or controls in production", async ({ page }) => {
+  const paths = [
+    "/promotions",
+    "/promotions?status=paused",
+    "/promotions?status=active&page=2",
+    "/promotions?preview=slow",
+    "/promotions?preview=empty",
+    "/promotions?preview=error",
+    "/promotions?preview=forbidden",
+    "/promotions/prv-promo-01",
+    "/promotions/prv-promo-01?preview=forbidden",
+    "/promotions/prv-promo-99?preview=empty",
+    "/promotions?restaurantId=other&kind=bogo",
+  ]
+  for (const path of paths) {
+    await gotoAndSettle(page, path)
+    // Whatever the URL asks for, production is not connected: never empty, failed, refused or "not found".
+    await expect(page.getByText(/promotions aren.t connected yet/i).first()).toBeVisible()
+    await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /create|new|edit|delete|activate|pause|redeem|copy|share|export/i })).toHaveCount(0)
+    await expect(page.getByRole("textbox")).toHaveCount(0)
+    // No status filter or coupon link while nothing is connected.
+    await expect(page.getByRole("navigation", { name: "Filter coupons by status" })).toHaveCount(0)
+    await expect(page.locator('main a[href^="/promotions/"]')).toHaveCount(0)
+    const body = page.locator("body")
+    // No coupon, code, value, rate, date, count, status or funding of any kind.
+    await expect(body).not.toContainText(/PREVIEW-|prv-promo|preview coupon|preview only, not saved to foodi|\(preview\)/i)
+    await expect(body).not.toContainText(/₹|INR|\d%|% off| off|minimum order|maximum discount|redemption|funded by|managed by|applies to|order types|can be combined/i)
+    await expect(body).not.toContainText(/scheduled|paused|expired|cancelled|not available|no coupons|no coupons have this status|showing \d/i)
+  }
+})
+
 test("fixture preview scenarios are ignored in production", async ({ page }) => {
   await gotoAndSettle(page, "/orders?preview=slow")
   await expect(page.getByText(/orders aren.t connected yet/i).first()).toBeVisible()
@@ -279,6 +314,7 @@ test("navigation links only to built modules", async ({ page }) => {
     "/menu/categories",
     "/menu/meal-periods",
     "/orders",
+    "/promotions",
     "/reviews",
     "/settings",
     "/settings/profile",

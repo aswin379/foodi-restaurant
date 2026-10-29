@@ -247,6 +247,29 @@ Preview is read-only and refused in production builds. The API contract is a
 PROPOSAL and nothing about plans, fees, tax or renewal is implemented. Details
 and the proposed contract: [docs/billing-ui.md](docs/billing-ui.md).
 
+## Promotions
+
+`/promotions` (a coupon directory with a status filter and pagination kept in
+the URL) and `/promotions/[promotionId]` (one coupon's discount, validity,
+eligibility and usage) follow PRD v0.3 module 12, Release 1: coupons only. Item
+offers, BOGO, happy hour, auto-apply and loyalty are later releases. The screens
+are read-only and show every value exactly as the promotions service supplies
+it: the panel calculates no saving, infers no eligibility, derives no status or
+validity from a date, never works out who funds a discount, and never adjusts a
+redemption count. There is no create, edit, delete, activate or pause control, and
+no customer or redemption-history data. No promotions API exists yet, so they
+show "Promotions aren't connected yet". To try them against labelled sample data
+in development:
+
+```bash
+FOODI_PROMOTIONS_DATA_SOURCE=preview npm run dev
+```
+
+Preview is read-only and refused in production builds. The API contract is a
+PROPOSAL and nothing about coupons, funding, stacking or redemption is
+implemented. Details and the proposed contract:
+[docs/promotions-ui.md](docs/promotions-ui.md).
+
 ## Shared foundations and tests
 
 Data-source rules, preview mode, shared components and naming are described in
