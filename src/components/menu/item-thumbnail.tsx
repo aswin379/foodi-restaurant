@@ -14,7 +14,7 @@ export function ItemThumbnail({
     <span
       aria-hidden
       className={cn(
-        "grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border bg-muted text-muted-foreground",
+        "grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary-soft text-primary-text",
         className
       )}
     >

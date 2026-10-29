@@ -94,7 +94,7 @@ function Result({ outcome }: { outcome: Outcome }) {
   if (outcome.findings.length === 0) {
     return (
       <p className="flex items-center gap-1.5 text-sm">
-        <CheckCircle2 aria-hidden className="size-4 shrink-0 text-emerald-700" />
+        <CheckCircle2 aria-hidden className="size-4 shrink-0 text-success-foreground" />
         No conflicts with weekly restaurant hours.
       </p>
     )
@@ -107,8 +107,8 @@ function Result({ outcome }: { outcome: Outcome }) {
           className={cn(
             "flex flex-col gap-1 rounded-md border px-3 py-2 text-sm",
             finding.severity === "strong"
-              ? "border-red-300 bg-red-50 text-red-950"
-              : "border-amber-300 bg-amber-50 text-amber-950"
+              ? "border-danger-line bg-danger-soft text-danger-foreground"
+              : "border-warning-line bg-warning-soft text-warning-foreground"
           )}
         >
           <p className="flex items-start gap-1.5">

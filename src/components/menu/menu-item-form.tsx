@@ -211,12 +211,12 @@ export function MenuItemForm({
           tabIndex={-1}
           role="alert"
           aria-labelledby="item-errors-title"
-          className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-destructive/30"
+          className="rounded-2xl border border-danger-line bg-danger-soft px-4 py-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          <p id="item-errors-title" className="font-semibold text-destructive">
+          <p id="item-errors-title" className="font-semibold text-danger-foreground">
             Fix {entries.length === 1 ? "this problem" : `these ${entries.length} problems`} before saving
           </p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-destructive">
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-danger-foreground">
             {entries.map(([path, message]) => (
               <li key={path}>
                 <a
@@ -438,7 +438,7 @@ export function MenuItemForm({
 
       {generalFailure ? <ActionResultMessage result={generalFailure} successText="" /> : null}
 
-      <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-end">
+      <div className="flex flex-col-reverse gap-2 rounded-3xl bg-card p-4 shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:flex-row sm:items-center sm:justify-end">
         <Button asChild variant="ghost">
           <Link href="/menu">Cancel</Link>
         </Button>
@@ -631,10 +631,10 @@ function FormSection({
   children: React.ReactNode
 }) {
   return (
-    <Card className="gap-5 shadow-none">
+    <Card className="gap-5 rounded-3xl border-transparent py-6 shadow-[0_8px_30px_rgb(31_26_23/6%)]">
       <CardHeader>
         <CardTitle>
-          <h2 className="flex items-center gap-2 text-base font-semibold">
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
             {title}
             {optional ? <span className="text-xs font-normal text-muted-foreground">Optional</span> : null}
           </h2>

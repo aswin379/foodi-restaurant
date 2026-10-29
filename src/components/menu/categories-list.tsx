@@ -35,7 +35,7 @@ export function CategoriesList({
   return (
     <div className="flex flex-col gap-6">
       <section aria-labelledby="active-categories" className="flex flex-col gap-3">
-        <h2 id="active-categories" className="text-sm font-semibold">
+        <h2 id="active-categories" className="text-lg font-semibold">
           Menu order <span className="font-normal text-muted-foreground">({active.length})</span>
         </h2>
         <ol className="flex flex-col gap-2">
@@ -54,7 +54,7 @@ export function CategoriesList({
 
       {archived.length > 0 ? (
         <section aria-labelledby="archived-categories" className="flex flex-col gap-3">
-          <h2 id="archived-categories" className="text-sm font-semibold">
+          <h2 id="archived-categories" className="text-lg font-semibold">
             Archived <span className="font-normal text-muted-foreground">({archived.length})</span>
           </h2>
           <ul className="flex flex-col gap-2">
@@ -105,18 +105,18 @@ function CategoryRow({
   const busy = (key: string) => command.pending && direct === key
 
   return (
-    <li className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center">
+    <li className="flex flex-col gap-3 rounded-2xl bg-card p-4 shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:flex-row sm:items-center sm:px-5">
       <div className="flex min-w-0 flex-1 items-start gap-3">
         {index !== undefined ? (
-          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-muted text-xs font-semibold tabular-nums">
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-bold text-primary-text tabular-nums">
             {index + 1}
           </span>
         ) : null}
         <div className="min-w-0">
-          <p className="flex flex-wrap items-center gap-2 font-medium">
+          <p className="flex flex-wrap items-center gap-2 font-semibold">
             {category.name}
             {!category.active && !category.archived ? (
-              <span className="rounded-full border border-stone-200 bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">
+              <span className="rounded-full border border-neutral-line bg-neutral-soft px-2.5 py-0.5 text-xs font-semibold text-neutral-foreground">
                 Off
               </span>
             ) : null}

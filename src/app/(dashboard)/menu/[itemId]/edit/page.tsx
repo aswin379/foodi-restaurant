@@ -53,7 +53,7 @@ async function EditItemView({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={`Edit ${item.name}`} description="Update the item's details, price, sizes, options and availability." />
+      <PageHeader variant="hero" title={`Edit ${item.name}`} description="Update the item's details, price, sizes, options and availability." />
       {menuMode() === "preview" ? <PreviewNotice /> : null}
       <MenuItemForm
         mode="edit"

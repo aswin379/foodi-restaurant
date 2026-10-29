@@ -74,7 +74,7 @@ export function MealPeriodsFields({
 
   if (!periods) {
     return (
-      <div role="alert" className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+      <div role="alert" className="flex items-start gap-2 rounded-md border border-warning-line bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
         <AlertTriangle aria-hidden className="mt-px size-3.5 shrink-0" />
         <span>
           Meal periods couldn&apos;t be loaded, so this schedule can&apos;t be shown or changed right now. Saving keeps
@@ -191,7 +191,7 @@ export function MealPeriodsFields({
             const id = fieldId(schedulePaths.period(ref.periodId))
             const period = periods.find((candidate) => candidate.id === ref.periodId)
             return (
-              <li key={ref.periodId} id={id} tabIndex={-1} className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-950 outline-none">
+              <li key={ref.periodId} id={id} tabIndex={-1} className="flex flex-col gap-2 rounded-lg border border-warning-line bg-warning-soft p-3 text-warning-foreground outline-none">
                 <p className="text-sm font-medium">{period ? `${period.name} (archived)` : "Unknown meal period"}</p>
                 <p className="text-xs">
                   {period

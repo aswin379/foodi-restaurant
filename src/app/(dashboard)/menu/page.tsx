@@ -24,11 +24,12 @@ export default function MenuPage({ searchParams }: PageProps<"/menu">) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        variant="hero"
         title="Menu"
         description="Manage the dishes and drinks on your menu, their prices and options, and whether they can be ordered."
         actions={
           // Three actions: let them wrap on narrow screens.
-          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
             <Button asChild variant="outline">
               <Link href="/menu/categories">
                 <Tags aria-hidden />
@@ -41,7 +42,7 @@ export default function MenuPage({ searchParams }: PageProps<"/menu">) {
                 Meal periods
               </Link>
             </Button>
-            <Button asChild>
+            <Button asChild className="col-span-2 sm:col-auto">
               <Link href="/menu/new">
                 <Plus aria-hidden />
                 Add item

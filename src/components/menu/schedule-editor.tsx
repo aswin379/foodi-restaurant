@@ -224,7 +224,7 @@ export function ScheduleEditor({
             </span>
           </p>
           {savedTimeZone && savedTimeZone !== timeZone ? (
-            <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+            <p className="rounded-md border border-warning-line bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
               These times were saved for {savedTimeZone}. Saving keeps the same clock times but applies them in{" "}
               {timeZone}.
             </p>
@@ -416,7 +416,7 @@ function DayRow({
             </ul>
           ) : null}
           {willMerge ? (
-            <p className="text-xs text-amber-900">
+            <p className="text-xs text-warning-foreground">
               Overlapping windows will be saved as {merged.map((window) => formatWindow(window, itemChannels)).join(", ")}.
             </p>
           ) : null}

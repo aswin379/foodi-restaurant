@@ -23,8 +23,8 @@ export function MenuToolbar({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <nav aria-label="Filter items by status" className="-mx-1 overflow-x-auto px-1 pb-1">
-        <ul className="flex w-max gap-1 rounded-lg border bg-card p-1">
+      <nav aria-label="Filter items by status">
+        <ul className="flex w-fit max-w-full flex-wrap gap-1 rounded-3xl bg-card p-1 shadow-[0_4px_14px_rgb(31_26_23/8%)]">
           {filterTabs.map((tab) => {
             const active = query.filter === tab.value
             return (
@@ -33,10 +33,10 @@ export function MenuToolbar({
                   href={menuHref(query, { filter: tab.value, page: 1 })}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "inline-flex h-8 items-center rounded-md px-3 text-sm font-medium whitespace-nowrap outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                    "inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold whitespace-nowrap outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50",
                     active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? "bg-primary text-primary-foreground shadow-[0_6px_14px_rgb(214_63_8/25%)]"
+                      : "text-muted-foreground hover:bg-primary-faint hover:text-foreground"
                   )}
                 >
                   {tab.label}
@@ -52,7 +52,7 @@ export function MenuToolbar({
         method="get"
         role="search"
         aria-label="Search and filter menu items"
-        className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_auto] lg:items-end"
+        className="grid gap-4 rounded-3xl bg-card p-5 shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:grid-cols-2 sm:p-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_auto] lg:items-end"
       >
         {query.filter !== "all" ? <input type="hidden" name="filter" value={query.filter} /> : null}
         <div className="flex flex-col gap-1.5">

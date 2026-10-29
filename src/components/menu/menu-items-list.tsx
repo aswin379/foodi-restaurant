@@ -75,11 +75,11 @@ function ScheduleSummary({
 
 function ItemName({ item }: { item: MenuItem }) {
   return item.archived ? (
-    <span className="font-medium">{item.name}</span>
+    <span className="font-semibold">{item.name}</span>
   ) : (
     <Link
       href={editHref(item)}
-      className="w-fit rounded-sm font-medium underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="w-fit rounded-sm font-semibold underline-offset-4 outline-none hover:text-primary-text hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       {item.name}
     </Link>
@@ -96,7 +96,7 @@ function Price({ item, context }: { item: MenuItem; context: ZoneAndLocale }) {
   )
 }
 
-/** Table from md up, cards below. */
+/** Table from lg up, cards below. */
 export function MenuItemsList({
   items,
   categories,
@@ -115,21 +115,21 @@ export function MenuItemsList({
 
   return (
     <>
-      <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
+      <div className="hidden overflow-hidden rounded-3xl bg-card shadow-[0_8px_30px_rgb(31_26_23/6%)] lg:block">
         <Table>
           <TableHeader className="bg-muted/40">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="pl-4">Item</TableHead>
+              <TableHead className="pl-6">Item</TableHead>
               <TableHead>Category</TableHead>
               <TableHead className="text-right">Price</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="pr-4 text-right">Available · actions</TableHead>
+              <TableHead className="pr-6 text-right">Available · actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map(({ item, status }) => (
-              <TableRow key={item.id}>
-                <TableCell className="pl-4">
+              <TableRow key={item.id} className="h-[4.75rem]">
+                <TableCell className="pl-6">
                   <div className="flex items-center gap-3">
                     <ItemThumbnail imageUrl={item.imageUrl} />
                     <div className="flex min-w-0 flex-col">
@@ -143,13 +143,13 @@ export function MenuItemsList({
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{item.categoryName}</TableCell>
-                <TableCell className="text-right font-medium whitespace-nowrap tabular-nums">
+                <TableCell className="text-right font-bold whitespace-nowrap tabular-nums">
                   <Price item={item} context={context} />
                 </TableCell>
                 <TableCell className="whitespace-normal">
                   <ItemStatusBadge status={status} context={context} />
                 </TableCell>
-                <TableCell className="pr-4 text-right">
+                <TableCell className="pr-6 text-right">
                   <MenuItemActions item={item} status={status} />
                 </TableCell>
               </TableRow>
@@ -158,11 +158,14 @@ export function MenuItemsList({
         </Table>
       </div>
 
-      <ul aria-label="Menu items" className="flex flex-col gap-3 md:hidden">
+      <ul aria-label="Menu items" className="grid gap-3 md:grid-cols-2 lg:hidden">
         {rows.map(({ item, status }) => (
-          <li key={item.id} className="flex flex-col gap-3 rounded-xl border bg-card p-4">
+          <li
+            key={item.id}
+            className="flex flex-col gap-3 rounded-2xl bg-card p-4 shadow-[0_8px_30px_rgb(31_26_23/6%)]"
+          >
             <div className="flex items-start gap-3">
-              <ItemThumbnail imageUrl={item.imageUrl} className="size-12" />
+              <ItemThumbnail imageUrl={item.imageUrl} className="size-14" />
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="flex items-center gap-2">
                   <DietaryMark dietary={item.dietary} />
@@ -171,12 +174,12 @@ export function MenuItemsList({
                 <span className="text-xs text-muted-foreground">{item.categoryName}</span>
                 <OptionSummary item={item} />
                 <ScheduleSummary item={item} context={context} periods={periods} />
-                <span className="text-sm font-semibold tabular-nums">
-                  <Price item={item} context={context} />
-                </span>
               </div>
+              <span className="text-base font-bold tabular-nums">
+                <Price item={item} context={context} />
+              </span>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border-soft pt-3">
               <ItemStatusBadge status={status} context={context} />
               <MenuItemActions item={item} status={status} />
             </div>
