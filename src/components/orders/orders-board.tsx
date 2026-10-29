@@ -21,8 +21,17 @@ type Column = {
   id: string
   title: string
   icon: LucideIcon
+  /** The icon disc uses the same status tone as the badges on the cards below it. */
+  tone: string
   empty: string
   orders: OrderDetail[]
+}
+
+const COLUMN_TONES = {
+  new: "bg-warning-soft text-warning-foreground",
+  kitchen: "bg-info-soft text-info-foreground",
+  ready: "bg-success-soft text-success-foreground",
+  scheduled: "bg-violet-soft text-violet-foreground",
 }
 
 function useOnline() {
@@ -65,6 +74,7 @@ export function OrdersBoard({
       id: "board-new",
       title: "New",
       icon: Inbox,
+      tone: COLUMN_TONES.new,
       empty: "No new orders.",
       orders: orders.filter((order) => order.status === "pending"),
     },
@@ -72,6 +82,7 @@ export function OrdersBoard({
       id: "board-kitchen",
       title: "In kitchen",
       icon: ChefHat,
+      tone: COLUMN_TONES.kitchen,
       empty: "Nothing being prepared.",
       orders: orders.filter((order) => order.status === "accepted"),
     },
@@ -79,6 +90,7 @@ export function OrdersBoard({
       id: "board-ready",
       title: "Ready",
       icon: PackageCheck,
+      tone: COLUMN_TONES.ready,
       empty: "Nothing waiting for collection or delivery.",
       orders: orders.filter((order) => order.status === "ready" || order.status === "out_for_delivery"),
     },
@@ -90,7 +102,7 @@ export function OrdersBoard({
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <NewOrderAlarm pendingReferences={pending.map(({ id, reference }) => ({ id, reference }))} />
-        <ConnectionStatus state={online ? "polling" : "offline"} />
+        <ConnectionStatus state={online ? "polling" : "offline"} className="bg-card shadow-xs" />
       </div>
 
       <nav aria-label="Board columns" className="lg:hidden">
@@ -99,10 +111,12 @@ export function OrdersBoard({
             <li key={column.id}>
               <a
                 href={`#${column.id}`}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border bg-card px-3 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="inline-flex h-10 items-center gap-2 rounded-full bg-card pr-1.5 pl-4 text-sm font-semibold shadow-[0_8px_30px_rgb(31_26_23/6%)] outline-none hover:bg-primary-faint focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 {column.title}
-                <span className="rounded-full bg-muted px-1.5 text-xs tabular-nums">{column.orders.length}</span>
+                <span className="grid min-w-7 place-items-center rounded-full bg-foreground px-1.5 py-0.5 text-xs font-semibold text-background tabular-nums">
+                  {column.orders.length}
+                </span>
               </a>
             </li>
           ))}
@@ -120,6 +134,7 @@ export function OrdersBoard({
           id: "board-scheduled",
           title: "Scheduled",
           icon: CalendarClock,
+          tone: COLUMN_TONES.scheduled,
           empty: "No scheduled orders.",
           orders: scheduled,
         }}
@@ -151,18 +166,20 @@ function BoardColumn({
     <section
       id={column.id}
       aria-labelledby={headingId}
-      className="flex scroll-mt-20 flex-col gap-3 rounded-2xl border bg-muted/40 p-3"
+      className="flex scroll-mt-20 flex-col gap-3 rounded-3xl bg-card/55 p-3 ring-1 ring-border-soft sm:p-4"
     >
-      <h2 id={headingId} className="flex items-center gap-2 px-1 text-sm font-semibold">
-        <Icon aria-hidden className="size-4 text-muted-foreground" />
+      <h2 id={headingId} className="flex items-center gap-3 text-base font-semibold">
+        <span className={cn("grid size-9 place-items-center rounded-full", column.tone)}>
+          <Icon aria-hidden className="size-[18px]" strokeWidth={1.75} />
+        </span>
         {column.title}
-        <span className="ml-auto rounded-full bg-background px-2 py-0.5 text-xs tabular-nums">
+        <span className="ml-auto grid min-w-8 place-items-center rounded-full bg-card px-2.5 py-1 text-xs font-semibold tabular-nums shadow-[0_2px_8px_rgb(31_26_23/8%)]">
           {column.orders.length}
           <span className="sr-only"> {column.orders.length === 1 ? "order" : "orders"}</span>
         </span>
       </h2>
       {column.orders.length === 0 ? (
-        <p className="rounded-xl border border-dashed bg-background px-4 py-6 text-center text-sm text-muted-foreground">
+        <p className="rounded-2xl border border-dashed border-border bg-card/70 px-4 py-6 text-center text-sm text-muted-foreground">
           {column.empty}
         </p>
       ) : (

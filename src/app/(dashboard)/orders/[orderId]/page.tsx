@@ -29,14 +29,18 @@ const closedBy: Record<OrderActor, string> = {
   system: "Foodi automatically",
 }
 
+const surface = "shadow-[0_8px_30px_rgb(31_26_23/6%)]"
+
 export default function OrderDetailPage({ params, searchParams }: PageProps<"/orders/[orderId]">) {
   return (
     <div className="flex flex-col gap-6">
       <Link
         href="/orders"
-        className="inline-flex w-fit items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="group inline-flex w-fit items-center gap-2 rounded-full text-sm font-semibold text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
-        <ArrowLeft aria-hidden className="size-4" />
+        <span aria-hidden className={`grid size-8 place-items-center rounded-full bg-card ${surface}`}>
+          <ArrowLeft className="size-4" />
+        </span>
         Orders board
       </Link>
       <Suspense fallback={<OrderDetailSkeleton />}>
@@ -81,10 +85,12 @@ async function OrderDetailView({
     <div className="flex flex-col gap-6">
       {ordersMode() === "preview" ? <PreviewNotice detail="Sample orders use PRV- references." /> : null}
 
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">Order {order.reference}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-[1.75rem] leading-9 font-bold tracking-[-0.02em] sm:text-[2rem] sm:leading-10 lg:text-[2.5rem] lg:leading-[3rem]">
+            Order {order.reference}
+          </h1>
+          <p className="mt-1.5 text-[15px] text-muted-foreground">
             Placed <time dateTime={order.placedAt}>{formatDateTime(order.placedAt, context)}</time>
           </p>
         </div>
@@ -97,7 +103,7 @@ async function OrderDetailView({
       {order.closure ? (
         <div
           role="note"
-          className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          className="flex items-start gap-3 rounded-2xl border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger-foreground"
         >
           <Ban aria-hidden className="mt-0.5 size-4 shrink-0" />
           <p>
@@ -112,23 +118,18 @@ async function OrderDetailView({
 
       <OrderProgress order={order} context={context} />
 
+      {/*
+        The actions come first in reading and tab order, so on a phone Accept or Mark ready
+        is above the item list; on wide screens they sit in the right-hand column.
+      */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="flex flex-col gap-6 lg:col-span-2">
-          <DetailCard title="Items">
-            <OrderItems items={order.items} charges={order.charges} context={context} />
-          </DetailCard>
-          <DetailCard title="Order timeline">
-            <OrderTimeline events={order.timeline} context={context} />
-          </DetailCard>
-        </div>
-
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 lg:col-start-3 lg:row-start-1">
           <DetailCard title="Actions">
             <div className="flex flex-col gap-4">
               <OrderActions order={order} riders={riders} context={context} />
               <Link
                 href={`/print/orders/${encodeURIComponent(order.id)}`}
-                className="inline-flex w-fit items-center gap-1.5 rounded-sm text-sm font-medium text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="inline-flex w-fit items-center gap-1.5 rounded-sm text-sm font-semibold text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 <Printer aria-hidden className="size-4" />
                 Print kitchen ticket and bill
@@ -166,6 +167,15 @@ async function OrderDetailView({
                 The refund shows as refunded only after the payment provider confirms it.
               </p>
             ) : null}
+          </DetailCard>
+        </div>
+
+        <div className="flex flex-col gap-6 lg:col-span-2 lg:row-start-1">
+          <DetailCard title="Items">
+            <OrderItems items={order.items} charges={order.charges} context={context} />
+          </DetailCard>
+          <DetailCard title="Order timeline">
+            <OrderTimeline events={order.timeline} context={context} />
           </DetailCard>
         </div>
       </div>
@@ -206,9 +216,13 @@ function OrderProgress({ order, context }: { order: OrderDetail; context: ZoneAn
 
 function ProgressPanel({ children, timing }: { children: React.ReactNode; timing: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border bg-card px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-      <p className="flex items-start gap-2">
-        <ChefHat aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+    <div
+      className={`flex flex-col gap-3 rounded-2xl bg-card px-4 py-3.5 text-sm sm:flex-row sm:items-center sm:justify-between ${surface}`}
+    >
+      <p className="flex items-center gap-3">
+        <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft text-primary-text">
+          <ChefHat className="size-[18px]" strokeWidth={1.75} />
+        </span>
         <span>{children}</span>
       </p>
       {timing}
@@ -218,10 +232,10 @@ function ProgressPanel({ children, timing }: { children: React.ReactNode; timing
 
 function DetailCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <Card className="gap-4 shadow-none">
+    <Card className={`gap-4 rounded-3xl border-transparent py-6 ${surface}`}>
       <CardHeader>
         <CardTitle>
-          <h2 className="text-base font-semibold">{title}</h2>
+          <h2 className="text-lg font-semibold">{title}</h2>
         </CardTitle>
       </CardHeader>
       <CardContent>{children}</CardContent>
@@ -233,7 +247,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value}</dd>
+      <dd className="font-semibold">{value}</dd>
     </div>
   )
 }
@@ -241,10 +255,10 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 function OrderDetailSkeleton() {
   return (
     <div role="status" aria-label="Loading order" className="flex flex-col gap-6">
-      <Skeleton className="h-8 w-56" />
+      <Skeleton className="h-10 w-64 rounded-xl" />
       <div className="grid gap-6 lg:grid-cols-3">
-        <Skeleton className="h-80 rounded-xl lg:col-span-2" />
-        <Skeleton className="h-80 rounded-xl" />
+        <Skeleton className="h-80 rounded-3xl lg:col-span-2" />
+        <Skeleton className="h-80 rounded-3xl" />
       </div>
     </div>
   )

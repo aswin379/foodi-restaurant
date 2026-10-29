@@ -18,10 +18,11 @@ export default function OrdersBoardPage({ searchParams }: PageProps<"/orders">) 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        variant="hero"
         title="Orders"
         description="New and in-progress orders for your restaurant. Accept new orders, mark them ready and hand them over."
+        actions={<OrdersSubnav current="board" />}
       />
-      <OrdersSubnav current="board" />
       <Suspense fallback={<OrdersBoardSkeleton />}>
         <BoardView searchParams={searchParams} />
       </Suspense>

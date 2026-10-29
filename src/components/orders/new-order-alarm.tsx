@@ -124,12 +124,12 @@ export function NewOrderAlarm({ pendingReferences }: { pendingReferences: { id: 
       {ringing ? (
         <div
           role="alert"
-          className="relative flex flex-col gap-3 rounded-xl border-2 border-amber-400 bg-amber-50 p-4 text-amber-950 sm:flex-row sm:items-center sm:justify-between"
+          className="relative flex flex-col gap-3 rounded-2xl border border-warning-line bg-warning-soft p-4 text-warning-foreground shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:flex-row sm:items-center sm:justify-between"
         >
           {/* Only this ring flashes, so the text stays fully readable. */}
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-[10px] ring-4 ring-inset ring-amber-400/70 motion-safe:animate-pulse"
+            className="pointer-events-none absolute inset-0 rounded-[14px] ring-4 ring-inset ring-warning-line motion-safe:animate-pulse"
           />
           <p className="flex items-start gap-2 text-sm font-semibold">
             <BellRing aria-hidden className="mt-0.5 size-5 shrink-0" />

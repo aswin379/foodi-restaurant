@@ -31,10 +31,11 @@ export default function OrderHistoryPage({ searchParams }: PageProps<"/orders/hi
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        variant="hero"
         title="Order history"
         description="Find any order by its reference, filter by status or date, and open it for the full details."
+        actions={<OrdersSubnav current="history" />}
       />
-      <OrdersSubnav current="history" />
       <Suspense fallback={<OrdersListSkeleton />}>
         <HistoryView searchParams={searchParams} />
       </Suspense>

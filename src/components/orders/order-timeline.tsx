@@ -31,12 +31,12 @@ export function OrderTimeline({
             <span
               aria-hidden
               className={cn(
-                "relative mt-1 size-[15px] shrink-0 rounded-full border-2 bg-background",
-                closed ? "border-red-500" : last ? "border-primary bg-primary" : "border-primary"
+                "relative mt-1 size-[15px] shrink-0 rounded-full border-2 bg-card",
+                closed ? "border-danger" : last ? "border-primary bg-primary" : "border-primary"
               )}
             />
             <div className="min-w-0">
-              <p className="text-sm font-medium">
+              <p className="text-sm font-semibold">
                 {orderEventLabels[event.type]}
                 {last ? <span className="sr-only"> (latest)</span> : null}
               </p>

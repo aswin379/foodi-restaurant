@@ -17,11 +17,11 @@ const orderStatusTone: Record<OrderStatus, string> = {
 }
 
 const paymentStatusTone: Record<PaymentStatus, string> = {
-  unpaid: "text-amber-800",
-  paid: "text-emerald-800",
-  failed: "text-red-700",
-  refund_pending: "text-amber-800",
-  refunded: "text-stone-600",
+  unpaid: "text-warning-foreground",
+  paid: "text-success-foreground",
+  failed: "text-danger-foreground",
+  refund_pending: "text-warning-foreground",
+  refunded: "text-neutral-foreground",
 }
 
 const pill =
