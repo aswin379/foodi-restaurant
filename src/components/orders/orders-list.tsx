@@ -77,7 +77,7 @@ export function OrdersList({
                 <TableCell className="pr-4 text-right">
                   <Link
                     href={orderHref(order)}
-                    className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     View
                     <span className="sr-only"> order {order.reference}</span>

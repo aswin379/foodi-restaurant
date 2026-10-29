@@ -57,7 +57,7 @@ export default function LoginPage() {
                   New to Foodi?{" "}
                   <Link
                     href={authLinks.restaurantOnboarding}
-                    className="font-medium text-primary underline-offset-4 hover:underline"
+                    className="font-medium text-primary-text underline-offset-4 hover:underline"
                   >
                     Partner with us
                   </Link>

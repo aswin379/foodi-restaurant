@@ -59,7 +59,7 @@ export function ReviewDetail({ review, context }: { review: Review; context: Zon
                   review.order ? (
                     <Link
                       href={`/orders/${encodeURIComponent(review.order.id)}`}
-                      className="rounded-sm text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      className="rounded-sm text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
                     >
                       Order {review.order.reference}
                     </Link>

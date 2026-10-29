@@ -1,4 +1,3 @@
-import AxeBuilder from "@axe-core/playwright"
 import { expect, test, type BrowserContext, type Page } from "@playwright/test"
 
 import { expectNoConsoleErrors, expectNoHorizontalOverflow, expectNoSeriousA11yViolations, gotoAndSettle } from "../helpers"
@@ -567,8 +566,7 @@ test.describe("keyboard and accessibility", () => {
   })
 
   // One test per width, so each stays well inside the test timeout (axe on every page is slow).
-  // These check the pages at rest (pointer away from every control). Interactive states are covered
-  // by the dialog test and, for the one known gap, by the KNOWN ISSUE test below.
+  // Interactive states are covered by the dialog test and by the hovered-Button test below.
   for (const width of [390, 820, 1440]) {
     test(`lists and details have no overflow or serious accessibility issues at ${width} px`, async ({ page }) => {
       test.setTimeout(90_000)
@@ -581,42 +579,28 @@ test.describe("keyboard and accessibility", () => {
       }
     })
 
-    test(`the open report dialog has no overflow or serious accessibility issues at ${width} px (pointer away from its buttons; hover is the KNOWN ISSUE below)`, async ({ page }) => {
+    test(`the open report dialog has no overflow or serious accessibility issues at ${width} px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 })
       await gotoAndSettle(page, "/reviews/prv-rev-005")
       await page.getByRole("button", { name: "Report abuse" }).click()
       await page.getByRole("alertdialog").getByRole("radio", { name: "Other" }).check()
       await page.getByRole("alertdialog").getByRole("button", { name: "Submit report" }).click()
       await expect(page.getByRole("alertdialog").getByText("Add a short explanation for this reason.")).toBeVisible()
-      // The click above leaves the pointer on the default "Submit report" Button, whose hover state is the
-      // pre-existing contrast gap documented below. Move away so this test checks everything else in the dialog.
-      await page.mouse.move(0, 0)
+      // The pointer is still on the default "Submit report" Button, so this also checks its hover state.
       await expectNoHorizontalOverflow(page)
       await expectNoSeriousA11yViolations(page)
     })
   }
 
-  // A tripwire, not a pass for accessibility. The shared default Button (src/components/ui/button.tsx,
-  // bg-primary text-primary-foreground hover:bg-primary/90) measures 4.27:1 while hovered, below the 4.5:1
-  // minimum. It predates B6a and affects every module's default buttons (confirmed on the B1 order history),
-  // so it is left to its own change rather than patched here. This test hovers a default button on the Reviews
-  // page and asserts that the problem is still exactly that one finding. It therefore stays green only while the
-  // known issue exists, and it fails as soon as the Button is fixed (or anything else is wrong), at which point
-  // it and the "pointer away" workaround above should be deleted.
-  test("KNOWN ISSUE (pre-existing, shared default Button, not specific to Reviews): hovered, it is 4.27:1, below the 4.5:1 minimum", async ({ page }) => {
-    test.info().annotations.push({
-      type: "known-issue",
-      description: "Shared default Button hover contrast is 4.27:1 (needs 4.5:1). Not caused by Reviews; tracked as a separate follow-up. Interactive-state accessibility is NOT fully compliant until it is fixed.",
-    })
+  // The shared default Button once measured 4.27:1 while hovered (bg-primary/90). The design system's
+  // darker hover token fixes that, so this is now an ordinary regression test: a hovered default Button
+  // must have no serious accessibility findings. (It replaces a tripwire that only passed while the bug existed.)
+  test("a hovered default Button keeps its text contrast", async ({ page }) => {
     await gotoAndSettle(page, "/reviews/prv-rev-005")
-    await page.getByRole("button", { name: "Send reply" }).hover()
-    // Retried because the hover colour is a short CSS transition.
-    await expect(async () => {
-      const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()
-      const serious = results.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical")
-      expect(serious.map((violation) => violation.id), "Only the known Button hover contrast finding is expected. If this is now empty, the Button was fixed: delete this test and the pointer-away workaround.").toEqual(["color-contrast"])
-      expect(serious[0].nodes).toHaveLength(1)
-      expect(serious[0].nodes[0].any[0].message).toContain("4.27")
-    }).toPass({ timeout: 10_000 })
+    const send = page.getByRole("button", { name: "Send reply" })
+    await send.hover()
+    // The hover colour is a short CSS transition; every frame between the two shades is above 4.5:1.
+    await expect(send).toHaveCSS("background-color", "rgb(184, 51, 6)")
+    await expectNoSeriousA11yViolations(page)
   })
 })

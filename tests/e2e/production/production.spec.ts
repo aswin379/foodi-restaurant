@@ -288,6 +288,21 @@ test("promotions show no sample coupons, values, dates, counts or controls in pr
   }
 })
 
+test("the design-system showcase is unavailable in production", async ({ page }) => {
+  for (const path of ["/design-system", "/design-system?preview=slow"]) {
+    const response = await page.goto(path)
+    await page.waitForLoadState("networkidle")
+    expect(response?.status(), path).toBe(404)
+    const body = page.locator("body")
+    // No token, colour, component or showcase text of any kind.
+    await expect(body).not.toContainText(/--primary|#D63F08|#F26A1B|contrast|typography|form controls|sample dialog|sample metric/i)
+    await expect(page.getByRole("heading", { level: 1, name: /design system/i })).toHaveCount(0)
+  }
+  // Not linked from the navigation either.
+  await gotoAndSettle(page, "/dashboard")
+  await expect(page.getByRole("link", { name: /design system/i })).toHaveCount(0)
+})
+
 test("fixture preview scenarios are ignored in production", async ({ page }) => {
   await gotoAndSettle(page, "/orders?preview=slow")
   await expect(page.getByText(/orders aren.t connected yet/i).first()).toBeVisible()

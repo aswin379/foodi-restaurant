@@ -230,7 +230,7 @@ export function OrderSettingsForm({ settings, currency, locale }: { settings: Or
           <p className="text-xs leading-relaxed text-muted-foreground">
             These are your saved settings, not live availability. Whether customers can order right now also depends on
             your{" "}
-            <Link href="/hours" className="font-medium text-primary underline-offset-4 hover:underline">
+            <Link href="/hours" className="font-medium text-primary-text underline-offset-4 hover:underline">
               hours and any pause
             </Link>
             , the menu and Foodi&apos;s own checks.

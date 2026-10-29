@@ -128,7 +128,7 @@ async function OrderDetailView({
               <OrderActions order={order} riders={riders} context={context} />
               <Link
                 href={`/print/orders/${encodeURIComponent(order.id)}`}
-                className="inline-flex w-fit items-center gap-1.5 rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="inline-flex w-fit items-center gap-1.5 rounded-sm text-sm font-medium text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 <Printer aria-hidden className="size-4" />
                 Print kitchen ticket and bill

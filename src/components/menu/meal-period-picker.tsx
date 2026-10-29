@@ -143,7 +143,7 @@ export function MealPeriodsFields({
         {active.length === 0 && stranded.length === 0 ? (
           <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
             No meal periods yet.{" "}
-            <Link href="/menu/meal-periods" className="font-medium text-primary underline-offset-4 hover:underline">
+            <Link href="/menu/meal-periods" className="font-medium text-primary-text underline-offset-4 hover:underline">
               Add meal periods
             </Link>{" "}
             first, or choose set times instead.

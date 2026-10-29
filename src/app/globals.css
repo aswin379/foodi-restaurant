@@ -1,85 +1,187 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * Foodi design system, light theme only (there is no dark theme).
+ * Values are documented, and checked for WCAG 2.2 AA contrast, by
+ * src/lib/design/tokens.ts and tokens.test.ts; /design-system shows them in
+ * preview mode. Change a colour in both places.
+ */
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-warm: var(--background-warm);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-jakarta);
   --font-mono: var(--font-geist-mono);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-text: var(--primary-text);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-faint: var(--primary-faint);
+  --color-primary-line: var(--primary-line);
+  --color-brand-orange: var(--brand-orange);
+
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-faint-foreground: var(--faint-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-star: var(--star);
+
   --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-destructive-foreground: var(--destructive-foreground);
+
   --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --color-overlay: rgb(31 26 23 / 50%);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-success-line: var(--success-line);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-line: var(--warning-line);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-info-line: var(--info-line);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-line: var(--danger-line);
+  --color-neutral: var(--neutral);
+  --color-neutral-foreground: var(--neutral-foreground);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-neutral-line: var(--neutral-line);
+  --color-violet: var(--violet);
+  --color-violet-foreground: var(--violet-foreground);
+  --color-violet-soft: var(--violet-soft);
+  --color-violet-line: var(--violet-line);
+  --color-cyan: var(--cyan);
+  --color-cyan-foreground: var(--cyan-foreground);
+  --color-cyan-soft: var(--cyan-soft);
+  --color-cyan-line: var(--cyan-line);
+
+  /* Controls 10px, cards 16px, dialogs 20px, chips and badges pill-shaped. */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+
+  /* Soft, low-contrast elevation: cards, popovers, dialogs. */
+  --shadow-xs: 0 1px 2px rgb(31 26 23 / 5%);
+  --shadow-sm: 0 1px 2px rgb(31 26 23 / 4%), 0 2px 8px rgb(31 26 23 / 4%);
+  --shadow-md: 0 8px 24px rgb(31 26 23 / 12%);
+  --shadow-lg: 0 16px 48px rgb(31 26 23 / 18%);
 }
 
-/* Foodi theme: warm stone neutrals with an emerald primary. */
 :root {
-  --radius: 0.75rem;
-  --background: oklch(0.993 0.003 84);
-  --foreground: oklch(0.216 0.006 56.043);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.216 0.006 56.043);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.216 0.006 56.043);
-  --primary: oklch(0.508 0.118 165.612);
-  --primary-foreground: oklch(0.985 0.001 106.423);
-  --secondary: oklch(0.97 0.001 106.424);
-  --secondary-foreground: oklch(0.216 0.006 56.043);
-  --muted: oklch(0.97 0.001 106.424);
-  /* 4% darker than stone-500 (0.553) so muted text on bg-muted meets WCAG AA (4.85:1). */
-  --muted-foreground: oklch(0.531 0.013 58.071);
-  --accent: oklch(0.979 0.021 166.113);
-  --accent-foreground: oklch(0.432 0.095 166.913);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.923 0.003 48.717);
-  --input: oklch(0.906 0.004 48.717);
-  --ring: oklch(0.596 0.145 163.225);
-}
+  --radius: 0.625rem;
 
-.dark {
-  --background: oklch(0.147 0.004 49.25);
-  --foreground: oklch(0.985 0.001 106.423);
-  --card: oklch(0.216 0.006 56.043);
-  --card-foreground: oklch(0.985 0.001 106.423);
-  --popover: oklch(0.216 0.006 56.043);
-  --popover-foreground: oklch(0.985 0.001 106.423);
-  --primary: oklch(0.696 0.17 162.48);
-  --primary-foreground: oklch(0.216 0.006 56.043);
-  --secondary: oklch(0.268 0.007 34.298);
-  --secondary-foreground: oklch(0.985 0.001 106.423);
-  --muted: oklch(0.268 0.007 34.298);
-  --muted-foreground: oklch(0.709 0.01 56.259);
-  --accent: oklch(0.268 0.007 34.298);
-  --accent-foreground: oklch(0.985 0.001 106.423);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.596 0.145 163.225);
+  --background: #fbf7f4;
+  --background-warm: #fff1dc;
+  --foreground: #1f1a17;
+  --card: #ffffff;
+  --card-foreground: #1f1a17;
+  --popover: #ffffff;
+  --popover-foreground: #1f1a17;
+
+  --primary: #d63f08;
+  --primary-foreground: #ffffff;
+  --primary-hover: #b83306;
+  --primary-text: #b02f05;
+  --primary-soft: #ffebdf;
+  --primary-faint: #fff5ef;
+  --primary-line: #ffd9c4;
+  --brand-orange: #f26a1b;
+
+  --secondary: #f6efea;
+  --secondary-foreground: #1f1a17;
+  --muted: #f6efea;
+  --muted-foreground: #6b5f58;
+  --faint-foreground: #8a7c73;
+  --accent: #ffebdf;
+  --accent-foreground: #b02f05;
+  --star: #c96f00;
+
+  --destructive: #c4122f;
+  --destructive-hover: #a30f27;
+  --destructive-foreground: #ffffff;
+
+  --border: #e9dfd8;
+  --border-soft: #f0e8e2;
+  --border-strong: #dccfc6;
+  --input: #9a8b82;
+  --ring: #d63f08;
+
+  --success: #16a34a;
+  --success-foreground: #166534;
+  --success-soft: #dcfce7;
+  --success-line: #bbf7d0;
+  --warning: #f59e0b;
+  --warning-foreground: #8a4b08;
+  --warning-soft: #fef0c7;
+  --warning-line: #fcd98a;
+  --info: #3b82f6;
+  --info-foreground: #1d4ed8;
+  --info-soft: #dbeafe;
+  --info-line: #bfdbfe;
+  --danger: #ef4444;
+  --danger-foreground: #b42318;
+  --danger-soft: #fee4e2;
+  --danger-line: #fecdca;
+  --neutral: #a8a29e;
+  --neutral-foreground: #57534e;
+  --neutral-soft: #f1ece8;
+  --neutral-line: #e7e0da;
+  --violet: #7c3aed;
+  --violet-foreground: #5b21b6;
+  --violet-soft: #ede9fe;
+  --violet-line: #ddd6fe;
+  --cyan: #06b6d4;
+  --cyan-foreground: #0e7490;
+  --cyan-soft: #cffafe;
+  --cyan-line: #a5f3fc;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
   }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+}
+
+/*
+ * One focus indicator for every interactive element: a solid 2px ring in the
+ * primary colour (4.59:1 on a card, 4.31:1 on the page) with a 2px gap. It is
+ * deliberately unlayered, so it wins over the `outline-none` that individual
+ * components set. Elements focused only by script (tabindex="-1", such as the
+ * main region or a dialog) get no ring.
+ */
+:where(a[href], button, input, select, textarea, summary, [role="button"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"], [tabindex]):focus-visible:not([tabindex="-1"]) {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }

@@ -101,7 +101,7 @@ export function Notifications() {
           ) : item.preview ? (
             <FlaskConical aria-hidden className="mt-0.5 size-4 shrink-0 text-amber-700" />
           ) : (
-            <CircleCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+            <CircleCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-primary-text" />
           )}
           <div className="grid gap-1">
             <ToastTitle>{item.title}</ToastTitle>

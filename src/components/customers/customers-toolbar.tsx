@@ -43,7 +43,7 @@ export function CustomersToolbar({
           />
         </div>
         {query.sort !== DEFAULT_CUSTOMER_SORT ? <input type="hidden" name="sort" value={query.sort} /> : null}
-        <Button type="submit" className="hover:bg-primary">
+        <Button type="submit">
           <Search aria-hidden />
           Search
         </Button>
@@ -64,7 +64,7 @@ export function CustomersToolbar({
         {hasActiveCustomerSearch(query) ? (
           <Link
             href={customersHref({ search: "", sort: query.sort, page: 1 })}
-            className="rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="rounded-sm text-sm font-medium text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             Clear search
           </Link>

@@ -7,7 +7,7 @@ import { formatInstant } from "@/lib/time/format"
 import { cn } from "@/lib/utils"
 
 const STATE_STYLES: Record<ImmediateState, string> = {
-  open: "border-primary/30 bg-primary/10 text-primary",
+  open: "border-primary/30 bg-primary/10 text-primary-text",
   closed: "border-border bg-muted text-muted-foreground",
   paused: "border-amber-300 bg-amber-50 text-amber-950",
   unresolved: "border-dashed border-amber-400 bg-background text-amber-950",

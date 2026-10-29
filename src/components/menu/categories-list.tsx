@@ -128,7 +128,7 @@ function CategoryRow({
             ) : (
               <Link
                 href={itemsHref(category)}
-                className="rounded-sm text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="rounded-sm text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 {category.itemCount} {category.itemCount === 1 ? "item" : "items"}
                 <span className="sr-only"> in {category.name}</span>

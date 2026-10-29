@@ -46,7 +46,7 @@ export function ReviewsToolbar({ query }: { query: ReviewListQuery }) {
         {hasActiveReviewFilters(query) ? (
           <Link
             href={REVIEWS_PATH}
-            className="rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="rounded-sm text-sm font-medium text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             Reset filters
           </Link>
