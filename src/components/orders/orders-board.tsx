@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import type { LucideIcon } from "lucide-react"
 import { CalendarClock, ChefHat, Inbox, PackageCheck } from "lucide-react"
 
 import { ConnectionStatus } from "@/components/shared/connection-status"
+import { REFRESH_INTERVAL_MS, useVisibleRefresh } from "@/components/shared/use-visible-refresh"
 import type { ZoneAndLocale } from "@/lib/orders/format"
 import type { OrderDetail, Rider } from "@/lib/orders/types"
 import { cn } from "@/lib/utils"
@@ -15,7 +15,7 @@ import { NewOrderAlarm } from "./new-order-alarm"
 import { useNow } from "./use-now"
 
 /** PRD §7: polling fallback interval until real-time transport exists. */
-export const BOARD_POLL_MS = 15_000
+export const BOARD_POLL_MS = REFRESH_INTERVAL_MS
 
 type Column = {
   id: string
@@ -41,25 +41,6 @@ function useOnline() {
   return online
 }
 
-/** Re-fetches the board while the tab is visible and online. */
-function usePolling(enabled: boolean) {
-  const router = useRouter()
-  useEffect(() => {
-    if (!enabled) return
-    const timer = setInterval(() => {
-      if (document.visibilityState === "visible") router.refresh()
-    }, BOARD_POLL_MS)
-    const onVisible = () => {
-      if (document.visibilityState === "visible") router.refresh()
-    }
-    document.addEventListener("visibilitychange", onVisible)
-    return () => {
-      clearInterval(timer)
-      document.removeEventListener("visibilitychange", onVisible)
-    }
-  }, [enabled, router])
-}
-
 /**
  * Live order board (PRD §4.2): New → In kitchen → Ready, plus scheduled
  * orders. Columns sit side by side on wide screens and stack on phones, with
@@ -76,7 +57,8 @@ export function OrdersBoard({
 }) {
   const now = useNow(30_000, orders)
   const online = useOnline()
-  usePolling(online)
+  // Re-fetches the board while the tab is visible and online (shared with the dashboard).
+  useVisibleRefresh(online, BOARD_POLL_MS)
 
   const columns: Column[] = [
     {

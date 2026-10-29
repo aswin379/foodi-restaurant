@@ -59,8 +59,8 @@ export const dashboardNavigation: NavGroup[] = [
   {
     label: "Restaurant",
     items: [
-      { title: "Restaurant profile", icon: Store, href: null, prdModule: 18 },
-      { title: "Settings", icon: Settings, href: null, prdModule: 18 },
+      { title: "Restaurant profile", icon: Store, href: "/settings/profile", prdModule: 18 },
+      { title: "Settings", icon: Settings, href: "/settings", prdModule: 18 },
       { title: "Staff & roles", icon: Users, href: null, prdModule: 20 },
     ],
   },
@@ -68,10 +68,10 @@ export const dashboardNavigation: NavGroup[] = [
     label: "Business",
     items: [
       { title: "Reports", icon: ChartColumn, href: null, prdModule: 16 },
-      { title: "Wallet & settlements", icon: Wallet, href: null, prdModule: 17 },
-      { title: "Plan & billing", icon: CreditCard, href: null, prdModule: 19 },
-      { title: "Reviews", icon: Star, href: null, prdModule: 13 },
-      { title: "Customers", icon: Contact, href: null, prdModule: 14 },
+      { title: "Wallet & settlements", icon: Wallet, href: "/wallet", prdModule: 17 },
+      { title: "Plan & billing", icon: CreditCard, href: "/billing", prdModule: 19 },
+      { title: "Reviews", icon: Star, href: "/reviews", prdModule: 13 },
+      { title: "Customers", icon: Contact, href: "/customers", prdModule: 14 },
     ],
   },
   {

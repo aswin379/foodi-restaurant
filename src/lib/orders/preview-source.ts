@@ -8,6 +8,7 @@ import { PREVIEW_RESTAURANT } from "@/lib/restaurant/context"
 import type { OrdersAdapter } from "./adapter"
 import { buildFixtureOrders, buildIncomingOrder, PREVIEW_RIDERS } from "./fixtures/orders"
 import { applyOrderCommand } from "./lifecycle"
+import { countOrdersPlacedOn } from "./summary"
 import {
   ACTIVE_ORDER_STATUSES,
   type OrderDetail,
@@ -115,6 +116,19 @@ export function createPreviewOrdersAdapter(): OrdersAdapter {
             boardOrder[a.status] - boardOrder[b.status] ||
             boardSortKey(a).localeCompare(boardSortKey(b))
         )
+    },
+
+    async daySummary(date, previewScenario?: unknown) {
+      const scenario = await applyScenario(previewScenario)
+      const all = scenario === "empty" ? [] : orders().list()
+      // The same placement-date rule as the history's date filter, in the preview restaurant's zone.
+      return {
+        date,
+        timeZone: PREVIEW_RESTAURANT.timeZone,
+        countsByStatus: countOrdersPlacedOn(all, date, PREVIEW_RESTAURANT.timeZone),
+        asOf: new Date().toISOString(),
+        source: "preview_estimate" as const,
+      }
     },
 
     async get(orderId, previewScenario?: unknown) {

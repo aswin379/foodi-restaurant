@@ -60,7 +60,7 @@ Statuses: `scheduled` → `pending` (shown as "New") → `accepted` → `ready` 
 |---|---|---|
 | Reject reasons | `src/lib/orders/reasons.ts` | PRD Q9, proposed list |
 | Restaurant cancellation reasons | `src/lib/orders/reasons.ts` | PRD §4.3 proposal |
-| Default prep time 20 min, presets 10–60 | `src/lib/orders/commands.ts` | Until restaurant settings exist (B4) |
+| Default prep time 20 min, presets 10–60 | `src/lib/orders/commands.ts` | Until the Accept dialog uses the per-order-type default from settings (B4a stores it; wiring it in is a later integration task, `docs/settings-ui.md`) |
 | New order flagged after 5 min waiting | `src/lib/orders/timing.ts` | Product default, not in the PRD |
 | Board polling every 15 s | `src/components/orders/orders-board.tsx` | PRD §7 fallback until real-time transport exists |
 
@@ -145,8 +145,10 @@ provide:
 ## Deferred
 
 - **Order editing** (§4.3): the contract is undefined.
-- **Pickup-code check on Complete:** needs the restaurant setting (B4).
-- **Auto-accept:** settings, B4.
+- **Pickup-code check on Complete:** the setting exists since B4a; the
+  Complete change needs the backend contract in `docs/settings-ui.md` and is
+  a later integration task.
+- **Auto-accept:** not in B4a (D1: module map R2 vs the §4.2 settings list).
 - **Real-time transport and push notifications:** §9.1.
 
 ## Tests

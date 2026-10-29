@@ -135,6 +135,9 @@ function summaryOrder(draft: MenuItemDraft) {
   ]
 }
 
+/** Field id an error-summary link focuses; the image's file input is hidden, so its "Choose image" button. */
+const summaryTarget = (path: string) => (path === "image" ? `${fieldId("image")}-button` : fieldId(path))
+
 /**
  * Create/edit form for a menu item (PRD §5). Validation runs here and again on
  * the server with the same rules; in preview mode a save is simulated and
@@ -217,10 +220,10 @@ export function MenuItemForm({
             {entries.map(([path, message]) => (
               <li key={path}>
                 <a
-                  href={`#${fieldId(path)}`}
+                  href={`#${summaryTarget(path)}`}
                   onClick={(event) => {
                     event.preventDefault()
-                    document.getElementById(fieldId(path))?.focus()
+                    document.getElementById(summaryTarget(path))?.focus()
                   }}
                   className="underline underline-offset-2"
                 >

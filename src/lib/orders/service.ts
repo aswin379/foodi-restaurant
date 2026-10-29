@@ -14,7 +14,9 @@ import {
   resetPreviewOrders,
   simulateIncomingPreviewOrder,
 } from "./preview-source"
+import type { OrdersDaySummary } from "./summary"
 import type { OrderDetail, OrderListQuery, OrderListResult, Rider } from "./types"
+import { localDateOf } from "@/lib/time/format"
 
 /**
  * Preview data is an explicit development opt-in
@@ -50,6 +52,23 @@ export async function listOrders(
 export async function getOrderBoard(previewScenario?: unknown): Promise<OrderDetail[]> {
   await connection()
   return orders().adapter.board(previewScenario)
+}
+
+/**
+ * B5a: orders placed today, by status. "Today" is the current calendar date
+ * in the restaurant's zone (from the restaurant context), never the
+ * browser's. A summary for another date or zone is refused, not shown.
+ */
+export async function getTodayOrdersSummary(previewScenario?: unknown): Promise<OrdersDaySummary> {
+  await connection()
+  const { adapter } = orders()
+  const context = await adapter.context()
+  const date = localDateOf(new Date().toISOString(), context.timeZone)
+  const summary = await adapter.daySummary(date, previewScenario)
+  if (summary.date !== date || summary.timeZone !== context.timeZone) {
+    throw new ServiceError("unavailable", "Orders summary is for a different date or time zone.")
+  }
+  return summary
 }
 
 /** Returns null when the order doesn't exist for this restaurant. */

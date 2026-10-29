@@ -45,6 +45,8 @@ against labelled preview data.
     back to JPEG) before sending, so the request stays under the default 1 MB
     Server Action limit.
   - The server checks the result again (type and size).
+  - In the error summary, the image link focuses the visible "Choose image"
+    button, since the file input itself is hidden (fixed in B4a).
   - The real backend still needs an upload endpoint with server-side
     compression.
 - **Order types and schedule** section (main column):

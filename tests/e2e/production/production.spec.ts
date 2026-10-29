@@ -22,7 +22,23 @@ const routes = [
   { path: "/menu/categories", heading: /categories/i, disconnected: /categories aren.t connected yet/i },
   { path: "/menu/meal-periods", heading: /meal periods/i, disconnected: /meal periods aren.t connected yet/i },
   { path: "/hours", heading: /availability & hours/i, disconnected: /hours aren.t connected yet/i },
+  { path: "/settings", heading: /^settings$/i },
+  { path: "/settings/profile", heading: /restaurant profile/i, disconnected: /settings aren.t connected yet/i },
+  { path: "/settings/orders", heading: /order settings/i, disconnected: /settings aren.t connected yet/i },
   { path: "/hours/special-dates", heading: /availability & hours/i, disconnected: /hours aren.t connected yet/i },
+  { path: "/reviews", heading: /^reviews$/i, disconnected: /reviews aren.t connected yet/i },
+  { path: "/reviews?rating=5&replied=unreplied&page=2", heading: /^reviews$/i, disconnected: /reviews aren.t connected yet/i },
+  { path: "/reviews/prv-rev-005", heading: null, disconnected: /reviews aren.t connected yet/i },
+  { path: "/customers", heading: /^customers$/i, disconnected: /customers aren.t connected yet/i },
+  { path: "/customers?q=preview&sort=name&page=2", heading: /^customers$/i, disconnected: /customers aren.t connected yet/i },
+  { path: "/customers?preview=empty", heading: /^customers$/i, disconnected: /customers aren.t connected yet/i },
+  { path: "/customers/prv-cus-01", heading: null, disconnected: /customers aren.t connected yet/i },
+  { path: "/wallet", heading: /^wallet & settlements$/i, disconnected: /wallet isn.t connected yet/i },
+  { path: "/wallet/settlements", heading: /^settlements$/i, disconnected: /wallet isn.t connected yet/i },
+  { path: "/wallet/settlements?page=2", heading: /^settlements$/i, disconnected: /wallet isn.t connected yet/i },
+  { path: "/wallet/settlements/prv-set-01", heading: null, disconnected: /wallet isn.t connected yet/i },
+  { path: "/billing", heading: /^plan & billing$/i, disconnected: /billing isn.t connected yet/i },
+  { path: "/billing?preview=empty", heading: /^plan & billing$/i, disconnected: /billing isn.t connected yet/i },
 ]
 
 for (const route of routes) {
@@ -39,6 +55,7 @@ for (const route of routes) {
 
       const body = page.locator("body")
       await expect(body).not.toContainText("PRV-")
+      await expect(body).not.toContainText(/preview customer/i)
       await expect(body).not.toContainText(/preview only, not saved to foodi/i)
       await expect(body).not.toContainText(/illustrative preview data|sample (menu|data)/i)
 
@@ -90,6 +107,152 @@ test("hours offer no preview tools, editor, pause or estimate in production", as
   await expect(page.getByRole("region", { name: /new orders right now/i })).toHaveCount(0)
 })
 
+test("the dashboard shows no figures, sample data or placeholders in production", async ({ page }) => {
+  for (const path of ["/dashboard", "/dashboard?previewOrders=slow&previewMenu=empty&previewHours=error"]) {
+    await gotoAndSettle(page, path)
+    const main = page.locator("main")
+    for (const name of ["Live orders", "Today's orders", "Recent orders"]) {
+      await expect(page.getByRole("region", { name: new RegExp(`^${name}`) })).toContainText(/orders aren.t connected yet/i)
+    }
+    const attention = page.getByRole("region", { name: /^Needs attention/ })
+    await expect(attention).toContainText("Not checked: Pause status (not connected yet).")
+    await expect(attention).toContainText("Not checked: Waiting, late and unavailable-item orders (not connected yet).")
+    await expect(attention).toContainText("Not checked: Sold-out menu items (not connected yet).")
+    await expect(attention).not.toContainText(/nothing needs attention/i)
+    await expect(main).not.toContainText(/preview:|preview estimate|\(preview\)|\bSoon\b/i)
+    // No counts at all: the only links in the order sections would be counts.
+    await expect(page.getByRole("region", { name: /^Live orders/ }).getByRole("link")).toHaveCount(0)
+    await expect(page.getByRole("region", { name: /^Today's orders/ }).getByRole("link")).toHaveCount(0)
+    expect(
+      await page.getByRole("region", { name: "Quick links" }).getByRole("link").evaluateAll((links) => links.map((link) => link.getAttribute("href")))
+    ).toEqual(["/orders", "/menu", "/hours", "/settings/profile", "/settings/orders"])
+  }
+})
+
+test("settings offer no preview tools, forms or sample data in production", async ({ page }) => {
+  for (const path of ["/settings/profile", "/settings/orders", "/settings/profile?preview=forbidden"]) {
+    await gotoAndSettle(page, path)
+    await expect(page.getByText(/settings aren.t connected yet/i).first()).toBeVisible()
+    await expect(page.getByRole("button", { name: /reset sample settings|save profile|save order settings/i })).toHaveCount(0)
+    await expect(page.locator("body")).not.toContainText(/\(preview\)|sample street|₹150/i)
+  }
+})
+
+test("reviews show no sample reviews, figures, controls or preview tools in production", async ({ page }) => {
+  const paths = [
+    "/reviews",
+    "/reviews?rating=5&replied=unreplied&page=2",
+    "/reviews?preview=slow",
+    "/reviews?preview=empty",
+    "/reviews?preview=error",
+    "/reviews?preview=forbidden",
+    "/reviews/prv-rev-005",
+    "/reviews/prv-rev-005?preview=forbidden",
+    "/reviews/prv-rev-999?preview=empty",
+  ]
+  for (const path of paths) {
+    await gotoAndSettle(page, path)
+    // Whatever the URL asks for, production is not connected: never empty, failed, refused or "not found".
+    await expect(page.getByText(/reviews aren.t connected yet/i).first()).toBeVisible()
+    // (Next's own route announcer is an empty alert, so look for one with text.)
+    await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /send reply|report abuse|submit report|reset sample reviews/i })).toHaveCount(0)
+    await expect(page.getByRole("textbox")).toHaveCount(0)
+    await expect(page.getByRole("switch")).toHaveCount(0)
+    await expect(page.getByRole("radio")).toHaveCount(0)
+    await expect(page.getByRole("img", { name: /out of 5 stars/ })).toHaveCount(0)
+    await expect(page.locator('main a[href^="/reviews/"]')).toHaveCount(0)
+    const body = page.locator("body")
+    await expect(body).not.toContainText(/preview only, not saved to foodi|\(preview\)|sample reviews|rating only|name not shared|showing \d/i)
+    // None of the sample reviewers, texts or order references.
+    await expect(body).not.toContainText(/Aarav|Meera|Vikram|Kabir|Promo Account|dosa was still crisp|PRV-/)
+  }
+})
+
+test("customers show no sample customers, contact details, controls or preview tools in production", async ({ page }) => {
+  const paths = [
+    "/customers",
+    "/customers?q=preview&sort=name&page=2",
+    "/customers?preview=slow",
+    "/customers?preview=empty",
+    "/customers?preview=error",
+    "/customers?preview=forbidden",
+    "/customers/prv-cus-01",
+    "/customers/prv-cus-01?orders=2&preview=forbidden",
+    "/customers/prv-cus-999?preview=empty",
+  ]
+  for (const path of paths) {
+    await gotoAndSettle(page, path)
+    // Whatever the URL asks for, production is not connected: never empty, failed, refused or "not found".
+    await expect(page.getByText(/customers aren.t connected yet/i).first()).toBeVisible()
+    await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toHaveCount(0)
+    // Nothing to search or sort while nothing is connected, and no reveal, copy, export or preview controls.
+    await expect(page.getByRole("textbox")).toHaveCount(0)
+    await expect(page.getByRole("searchbox")).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /reveal|copy|export|show phone|show email|reset sample/i })).toHaveCount(0)
+    await expect(page.locator('main a[href^="/customers/"], main a[href^="tel:"], main a[href^="mailto:"], main a[href^="/orders/"]')).toHaveCount(0)
+    const body = page.locator("body")
+    await expect(body).not.toContainText(/preview only, not saved to foodi|\(preview\)|preview customer|name not shared|no contact details|•|showing \d/i)
+    await expect(body).not.toContainText(/PRV-|prv-cus/)
+  }
+})
+
+test("wallet shows no sample amounts, settlements, payout details, controls or preview tools in production", async ({ page }) => {
+  const paths = [
+    "/wallet",
+    "/wallet?preview=slow",
+    "/wallet?preview=empty",
+    "/wallet?preview=error",
+    "/wallet?preview=forbidden",
+    "/wallet/settlements",
+    "/wallet/settlements?page=2&preview=empty",
+    "/wallet/settlements/prv-set-01",
+    "/wallet/settlements/prv-set-01?orders=2&preview=forbidden",
+    "/wallet/settlements/prv-set-99?preview=empty",
+  ]
+  for (const path of paths) {
+    await gotoAndSettle(page, path)
+    // Whatever the URL asks for, production is not connected: never empty, failed, refused or "not found".
+    await expect(page.getByText(/wallet isn.t connected yet/i).first()).toBeVisible()
+    await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /withdraw|payout|export|download|statement|reset sample/i })).toHaveCount(0)
+    await expect(page.getByRole("textbox")).toHaveCount(0)
+    await expect(page.locator('main a[href^="/wallet/settlements/"], main a[href^="/orders/"]')).toHaveCount(0)
+    const body = page.locator("body")
+    // No amount of any kind, no sample label, no payout destination and no status.
+    await expect(body).not.toContainText(/₹|INR|\d,\d{3}\.\d{2}|preview bank|•|preview only, not saved to foodi|\(preview\)|showing \d/i)
+    await expect(body).not.toContainText(/not available|pending settlement|paid out|on hold|refund|commission|platform/i)
+    await expect(body).not.toContainText(/PRV-|prv-set/)
+  }
+})
+
+test("billing shows no sample plan, fees, dates, statuses or controls in production", async ({ page }) => {
+  const paths = [
+    "/billing",
+    "/billing?preview=slow",
+    "/billing?preview=empty",
+    "/billing?preview=error",
+    "/billing?preview=forbidden",
+    "/billing?preview=past_due",
+    "/billing?preview=trial",
+    "/billing?preview=minimal",
+    "/billing?restaurantId=other&plan=premium&status=expired",
+  ]
+  for (const path of paths) {
+    await gotoAndSettle(page, path)
+    // Whatever the URL asks for, production is not connected: never a plan, empty, failed or refused.
+    await expect(page.getByText(/billing isn.t connected yet/i).first()).toBeVisible()
+    await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /upgrade|downgrade|cancel|pay|payment|invoice|download|compare/i })).toHaveCount(0)
+    await expect(page.getByRole("textbox")).toHaveCount(0)
+    const body = page.locator("body")
+    // No plan, fee, rate, date, status, entitlement or notice of any kind.
+    await expect(body).not.toContainText(/preview plan|preview entitlement|preview fee|preview tax|preview notice|prv-plan/i)
+    await expect(body).not.toContainText(/₹|INR|\d%|per order|of order value|per billing period|GST|renewal|trial|current period|entitlement|message from foodi/i)
+    await expect(body).not.toContainText(/past due|in trial|expired|not available|no plan found|preview only, not saved to foodi|\(preview\)/i)
+  }
+})
+
 test("fixture preview scenarios are ignored in production", async ({ page }) => {
   await gotoAndSettle(page, "/orders?preview=slow")
   await expect(page.getByText(/orders aren.t connected yet/i).first()).toBeVisible()
@@ -107,7 +270,20 @@ test("navigation links only to built modules", async ({ page }) => {
   const hrefs = await visibleNav.getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href"))
   )
-  expect(hrefs.sort()).toEqual(["/dashboard", "/hours", "/menu", "/menu/categories", "/menu/meal-periods", "/orders"])
+  expect(hrefs.sort()).toEqual([
+    "/billing",
+    "/customers",
+    "/dashboard",
+    "/hours",
+    "/menu",
+    "/menu/categories",
+    "/menu/meal-periods",
+    "/orders",
+    "/reviews",
+    "/settings",
+    "/settings/profile",
+    "/wallet",
+  ])
   await expect(visibleNav.getByText("Availability & hours")).toBeVisible()
   await expect(visibleNav).not.toContainText(/POS|QR/)
 })
