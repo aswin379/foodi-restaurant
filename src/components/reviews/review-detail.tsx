@@ -22,7 +22,7 @@ export function ReviewDetail({ review, context }: { review: Review; context: Zon
     <>
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">Review by {name}</h1>
+          <h1 className="text-[1.75rem] leading-9 font-bold tracking-[-0.02em] sm:text-[2rem] sm:leading-10 lg:text-[2.5rem] lg:leading-[3rem]">Review by {name}</h1>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <RatingStars rating={review.rating} />
             <time dateTime={review.createdAt}>{formatDateTime(review.createdAt, context)}</time>
@@ -37,11 +37,11 @@ export function ReviewDetail({ review, context }: { review: Review; context: Zon
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-2">
           <DetailCard title="Review">
-            <p className="text-sm">
+            <p className="rounded-2xl bg-background/70 p-4 text-[15px] leading-relaxed ring-1 ring-border-soft">
               <ReviewText review={review} clamp={false} />
             </p>
           </DetailCard>
-          <Card className="gap-4 shadow-none">
+          <Card className="gap-4 rounded-3xl border-transparent py-6 shadow-[0_8px_30px_rgb(31_26_23/6%)]">
             <CardContent>
               <ReplySection reviewId={review.id} reply={review.reply} context={context} />
             </CardContent>
@@ -81,10 +81,10 @@ export function ReviewDetail({ review, context }: { review: Review; context: Zon
 
 function DetailCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <Card className="gap-4 shadow-none">
+    <Card className="gap-4 rounded-3xl border-transparent py-6 shadow-[0_8px_30px_rgb(31_26_23/6%)]">
       <CardHeader>
         <CardTitle>
-          <h2 className="text-base font-semibold">{title}</h2>
+          <h2 className="text-lg font-semibold">{title}</h2>
         </CardTitle>
       </CardHeader>
       <CardContent>{children}</CardContent>

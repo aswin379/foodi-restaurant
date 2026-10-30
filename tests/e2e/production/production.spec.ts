@@ -324,17 +324,45 @@ test("navigation links only to built modules", async ({ page }) => {
     "/billing",
     "/customers",
     "/dashboard",
+    "/delivery",
     "/hours",
+    "/kitchen",
     "/menu",
     "/menu/categories",
     "/menu/meal-periods",
     "/orders",
+    "/pos",
     "/promotions",
+    "/reports",
     "/reviews",
     "/settings",
     "/settings/profile",
+    "/staff",
+    "/tables",
     "/wallet",
   ])
   await expect(visibleNav.getByText("Availability & hours")).toBeVisible()
-  await expect(visibleNav).not.toContainText(/POS|QR/)
+  await expect(visibleNav).not.toContainText(/QR/)
+})
+
+// Tables, staff and reports have no backend yet: in production they say so and show no sample data, whatever
+// the preview scenario says. POS shows no menu items or orders because the menu and orders aren't connected.
+test("tables, staff, reports and the POS show nothing but not-connected states in production", async ({ page }) => {
+  const modules: [string, RegExp][] = [
+    ["/tables", /tables aren.t connected yet/i],
+    ["/staff", /staff and roles aren.t connected yet/i],
+    ["/reports", /reports aren.t connected yet/i],
+    ["/pos", /menu isn.t connected yet/i],
+    ["/kitchen", /orders aren.t connected yet/i],
+    ["/delivery", /orders aren.t connected yet/i],
+  ]
+  for (const [path, message] of modules) {
+    for (const url of [path, `${path}?preview=empty`, `${path}?preview=slow`]) {
+      await gotoAndSettle(page, url)
+      await expect(page.getByText(message).first(), url).toBeVisible()
+      const body = page.locator("body")
+      await expect(body, url).not.toContainText(/PRV-|prv-|Preview only|\(preview\)|Sample data|made up|Table 1|Patio|Preview owner/i)
+      await expect(body, url).not.toContainText(/₹\s?\d/)
+    }
+  }
 })

@@ -101,10 +101,10 @@ export function PromotionDisclaimer() {
 
 function DetailCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <Card className="gap-4 shadow-none">
+    <Card className="gap-4 rounded-3xl border-transparent py-6 shadow-[0_8px_30px_rgb(31_26_23/6%)]">
       <CardHeader>
         <CardTitle>
-          <h2 className="text-base font-semibold">{title}</h2>
+          <h2 className="text-lg font-semibold">{title}</h2>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3 text-sm">{children}</CardContent>

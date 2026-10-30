@@ -50,7 +50,7 @@ export function ReportAbuse({
       <div
         ref={statusRef}
         tabIndex={-1}
-        className="flex flex-col gap-1 rounded-lg border bg-muted/30 px-4 py-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="flex flex-col gap-1 rounded-2xl bg-background/70 px-4 py-3 text-sm outline-none ring-1 ring-border-soft focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
         <p className="font-medium">
           You reported this review <time dateTime={report.reportedAt}>{formatDateTime(report.reportedAt, context)}</time>

@@ -49,8 +49,8 @@ export function CustomersToolbar({
         </Button>
       </form>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <nav aria-label="Sort customers" className="-mx-1 overflow-x-auto px-1 pb-1">
-          <ul className="flex w-max gap-1 rounded-lg border bg-card p-1">
+        <nav aria-label="Sort customers" className="">
+          <ul className="flex w-fit max-w-full flex-wrap gap-1 rounded-3xl bg-card p-1 shadow-[0_4px_14px_rgb(31_26_23/8%)]">
             {CUSTOMER_SORTS.map((sort) => (
               <SortTab
                 key={sort}
@@ -75,7 +75,7 @@ export function CustomersToolbar({
 }
 
 const tabClass =
-  "inline-flex h-8 items-center rounded-md px-3 text-sm font-medium whitespace-nowrap outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50"
+  "inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold whitespace-nowrap outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50"
 
 function SortTab({ href, active, label }: { href: string | null; active: boolean; label: string }) {
   if (href === null) {
@@ -92,7 +92,7 @@ function SortTab({ href, active, label }: { href: string | null; active: boolean
       <Link
         href={href}
         aria-current={active ? "page" : undefined}
-        className={cn(tabClass, active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}
+        className={cn(tabClass, active ? "bg-primary text-primary-foreground shadow-[0_6px_14px_rgb(214_63_8/25%)]" : "text-muted-foreground hover:bg-primary-faint hover:text-foreground")}
       >
         {label}
       </Link>

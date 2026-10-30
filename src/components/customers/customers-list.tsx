@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ChevronRight } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { customerHref } from "@/lib/customers/query"
@@ -21,16 +21,16 @@ export function CustomersList({
 }) {
   return (
     <>
-      <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
+      <div className="hidden overflow-hidden rounded-3xl bg-card shadow-[0_8px_30px_rgb(31_26_23/6%)] lg:block">
         <Table>
           <TableHeader className="bg-muted/40">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="pl-4">Customer</TableHead>
+              <TableHead className="pl-6">Customer</TableHead>
               <TableHead>Contact</TableHead>
               <TableHead className="text-right">Orders</TableHead>
               <TableHead className="text-right">Lifetime spend</TableHead>
               <TableHead>Last order</TableHead>
-              <TableHead className="pr-4 text-right">
+              <TableHead className="pr-6 text-right">
                 <span className="sr-only">Actions</span>
               </TableHead>
             </TableRow>
@@ -53,13 +53,13 @@ export function CustomersList({
                 <TableCell className="text-muted-foreground">
                   <InstantValue at={customer.lastOrderAt} context={context} />
                 </TableCell>
-                <TableCell className="pr-4 text-right">
+                <TableCell className="pr-6 text-right">
                   <Link
                     href={customerHref(customer.id, query)}
-                    className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    className="inline-flex items-center gap-2 rounded-full text-sm font-semibold text-primary-text outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     View <span className="sr-only">customer {customerNameOf(customer)}</span>
-                    <ChevronRight aria-hidden className="size-4" />
+                    <span aria-hidden className="grid size-7 place-items-center rounded-full bg-primary-soft"><ArrowRight className="size-3.5" /></span>
                   </Link>
                 </TableCell>
               </TableRow>
@@ -68,12 +68,12 @@ export function CustomersList({
         </Table>
       </div>
 
-      <ul className="flex flex-col gap-3 md:hidden">
+      <ul className="grid gap-3 md:grid-cols-2 lg:hidden">
         {customers.map((customer) => (
           <li key={customer.id}>
             <Link
               href={customerHref(customer.id, query)}
-              className="block rounded-xl border bg-card p-4 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="block h-full rounded-2xl bg-card p-4 shadow-[0_8px_30px_rgb(31_26_23/6%)] outline-none transition-shadow hover:shadow-[0_12px_36px_rgb(214_63_8/16%)] focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               <p className="font-medium">
                 <CustomerName customer={customer} />

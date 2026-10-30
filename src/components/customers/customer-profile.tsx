@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ChevronRight } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -13,10 +13,10 @@ import { CustomerName, InstantValue, LifetimeSpend, MaskedContact, OrderCount } 
 export function CustomerProfile({ customer, context }: { customer: CustomerDetail; context: ZoneAndLocale }) {
   return (
     <div className="flex flex-col gap-6">
-      <Card className="gap-4 shadow-none">
+      <Card className="gap-4 rounded-3xl border-transparent py-6 shadow-[0_8px_30px_rgb(31_26_23/6%)]">
         <CardHeader>
           <CardTitle>
-            <h2 className="text-base font-semibold">Contact</h2>
+            <h2 className="text-lg font-semibold">Contact</h2>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -33,10 +33,10 @@ export function CustomerProfile({ customer, context }: { customer: CustomerDetai
           </p>
         </CardContent>
       </Card>
-      <Card className="gap-4 shadow-none">
+      <Card className="gap-4 rounded-3xl border-transparent py-6 shadow-[0_8px_30px_rgb(31_26_23/6%)]">
         <CardHeader>
           <CardTitle>
-            <h2 className="text-base font-semibold">At your restaurant</h2>
+            <h2 className="text-lg font-semibold">At your restaurant</h2>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -65,7 +65,7 @@ export function CustomerProfile({ customer, context }: { customer: CustomerDetai
 
 export function CustomerHeading({ customer }: { customer: Pick<CustomerDetail, "displayName"> }) {
   return (
-    <h1 className="text-2xl font-semibold tracking-tight">
+    <h1 className="text-[1.75rem] leading-9 font-bold tracking-[-0.02em] sm:text-[2rem] sm:leading-10 lg:text-[2.5rem] lg:leading-[3rem]">
       <CustomerName customer={customer} />
     </h1>
   )
@@ -86,17 +86,17 @@ const orderHref = (order: CustomerOrderSummary) => `/orders/${encodeURIComponent
 export function CustomerOrdersList({ orders, context }: { orders: CustomerOrderSummary[]; context: ZoneAndLocale }) {
   return (
     <>
-      <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
+      <div className="hidden overflow-hidden rounded-3xl bg-card shadow-[0_8px_30px_rgb(31_26_23/6%)] lg:block">
         <Table>
           <TableHeader className="bg-muted/40">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="pl-4">Order</TableHead>
+              <TableHead className="pl-6">Order</TableHead>
               <TableHead>Placed</TableHead>
               <TableHead className="text-right">Items</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead>Payment</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="pr-4 text-right">
+              <TableHead className="pr-6 text-right">
                 <span className="sr-only">Actions</span>
               </TableHead>
             </TableRow>
@@ -104,7 +104,7 @@ export function CustomerOrdersList({ orders, context }: { orders: CustomerOrderS
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell className="pl-4">
+                <TableCell className="pl-6">
                   <Link
                     href={orderHref(order)}
                     className="rounded-sm font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
@@ -124,13 +124,13 @@ export function CustomerOrdersList({ orders, context }: { orders: CustomerOrderS
                 <TableCell>
                   <OrderStatusBadge status={order.status} />
                 </TableCell>
-                <TableCell className="pr-4 text-right">
+                <TableCell className="pr-6 text-right">
                   <Link
                     href={orderHref(order)}
-                    className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    className="inline-flex items-center gap-2 rounded-full text-sm font-semibold text-primary-text outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     View<span className="sr-only"> order {order.reference}</span>
-                    <ChevronRight aria-hidden className="size-4" />
+                    <span aria-hidden className="grid size-7 place-items-center rounded-full bg-primary-soft"><ArrowRight className="size-3.5" /></span>
                   </Link>
                 </TableCell>
               </TableRow>
@@ -139,12 +139,12 @@ export function CustomerOrdersList({ orders, context }: { orders: CustomerOrderS
         </Table>
       </div>
 
-      <ul className="flex flex-col gap-3 md:hidden">
+      <ul className="grid gap-3 md:grid-cols-2 lg:hidden">
         {orders.map((order) => (
           <li key={order.id}>
             <Link
               href={orderHref(order)}
-              className="block rounded-xl border bg-card p-4 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="block h-full rounded-2xl bg-card p-4 shadow-[0_8px_30px_rgb(31_26_23/6%)] outline-none transition-shadow hover:shadow-[0_12px_36px_rgb(214_63_8/16%)] focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">

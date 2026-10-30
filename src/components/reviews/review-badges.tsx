@@ -7,9 +7,9 @@ const pill =
 /** Whether the restaurant has replied. Always known: it's whether a reply exists. */
 export function ReplyStatusBadge({ review }: { review: Pick<Review, "reply"> }) {
   return review.reply ? (
-    <span className={cn(pill, "border-emerald-200 bg-emerald-50 text-emerald-800")}>Replied</span>
+    <span className={cn(pill, "border-success-line bg-success-soft text-success-foreground")}>Replied</span>
   ) : (
-    <span className={cn(pill, "border-amber-200 bg-amber-50 text-amber-800")}>Not replied</span>
+    <span className={cn(pill, "border-warning-line bg-warning-soft text-warning-foreground")}>Not replied</span>
   )
 }
 
@@ -17,7 +17,7 @@ export function ReplyStatusBadge({ review }: { review: Pick<Review, "reply"> }) 
 export function ModerationBadge({ review }: { review: Pick<Review, "moderation"> }) {
   if (!review.moderation) return null
   return (
-    <span className={cn(pill, "border-stone-200 bg-stone-100 text-stone-700")}>
+    <span className={cn(pill, "border-neutral-line bg-neutral-soft text-neutral-foreground")}>
       {reviewModerationLabels[review.moderation]}
     </span>
   )
@@ -26,5 +26,5 @@ export function ModerationBadge({ review }: { review: Pick<Review, "moderation">
 /** This restaurant's report, when one exists. It says a report was made, not what happened to it (R8). */
 export function ReportedBadge({ review }: { review: Pick<Review, "report"> }) {
   if (!review.report) return null
-  return <span className={cn(pill, "border-stone-200 bg-stone-100 text-stone-700")}>You reported this</span>
+  return <span className={cn(pill, "border-neutral-line bg-neutral-soft text-neutral-foreground")}>You reported this</span>
 }

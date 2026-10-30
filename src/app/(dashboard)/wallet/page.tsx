@@ -18,6 +18,7 @@ export default function WalletPage({ searchParams }: PageProps<"/wallet">) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        variant="hero"
         title="Wallet & settlements"
         description="Your earnings and settlements, as reported by Foodi. Figures are shown as provided and are not calculated here."
       />

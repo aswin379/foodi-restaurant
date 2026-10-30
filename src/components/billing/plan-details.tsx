@@ -7,10 +7,10 @@ import { DateValue, PlanModelText, PlanStatusBadge, Unavailable, feeValueText, f
 
 export function PlanSummary({ plan }: { plan: Plan }) {
   return (
-    <Card className="gap-4 shadow-none">
+    <Card className="gap-4 rounded-3xl border-transparent py-6 shadow-[0_8px_30px_rgb(31_26_23/6%)]">
       <CardHeader>
         <CardTitle>
-          <h2 className="text-base font-semibold">Current plan</h2>
+          <h2 className="text-lg font-semibold">Current plan</h2>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -33,7 +33,7 @@ export function PlanNotice({ notice }: { notice: string }) {
   return (
     <div
       role="note"
-      className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+      className="flex items-start gap-3 rounded-2xl border border-warning-line bg-warning-soft px-4 py-3 text-sm text-warning-foreground"
     >
       <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
       <p className="leading-relaxed whitespace-pre-wrap">
@@ -46,10 +46,10 @@ export function PlanNotice({ notice }: { notice: string }) {
 
 export function PlanDates({ plan, locale }: { plan: Plan; locale: string }) {
   return (
-    <Card className="gap-4 shadow-none">
+    <Card className="gap-4 rounded-3xl border-transparent py-6 shadow-[0_8px_30px_rgb(31_26_23/6%)]">
       <CardHeader>
         <CardTitle>
-          <h2 className="text-base font-semibold">Billing cycle</h2>
+          <h2 className="text-lg font-semibold">Billing cycle</h2>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -93,7 +93,7 @@ export function PlanEntitlements({ plan }: { plan: Plan }) {
       {plan.entitlements.length === 0 ? (
         <p className="text-sm text-muted-foreground">No entitlements were provided for this plan.</p>
       ) : (
-        <ul className="flex flex-col divide-y rounded-xl border bg-card">
+        <ul className="flex flex-col divide-y divide-border-soft rounded-3xl bg-card shadow-[0_8px_30px_rgb(31_26_23/6%)]">
           {plan.entitlements.map((entitlement, index) => (
             <li key={index} className="px-4 py-3">
               <p className="text-sm font-medium">{entitlement.label}</p>
@@ -115,7 +115,7 @@ export function PlanFeeTerms({ plan, locale }: { plan: Plan; locale: string }) {
       {plan.feeTerms.length === 0 ? (
         <p className="text-sm text-muted-foreground">No fee terms were provided for this plan.</p>
       ) : (
-        <ul className="flex flex-col divide-y rounded-xl border bg-card">
+        <ul className="flex flex-col divide-y divide-border-soft rounded-3xl bg-card shadow-[0_8px_30px_rgb(31_26_23/6%)]">
           {plan.feeTerms.map((term, index) => (
             <li key={index} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
               <p className="text-sm font-medium">{term.label}</p>

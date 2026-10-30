@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ChevronRight } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { ZoneAndLocale } from "@/lib/orders/format"
@@ -24,16 +24,16 @@ export function PromotionsList({
 }) {
   return (
     <>
-      <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
+      <div className="hidden overflow-hidden rounded-3xl bg-card shadow-[0_8px_30px_rgb(31_26_23/6%)] lg:block">
         <Table>
           <TableHeader className="bg-muted/40">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="pl-4">Coupon</TableHead>
+              <TableHead className="pl-6">Coupon</TableHead>
               <TableHead>Discount</TableHead>
               <TableHead>Valid</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Redemptions</TableHead>
-              <TableHead className="pr-4 text-right">
+              <TableHead className="pr-6 text-right">
                 <span className="sr-only">Actions</span>
               </TableHead>
             </TableRow>
@@ -41,7 +41,7 @@ export function PromotionsList({
           <TableBody>
             {promotions.map((promotion) => (
               <TableRow key={promotion.id}>
-                <TableCell className="pl-4">
+                <TableCell className="pl-6">
                   <span className="font-mono text-[0.8125rem] font-medium">{promotion.code}</span>
                   {promotion.name !== null ? <div className="text-xs text-muted-foreground">{promotion.name}</div> : null}
                 </TableCell>
@@ -57,13 +57,13 @@ export function PromotionsList({
                 <TableCell className="text-right tabular-nums">
                   <Redemptions promotion={promotion} />
                 </TableCell>
-                <TableCell className="pr-4 text-right">
+                <TableCell className="pr-6 text-right">
                   <Link
                     href={promotionHref(promotion.id, query)}
-                    className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    className="inline-flex items-center gap-2 rounded-full text-sm font-semibold text-primary-text outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     View<span className="sr-only"> coupon {promotion.code}</span>
-                    <ChevronRight aria-hidden className="size-4" />
+                    <span aria-hidden className="grid size-7 place-items-center rounded-full bg-primary-soft"><ArrowRight className="size-3.5" /></span>
                   </Link>
                 </TableCell>
               </TableRow>
@@ -72,12 +72,12 @@ export function PromotionsList({
         </Table>
       </div>
 
-      <ul className="flex flex-col gap-3 md:hidden">
+      <ul className="grid gap-3 md:grid-cols-2 lg:hidden">
         {promotions.map((promotion) => (
           <li key={promotion.id}>
             <Link
               href={promotionHref(promotion.id, query)}
-              className="block rounded-xl border bg-card p-4 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="block h-full rounded-2xl bg-card p-4 shadow-[0_8px_30px_rgb(31_26_23/6%)] outline-none transition-shadow hover:shadow-[0_12px_36px_rgb(214_63_8/16%)] focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">

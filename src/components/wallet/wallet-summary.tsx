@@ -35,7 +35,7 @@ export function WalletSummary({ summary, context }: { summary: WalletSummaryData
         ) : null}
         Amounts are shown as provided by Foodi&apos;s settlement service. This page doesn&apos;t calculate or verify them.
       </p>
-      <Card className="gap-3 shadow-none">
+      <Card className="gap-3 rounded-3xl border-transparent py-6 shadow-[0_8px_30px_rgb(31_26_23/6%)]">
         <CardHeader>
           <CardTitle>
             <h3 className="flex items-center gap-2 text-sm font-semibold">
@@ -61,7 +61,7 @@ export function WalletSummary({ summary, context }: { summary: WalletSummaryData
 
 function Figure({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="rounded-3xl bg-card p-5 shadow-[0_8px_30px_rgb(31_26_23/6%)]">
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="mt-1 text-2xl font-semibold tracking-tight">{children}</dd>
     </div>

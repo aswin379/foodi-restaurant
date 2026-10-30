@@ -24,6 +24,7 @@ export default function BillingPage({ searchParams }: PageProps<"/billing">) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        variant="hero"
         title="Plan & billing"
         description="Your plan, billing cycle and fees, as provided by Foodi. This page is read-only."
       />
