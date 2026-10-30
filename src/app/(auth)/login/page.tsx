@@ -20,7 +20,7 @@ export default function LoginPage() {
   const hasLegalLinks = Boolean(authLinks.terms || authLinks.privacy)
 
   return (
-    <div className="grid min-h-dvh bg-background md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+    <div className="grid min-h-dvh bg-gradient-to-br from-background to-background-warm md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
       <main className="flex min-w-0 flex-col px-5 py-8 sm:px-10 sm:py-10 lg:px-16 xl:px-24">
         <header>
           <Image
@@ -34,12 +34,12 @@ export default function LoginPage() {
         </header>
 
         <div className="flex flex-1 items-center py-12">
-          <div className="mx-auto w-full max-w-[400px]">
+          <div className="mx-auto w-full max-w-[440px] rounded-3xl bg-card p-6 shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:p-8">
             <p className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-accent px-3 py-1 text-xs font-medium tracking-wide text-accent-foreground">
               <span aria-hidden className="size-1.5 rounded-full bg-primary" />
               Restaurant Partner
             </p>
-            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground sm:text-[2rem]">
+            <h1 className="mt-5 text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-[2.25rem]">
               Welcome back
             </h1>
             <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
