@@ -19,10 +19,11 @@ export default function HoursPage({ searchParams }: PageProps<"/hours">) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        variant="hero"
         title="Availability & hours"
         description="When customers can order from your restaurant, for delivery, takeaway and dine-in, and pausing new orders when you need to."
+        actions={<HoursNav current="/hours" />}
       />
-      <HoursNav current="/hours" />
       <Suspense fallback={<HoursSkeleton />}>
         <HoursView searchParams={searchParams} />
       </Suspense>
@@ -48,10 +49,12 @@ async function HoursView({ searchParams }: { searchParams: Promise<Record<string
       {isPreview ? <PreviewNotice detail="Sample hours and special dates are marked (preview)." /> : null}
       {isPreview ? <PreviewHoursControls /> : null}
       <PauseControl pause={status.pause} timeZone={context.timeZone} locale={context.locale} />
+      {/* The live status comes first in reading order, so on a phone it sits above the editor; on wide screens it is the right-hand column. */}
       <div className="grid items-start gap-6 lg:grid-cols-3">
-        <section aria-labelledby="weekly-hours-title" className="flex flex-col gap-4 rounded-xl border bg-card p-4 lg:col-span-2">
+        <StatusCard status={status} locale={context.locale} className="lg:col-start-3 lg:row-start-1" />
+        <section aria-labelledby="weekly-hours-title" className="flex flex-col gap-4 rounded-3xl bg-card p-5 shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:p-6 lg:col-span-2 lg:row-start-1">
           <div className="flex flex-col gap-1">
-            <h2 id="weekly-hours-title" className="text-base font-semibold">
+            <h2 id="weekly-hours-title" className="text-lg font-semibold">
               Weekly hours
             </h2>
             <p className="text-xs text-muted-foreground">
@@ -63,7 +66,6 @@ async function HoursView({ searchParams }: { searchParams: Promise<Record<string
           {/* Keyed by version so a save (or someone else's change) reloads the editor. */}
           <WeeklyHoursEditor key={hours.version} hours={hours} />
         </section>
-        <StatusCard status={status} locale={context.locale} />
       </div>
     </div>
   )

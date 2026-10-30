@@ -18,10 +18,11 @@ export default function SpecialDatesPage({ searchParams }: PageProps<"/hours/spe
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        variant="hero"
         title="Availability & hours"
         description="Holidays and special hours replace the weekly hours on a date, for the order types you choose."
+        actions={<HoursNav current="/hours/special-dates" />}
       />
-      <HoursNav current="/hours/special-dates" />
       <Suspense fallback={<HoursSkeleton label="Loading special dates" />}>
         <SpecialDatesView searchParams={searchParams} />
       </Suspense>

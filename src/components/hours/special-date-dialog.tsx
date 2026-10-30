@@ -139,7 +139,7 @@ export function SpecialDateDialog({
             </p>
             <FieldError path={specialDatePaths.date} errors={errors} />
             {dayHours !== 24 ? (
-              <p className="flex items-start gap-1.5 text-xs text-amber-900">
+              <p className="flex items-start gap-1.5 text-xs text-warning-foreground">
                 <Clock3 aria-hidden className="mt-px size-3.5 shrink-0" />
                 Clocks change on this date in {weekly.timeZone}: the day is {dayHours} hours long. Foodi applies its
                 clock-change rules to these hours.
@@ -206,7 +206,7 @@ export function SpecialDateDialog({
           </fieldset>
 
           {draft.kind === "special_hours" ? (
-            <div id={hoursFieldId(specialDatePaths.hours)} tabIndex={-1} className="flex flex-col gap-3 rounded-md bg-muted/40 p-3 outline-none">
+            <div id={hoursFieldId(specialDatePaths.hours)} tabIndex={-1} className="flex flex-col gap-3 rounded-2xl bg-muted/60 p-4 outline-none">
               <div className="flex items-center gap-2.5">
                 <Checkbox
                   id={`${id}-all-day`}
@@ -240,7 +240,7 @@ export function SpecialDateDialog({
 
           {crossing.length ? (
             // H4 is unconfirmed: state the overlap, never how it's resolved.
-            <div role="note" className="flex items-start gap-2 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+            <div role="note" className="flex items-start gap-2 rounded-xl border border-dashed px-3 py-2 text-xs text-muted-foreground">
               <Info aria-hidden className="mt-px size-3.5 shrink-0" />
               <div className="flex flex-col gap-1">
                 {crossing.map(({ type, window }) => (

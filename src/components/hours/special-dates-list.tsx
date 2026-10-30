@@ -51,7 +51,7 @@ export function SpecialDatesList({
       </div>
 
       <section aria-labelledby="upcoming-dates-title" className="flex flex-col gap-3">
-        <h2 id="upcoming-dates-title" className="text-base font-semibold">
+        <h2 id="upcoming-dates-title" className="text-lg font-semibold">
           Upcoming
         </h2>
         {upcoming.length ? (
@@ -68,7 +68,7 @@ export function SpecialDatesList({
             ))}
           </ul>
         ) : (
-          <p className="rounded-lg border border-dashed bg-card px-4 py-6 text-center text-sm text-muted-foreground">
+          <p className="rounded-3xl border border-dashed border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
             No special dates coming up. Add holidays and special hours here.
           </p>
         )}
@@ -76,7 +76,7 @@ export function SpecialDatesList({
 
       {past.length ? (
         <section aria-labelledby="past-dates-title" className="flex flex-col gap-3">
-          <h2 id="past-dates-title" className="text-base font-semibold">
+          <h2 id="past-dates-title" className="text-lg font-semibold">
             Past
           </h2>
           <p className="text-xs text-muted-foreground">Past special dates are kept for reference and can&apos;t be changed.</p>
@@ -117,16 +117,16 @@ function SpecialDateRow({
   const failure = command.result && !command.result.ok ? command.result : null
 
   return (
-    <li className="flex flex-col gap-2 rounded-lg border bg-card p-3 sm:flex-row sm:items-start sm:justify-between">
+    <li className="flex flex-col gap-2 rounded-2xl bg-card p-4 shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:flex-row sm:items-start sm:justify-between sm:px-5">
       <div className="flex min-w-0 flex-col gap-1">
-        <p className="text-sm font-medium">
+        <p className="text-base font-semibold">
           {when}
           {specialDate.note ? <span className="font-normal text-muted-foreground"> · {specialDate.note}</span> : null}
         </p>
         <p className="text-sm">{specialDateSummary(specialDate)}</p>
         <ul className="flex flex-wrap gap-1.5" aria-label={`Order types affected on ${when}`}>
           {specialDate.orderTypes.map((type) => (
-            <li key={type} className="rounded-full border px-2 py-0.5 text-xs">
+            <li key={type} className="rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-primary-text">
               {orderTypeLabels[type]}
             </li>
           ))}

@@ -14,7 +14,7 @@ export type FieldErrors = Record<string, string>
 export function FieldError({ path, errors }: { path: string; errors: FieldErrors }) {
   const message = errors[path]
   return message ? (
-    <p id={`${hoursFieldId(path)}-error`} className="flex items-center gap-1.5 text-sm text-destructive">
+    <p id={`${hoursFieldId(path)}-error`} className="flex items-center gap-1.5 text-sm text-danger-foreground">
       <AlertCircle aria-hidden className="size-3.5 shrink-0" />
       {message}
     </p>
