@@ -16,8 +16,12 @@ export const metadata: Metadata = {
 export default function ProfilePage({ searchParams }: PageProps<"/settings/profile">) {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Restaurant profile" description="How your restaurant appears to customers and to Foodi." />
-      <SettingsNav current="/settings/profile" />
+      <PageHeader
+        variant="hero"
+        title="Restaurant profile"
+        description="How your restaurant appears to customers and to Foodi."
+        actions={<SettingsNav current="/settings/profile" />}
+      />
       <Suspense fallback={<SettingsSkeleton label="Loading profile" />}>
         <ProfileView searchParams={searchParams} />
       </Suspense>

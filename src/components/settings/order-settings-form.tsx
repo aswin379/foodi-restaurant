@@ -89,12 +89,12 @@ export function OrderSettingsForm({ settings, currency, locale }: { settings: Or
           tabIndex={-1}
           role="alert"
           aria-labelledby="order-settings-errors-title"
-          className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-destructive/30"
+          className="rounded-2xl border border-danger-line bg-danger-soft px-4 py-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          <p id="order-settings-errors-title" className="font-semibold text-destructive">
+          <p id="order-settings-errors-title" className="font-semibold text-danger-foreground">
             Fix {entries.length === 1 ? "this problem" : `these ${entries.length} problems`} before saving
           </p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-destructive">
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-danger-foreground">
             {entries.map(([path, message]) => (
               <li key={path}>
                 <a
@@ -130,7 +130,7 @@ export function OrderSettingsForm({ settings, currency, locale }: { settings: Or
                   const prepId = settingsFieldId(prepPath)
                   const entry = draft.orderTypes[type]
                   return (
-                    <li key={type} className="flex flex-col gap-3 rounded-lg border bg-background p-3 sm:flex-row sm:items-end sm:justify-between">
+                    <li key={type} className="flex flex-col gap-3 rounded-2xl bg-background/70 p-4 ring-1 ring-border-soft sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-2.5">
                         <Checkbox
                           id={settingsFieldId(`orderTypes.${type}.enabled`)}
@@ -194,7 +194,7 @@ export function OrderSettingsForm({ settings, currency, locale }: { settings: Or
           </Section>
 
           <Section title="Pickup code">
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 rounded-2xl bg-background/70 p-4 ring-1 ring-border-soft">
               <Switch
                 id="settings-pickup-code"
                 checked={draft.pickupCodeRequired}
@@ -213,11 +213,11 @@ export function OrderSettingsForm({ settings, currency, locale }: { settings: Or
           </Section>
         </div>
 
-        <section aria-labelledby="saved-order-settings" className="flex flex-col gap-3 rounded-xl border bg-card p-4">
-          <h2 id="saved-order-settings" className="text-base font-semibold">
+        <section aria-labelledby="saved-order-settings" className="flex flex-col gap-3 rounded-3xl bg-card p-5 shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:p-6">
+          <h2 id="saved-order-settings" className="text-lg font-semibold">
             Saved settings
           </h2>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-2xl bg-background/70 p-4 text-sm ring-1 ring-border-soft">
             <dt className="text-muted-foreground">On</dt>
             <dd>{savedOn.length ? listOrderTypes(savedOn) : "None"}</dd>
             <dt className="text-muted-foreground">Off</dt>
@@ -240,7 +240,7 @@ export function OrderSettingsForm({ settings, currency, locale }: { settings: Or
 
       {generalFailure ? <ActionResultMessage result={generalFailure} successText="" /> : null}
 
-      <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-end">
+      <div className="flex flex-col-reverse gap-2 rounded-3xl bg-card p-4 shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:flex-row sm:items-center sm:justify-end">
         <Button ref={saveRef} type="submit" className="sm:min-w-36" aria-disabled={command.pending || undefined}>
           {command.pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
           Save order settings

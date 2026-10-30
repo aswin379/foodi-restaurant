@@ -125,12 +125,12 @@ export function ProfileForm({ profile }: { profile: RestaurantProfile }) {
           tabIndex={-1}
           role="alert"
           aria-labelledby="profile-errors-title"
-          className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-destructive/30"
+          className="rounded-2xl border border-danger-line bg-danger-soft px-4 py-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          <p id="profile-errors-title" className="font-semibold text-destructive">
+          <p id="profile-errors-title" className="font-semibold text-danger-foreground">
             Fix {entries.length === 1 ? "this problem" : `these ${entries.length} problems`} before saving
           </p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-destructive">
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-danger-foreground">
             {entries.map(([path, message]) => (
               <li key={path}>
                 <a
@@ -229,7 +229,7 @@ export function ProfileForm({ profile }: { profile: RestaurantProfile }) {
             />
           </Section>
           <Section title="Region and currency" description="Set by Foodi. Contact support to change them.">
-            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-2xl bg-background/70 p-4 text-sm ring-1 ring-border-soft">
               <dt className="text-muted-foreground">Time zone</dt>
               <dd className="font-medium">{profile.timeZone}</dd>
               <dt className="text-muted-foreground">Currency</dt>
@@ -243,7 +243,7 @@ export function ProfileForm({ profile }: { profile: RestaurantProfile }) {
 
       {generalFailure ? <ActionResultMessage result={generalFailure} successText="" /> : null}
 
-      <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-end">
+      <div className="flex flex-col-reverse gap-2 rounded-3xl bg-card p-4 shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:flex-row sm:items-center sm:justify-end">
         <Button type="submit" className="sm:min-w-36" aria-disabled={command.pending || undefined}>
           {command.pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
           Save profile
@@ -256,7 +256,7 @@ export function ProfileForm({ profile }: { profile: RestaurantProfile }) {
 export function FieldError({ path, errors }: { path: string; errors: FieldErrors }) {
   const message = errors[path]
   return message ? (
-    <p id={`${settingsFieldId(path)}-error`} className="flex items-center gap-1.5 text-sm text-destructive">
+    <p id={`${settingsFieldId(path)}-error`} className="flex items-center gap-1.5 text-sm text-danger-foreground">
       <AlertCircle aria-hidden className="size-3.5 shrink-0" />
       {message}
     </p>
@@ -268,7 +268,7 @@ function FieldLabel({ htmlFor, required = false, children }: { htmlFor: string; 
     <Label htmlFor={htmlFor} className="gap-2">
       {children}
       {required ? (
-        <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">Required</span>
+        <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary-text">Required</span>
       ) : (
         <span className="text-xs font-normal text-muted-foreground">Optional</span>
       )}
@@ -288,13 +288,13 @@ export function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="flex flex-col gap-4 rounded-xl border bg-card p-4">
+    <section className="flex flex-col gap-4 rounded-3xl bg-card p-5 shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:p-6">
       <div className="flex flex-col gap-1">
-        <h2 className="flex items-center gap-2 text-base font-semibold">
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
           {title}
           {optional ? <span className="text-xs font-normal text-muted-foreground">Optional</span> : null}
         </h2>
-        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
       </div>
       {children}
     </section>

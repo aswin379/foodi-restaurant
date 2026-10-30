@@ -224,7 +224,7 @@ export function ImagePicker({
           ) : null}
         </div>
         {shownError ? (
-          <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
+          <p id={`${id}-error`} role="alert" className="text-sm text-danger-foreground">
             {shownError}
           </p>
         ) : null}

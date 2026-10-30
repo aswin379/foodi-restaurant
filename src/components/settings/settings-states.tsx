@@ -12,18 +12,18 @@ export function SettingsNotConnected() {
       icon={PlugZap}
       title="Settings aren't connected yet"
       description="Your restaurant profile and order settings will appear here once the Foodi restaurant service is connected. Nothing is shown or saved until then."
-      className="min-h-72 bg-card"
+      className="min-h-72 rounded-3xl border-border bg-card"
     />
   )
 }
 
 export function SettingsError({ retryHref }: { retryHref: string }) {
   return (
-    <div role="alert" className="flex min-h-72 flex-col items-center justify-center rounded-lg border border-dashed bg-card px-6 py-10 text-center">
-      <span className="grid size-10 place-items-center rounded-full bg-red-50 text-red-600">
+    <div role="alert" className="flex min-h-72 flex-col items-center justify-center rounded-3xl bg-card px-6 py-10 text-center shadow-[0_8px_30px_rgb(31_26_23/6%)]">
+      <span className="grid size-11 place-items-center rounded-full bg-danger-soft text-danger-foreground">
         <AlertTriangle aria-hidden className="size-5" />
       </span>
-      <p className="mt-3 text-sm font-medium">We couldn&apos;t load your settings</p>
+      <p className="mt-3 text-sm font-semibold">We couldn&apos;t load your settings</p>
       <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
         Something went wrong while fetching them. Nothing has changed. Try again in a moment.
       </p>
@@ -37,9 +37,11 @@ export function SettingsError({ retryHref }: { retryHref: string }) {
 /** D9: the backend decides who may see or change settings; a refusal is shown, never hidden. */
 export function SettingsForbidden() {
   return (
-    <div role="alert" className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-card px-6 py-10 text-center">
-      <ShieldAlert aria-hidden className="size-6 text-muted-foreground" />
-      <p className="text-sm font-medium">You don&apos;t have permission to see or change restaurant settings</p>
+    <div role="alert" className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-3xl bg-card px-6 py-10 text-center shadow-[0_8px_30px_rgb(31_26_23/6%)]">
+      <span className="grid size-11 place-items-center rounded-full bg-warning-soft text-warning-foreground">
+        <ShieldAlert aria-hidden className="size-5" />
+      </span>
+      <p className="text-sm font-semibold">You don&apos;t have permission to see or change restaurant settings</p>
       <p className="max-w-sm text-xs text-muted-foreground">Only the restaurant owner can. Ask them if something needs changing.</p>
     </div>
   )
@@ -54,11 +56,11 @@ export function SettingsLoadFailure({ error, retryHref }: { error: unknown; retr
 
 export function SettingsSkeleton({ label = "Loading settings" }: { label?: string }) {
   return (
-    <div role="status" aria-label={label} className="flex flex-col gap-4 rounded-xl border bg-card p-4">
+    <div role="status" aria-label={label} className="flex flex-col gap-4 rounded-3xl bg-card p-5 shadow-[0_8px_30px_rgb(31_26_23/6%)]">
       {Array.from({ length: 5 }, (_, index) => (
         <div key={index} className="flex flex-col gap-2">
           <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-10 w-full rounded-xl" />
         </div>
       ))}
     </div>

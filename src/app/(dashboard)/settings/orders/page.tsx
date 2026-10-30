@@ -16,8 +16,12 @@ export const metadata: Metadata = {
 export default function OrderSettingsPage({ searchParams }: PageProps<"/settings/orders">) {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Order settings" description="The order types you offer, a minimum order, prep times and pickup codes." />
-      <SettingsNav current="/settings/orders" />
+      <PageHeader
+        variant="hero"
+        title="Order settings"
+        description="The order types you offer, a minimum order, prep times and pickup codes."
+        actions={<SettingsNav current="/settings/orders" />}
+      />
       <Suspense fallback={<SettingsSkeleton label="Loading order settings" />}>
         <OrderSettingsView searchParams={searchParams} />
       </Suspense>
