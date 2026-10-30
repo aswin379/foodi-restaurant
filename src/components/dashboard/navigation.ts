@@ -53,7 +53,7 @@ export const dashboardNavigation: NavGroup[] = [
       { title: "Meal periods", icon: CalendarClock, href: "/menu/meal-periods", prdModule: 4 },
       { title: "Availability & hours", icon: Clock, href: "/hours", prdModule: 5 },
       { title: "Delivery", icon: Bike, href: null, prdModule: 9 },
-      { title: "Promotions", icon: BadgePercent, href: null, prdModule: 12 },
+      { title: "Promotions", icon: BadgePercent, href: "/promotions", prdModule: 12 },
     ],
   },
   {
