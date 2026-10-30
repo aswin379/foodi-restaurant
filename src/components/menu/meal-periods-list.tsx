@@ -23,7 +23,7 @@ export function MealPeriodsList({ periods, timeZone }: { periods: MealPeriod[]; 
   return (
     <div className="flex flex-col gap-6">
       <section aria-labelledby="active-meal-periods" className="flex flex-col gap-3">
-        <h2 id="active-meal-periods" className="text-sm font-semibold">
+        <h2 id="active-meal-periods" className="text-lg font-semibold">
           Meal periods <span className="font-normal text-muted-foreground">({active.length})</span>
         </h2>
         {active.length ? (
@@ -38,7 +38,7 @@ export function MealPeriodsList({ periods, timeZone }: { periods: MealPeriod[]; 
       </section>
       {archived.length ? (
         <section aria-labelledby="archived-meal-periods" className="flex flex-col gap-3">
-          <h2 id="archived-meal-periods" className="text-sm font-semibold">
+          <h2 id="archived-meal-periods" className="text-lg font-semibold">
             Archived <span className="font-normal text-muted-foreground">({archived.length})</span>
           </h2>
           <ul aria-labelledby="archived-meal-periods" className="flex flex-col gap-2">
@@ -72,12 +72,12 @@ function MealPeriodRow({ period, timeZone }: { period: MealPeriod; timeZone: str
   }
 
   return (
-    <li className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-start">
+    <li className="flex flex-col gap-3 rounded-2xl bg-card p-4 shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:flex-row sm:items-start sm:px-5">
       <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-center gap-2 font-medium">
+        <p className="flex flex-wrap items-center gap-2 font-semibold">
           {period.name}
           {isArchived ? (
-            <span className="rounded-full border border-stone-200 bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">
+            <span className="rounded-full border border-neutral-line bg-neutral-soft px-2.5 py-0.5 text-xs font-semibold text-neutral-foreground">
               Archived
             </span>
           ) : null}

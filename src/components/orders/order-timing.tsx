@@ -6,11 +6,12 @@ import { describeTiming, orderTiming } from "@/lib/orders/timing"
 import type { OrderSummary } from "@/lib/orders/types"
 import { cn } from "@/lib/utils"
 
+// The design system's status tones, matching the order status badges.
 const tone = {
-  calm: "border-sky-200 bg-sky-50 text-sky-900",
-  attention: "border-amber-300 bg-amber-50 text-amber-900",
-  late: "border-red-300 bg-red-50 text-red-800",
-  scheduled: "border-indigo-200 bg-indigo-50 text-indigo-900",
+  calm: "border-info-line bg-info-soft text-info-foreground",
+  attention: "border-warning-line bg-warning-soft text-warning-foreground",
+  late: "border-danger-line bg-danger-soft text-danger-foreground",
+  scheduled: "border-violet-line bg-violet-soft text-violet-foreground",
 }
 
 /** Live timer chip: waiting time, time left, lateness or time to slot. */
@@ -39,7 +40,7 @@ export function OrderTimingChip({
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center gap-1 rounded-full border px-2 text-xs font-semibold whitespace-nowrap tabular-nums",
+        "inline-flex h-6 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold whitespace-nowrap tabular-nums",
         style
       )}
     >

@@ -288,6 +288,21 @@ test("promotions show no sample coupons, values, dates, counts or controls in pr
   }
 })
 
+test("the design-system showcase is unavailable in production", async ({ page }) => {
+  for (const path of ["/design-system", "/design-system?preview=slow"]) {
+    const response = await page.goto(path)
+    await page.waitForLoadState("networkidle")
+    expect(response?.status(), path).toBe(404)
+    const body = page.locator("body")
+    // No token, colour, component or showcase text of any kind.
+    await expect(body).not.toContainText(/--primary|#D63F08|#F26A1B|contrast|typography|form controls|sample dialog|sample metric/i)
+    await expect(page.getByRole("heading", { level: 1, name: /design system/i })).toHaveCount(0)
+  }
+  // Not linked from the navigation either.
+  await gotoAndSettle(page, "/dashboard")
+  await expect(page.getByRole("link", { name: /design system/i })).toHaveCount(0)
+})
+
 test("fixture preview scenarios are ignored in production", async ({ page }) => {
   await gotoAndSettle(page, "/orders?preview=slow")
   await expect(page.getByText(/orders aren.t connected yet/i).first()).toBeVisible()
@@ -309,17 +324,45 @@ test("navigation links only to built modules", async ({ page }) => {
     "/billing",
     "/customers",
     "/dashboard",
+    "/delivery",
     "/hours",
+    "/kitchen",
     "/menu",
     "/menu/categories",
     "/menu/meal-periods",
     "/orders",
+    "/pos",
     "/promotions",
+    "/reports",
     "/reviews",
     "/settings",
     "/settings/profile",
+    "/staff",
+    "/tables",
     "/wallet",
   ])
   await expect(visibleNav.getByText("Availability & hours")).toBeVisible()
-  await expect(visibleNav).not.toContainText(/POS|QR/)
+  await expect(visibleNav).not.toContainText(/QR/)
+})
+
+// Tables, staff and reports have no backend yet: in production they say so and show no sample data, whatever
+// the preview scenario says. POS shows no menu items or orders because the menu and orders aren't connected.
+test("tables, staff, reports and the POS show nothing but not-connected states in production", async ({ page }) => {
+  const modules: [string, RegExp][] = [
+    ["/tables", /tables aren.t connected yet/i],
+    ["/staff", /staff and roles aren.t connected yet/i],
+    ["/reports", /reports aren.t connected yet/i],
+    ["/pos", /menu isn.t connected yet/i],
+    ["/kitchen", /orders aren.t connected yet/i],
+    ["/delivery", /orders aren.t connected yet/i],
+  ]
+  for (const [path, message] of modules) {
+    for (const url of [path, `${path}?preview=empty`, `${path}?preview=slow`]) {
+      await gotoAndSettle(page, url)
+      await expect(page.getByText(message).first(), url).toBeVisible()
+      const body = page.locator("body")
+      await expect(body, url).not.toContainText(/PRV-|prv-|Preview only|\(preview\)|Sample data|made up|Table 1|Patio|Preview owner/i)
+      await expect(body, url).not.toContainText(/₹\s?\d/)
+    }
+  }
 })

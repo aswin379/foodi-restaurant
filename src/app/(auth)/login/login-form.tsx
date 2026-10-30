@@ -96,7 +96,7 @@ export function LoginForm() {
         <div
           id={formErrorId}
           role="alert"
-          className="flex gap-3 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+          className="flex gap-3 rounded-2xl border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger-foreground"
         >
           <AlertCircle aria-hidden className="mt-0.5 size-4 shrink-0" />
           <p className="leading-relaxed">{state.formError}</p>
@@ -137,7 +137,7 @@ export function LoginForm() {
           {authLinks.forgotPassword ? (
             <Link
               href={authLinks.forgotPassword}
-              className="rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="rounded-sm text-sm font-medium text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               Forgot password?
             </Link>
@@ -224,7 +224,7 @@ function FieldError({ id, message }: { id: string; message?: string }) {
     <p
       id={id}
       className={cn(
-        "flex items-center gap-1.5 text-sm text-destructive",
+        "flex items-center gap-1.5 text-sm text-danger-foreground",
         !message && "hidden"
       )}
     >

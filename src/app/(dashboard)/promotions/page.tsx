@@ -31,6 +31,7 @@ export default function PromotionsPage({ searchParams }: PageProps<"/promotions"
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        variant="hero"
         title="Promotions"
         description="Your coupons, as provided by Foodi. This page is read-only: it shows each coupon's terms and doesn't calculate savings."
       />

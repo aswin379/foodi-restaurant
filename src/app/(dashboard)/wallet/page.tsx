@@ -18,6 +18,7 @@ export default function WalletPage({ searchParams }: PageProps<"/wallet">) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        variant="hero"
         title="Wallet & settlements"
         description="Your earnings and settlements, as reported by Foodi. Figures are shown as provided and are not calculated here."
       />
@@ -58,7 +59,7 @@ async function WalletView({ searchParams }: { searchParams: Promise<RawSearchPar
           </h2>
           <Link
             href={SETTLEMENTS_PATH}
-            className="rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="rounded-sm text-sm font-medium text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             View all settlements
           </Link>

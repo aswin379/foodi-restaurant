@@ -21,7 +21,7 @@ export function PreviewSettingsControls({ refusesSaves }: { refusesSaves: boolea
 
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Preview tools">
-      <span className="text-xs font-medium tracking-wide text-amber-900 uppercase">Preview tools</span>
+      <span className="text-xs font-medium tracking-wide text-warning-foreground uppercase">Preview tools</span>
       <Button type="button" variant="ghost" size="sm" onClick={() => setConfirm(true)}>
         <RotateCcw aria-hidden />
         Reset sample settings

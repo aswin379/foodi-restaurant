@@ -21,6 +21,7 @@ export default function MenuCategoriesPage({ searchParams }: PageProps<"/menu/ca
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        variant="hero"
         title="Categories"
         description="Group your menu into sections, like Starters or Drinks, set their order, and switch them on or off."
         actions={
@@ -79,7 +80,7 @@ async function CategoriesView({
           icon={Tags}
           title="No categories yet"
           description="Every menu item needs a category. Add one with Add category above."
-          className="min-h-72 bg-card"
+          className="min-h-72 rounded-3xl border-border bg-card"
         />
       ) : (
         <CategoriesList categories={categories} scheduleSupport={await scheduleSupport} />

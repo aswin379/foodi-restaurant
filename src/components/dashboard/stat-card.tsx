@@ -20,7 +20,7 @@ export function StatCard({
     <Card className="gap-0 rounded-xl px-4 py-4 shadow-none sm:px-5 sm:py-5">
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-        <span className="grid size-8 place-items-center rounded-lg bg-accent text-primary">
+        <span className="grid size-8 place-items-center rounded-lg bg-accent text-primary-text">
           <Icon aria-hidden className="size-4" />
         </span>
       </div>

@@ -19,12 +19,12 @@ export function soldOutUntilText(until: SoldOutUntil, context: ZoneAndLocale) {
 export function ItemStatusBadge({ status, context }: { status: ItemStatus; context: ZoneAndLocale }) {
   switch (status.kind) {
     case "archived":
-      return <span className={cn(pill, "border-stone-200 bg-stone-100 text-stone-700")}>Archived</span>
+      return <span className={cn(pill, "border-neutral-line bg-neutral-soft text-neutral-foreground")}>Archived</span>
     case "category_off":
-      return <span className={cn(pill, "border-stone-200 bg-stone-100 text-stone-700")}>Category off</span>
+      return <span className={cn(pill, "border-neutral-line bg-neutral-soft text-neutral-foreground")}>Category off</span>
     case "sold_out":
       return (
-        <span className={cn(pill, "border-red-200 bg-red-50 text-red-800")}>
+        <span className={cn(pill, "border-danger-line bg-danger-soft text-danger-foreground")}>
           <span aria-hidden className="size-1.5 rounded-full bg-current" />
           Sold out {soldOutUntilText(status.until, context)}
         </span>
@@ -32,7 +32,7 @@ export function ItemStatusBadge({ status, context }: { status: ItemStatus; conte
     case "available":
       return (
         <span className="flex flex-wrap items-center gap-1.5">
-          <span className={cn(pill, "border-emerald-200 bg-emerald-50 text-emerald-800")}>
+          <span className={cn(pill, "border-success-line bg-success-soft text-success-foreground")}>
             <span aria-hidden className="size-1.5 rounded-full bg-current" />
             Available
           </span>
@@ -47,10 +47,10 @@ export function ItemStatusBadge({ status, context }: { status: ItemStatus; conte
 }
 
 const dietaryTone: Record<DietaryType, string> = {
-  veg: "border-green-700 text-green-700",
-  vegan: "border-green-700 text-green-700",
-  non_veg: "border-red-700 text-red-700",
-  egg: "border-amber-700 text-amber-700",
+  veg: "border-success-foreground text-success-foreground",
+  vegan: "border-success-foreground text-success-foreground",
+  non_veg: "border-danger-foreground text-danger-foreground",
+  egg: "border-warning-foreground text-warning-foreground",
 }
 
 /** The square food-type mark used on Indian menus, with a text label. */

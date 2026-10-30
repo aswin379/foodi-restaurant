@@ -79,11 +79,11 @@ export function ValidityText({ promotion, context }: { promotion: Pick<Promotion
 }
 
 const statusTone: Record<PromotionStatus, string> = {
-  scheduled: "border-indigo-200 bg-indigo-50 text-indigo-800",
-  active: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  paused: "border-amber-200 bg-amber-50 text-amber-800",
-  expired: "border-stone-300 bg-stone-100 text-stone-700",
-  cancelled: "border-red-200 bg-red-50 text-red-700",
+  scheduled: "border-violet-line bg-violet-soft text-violet-foreground",
+  active: "border-success-line bg-success-soft text-success-foreground",
+  paused: "border-warning-line bg-warning-soft text-warning-foreground",
+  expired: "border-neutral-line bg-neutral-soft text-neutral-foreground",
+  cancelled: "border-danger-line bg-danger-soft text-danger-foreground",
 }
 
 /** The status the source reports. With none, nothing is assumed, and it is never worked out from a date. */

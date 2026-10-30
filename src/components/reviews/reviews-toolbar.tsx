@@ -46,7 +46,7 @@ export function ReviewsToolbar({ query }: { query: ReviewListQuery }) {
         {hasActiveReviewFilters(query) ? (
           <Link
             href={REVIEWS_PATH}
-            className="rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="rounded-sm text-sm font-medium text-primary-text underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             Reset filters
           </Link>
@@ -58,8 +58,8 @@ export function ReviewsToolbar({ query }: { query: ReviewListQuery }) {
 
 function FilterTabs({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <nav aria-label={label} className="-mx-1 overflow-x-auto px-1 pb-1">
-      <ul className="flex w-max gap-1 rounded-lg border bg-card p-1">{children}</ul>
+    <nav aria-label={label}>
+      <ul className="flex w-fit max-w-full flex-wrap gap-1 rounded-3xl bg-card p-1 shadow-[0_4px_14px_rgb(31_26_23/8%)]">{children}</ul>
     </nav>
   )
 }
@@ -71,8 +71,10 @@ function FilterTab({ href, active, label }: { href: string; active: boolean; lab
         href={href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "inline-flex h-8 items-center rounded-md px-3 text-sm font-medium whitespace-nowrap outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50",
-          active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          "inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold whitespace-nowrap outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50",
+          active
+            ? "bg-primary text-primary-foreground shadow-[0_6px_14px_rgb(214_63_8/25%)]"
+            : "text-muted-foreground hover:bg-primary-faint hover:text-foreground"
         )}
       >
         {label}

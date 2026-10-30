@@ -34,12 +34,12 @@ export function PauseBanner({ pause, locale }: { pause: Extract<PauseState, { pa
   return (
     <section
       aria-labelledby="pause-banner-title"
-      className="flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-950 sm:flex-row sm:items-center sm:justify-between"
+      className="flex flex-col gap-3 rounded-3xl border border-warning-line bg-warning-soft px-5 py-4 text-warning-foreground shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex items-start gap-3">
-        <PauseCircle aria-hidden className="mt-0.5 size-5 shrink-0" />
+        <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-card text-warning-foreground"><PauseCircle className="size-5" strokeWidth={1.75} /></span>
         <div className="flex flex-col gap-1">
-          <h2 id="pause-banner-title" className="text-sm font-semibold">
+          <h2 id="pause-banner-title" className="text-base font-semibold">
             Restaurant paused {resumeText(pause, locale)}
           </h2>
           <p className="text-xs leading-relaxed">

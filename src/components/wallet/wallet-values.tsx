@@ -45,11 +45,11 @@ export function PeriodText({ settlement, locale }: { settlement: Pick<Settlement
 }
 
 const statusTone: Record<SettlementStatus, string> = {
-  pending: "border-amber-200 bg-amber-50 text-amber-800",
-  processing: "border-sky-200 bg-sky-50 text-sky-800",
-  paid: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  failed: "border-red-200 bg-red-50 text-red-700",
-  on_hold: "border-stone-300 bg-stone-100 text-stone-700",
+  pending: "border-warning-line bg-warning-soft text-warning-foreground",
+  processing: "border-info-line bg-info-soft text-info-foreground",
+  paid: "border-success-line bg-success-soft text-success-foreground",
+  failed: "border-danger-line bg-danger-soft text-danger-foreground",
+  on_hold: "border-neutral-line bg-neutral-soft text-neutral-foreground",
 }
 
 const pill = "inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap"
@@ -74,8 +74,8 @@ export function SettlementStatusBadge({ status }: { status: SettlementStatus | n
 /** PRD P2: a refund is final only when the payment provider confirms it. */
 export function RefundStatusText({ status }: { status: RefundStatus }) {
   return status === "pending" ? (
-    <span className="text-sm font-medium text-amber-800">Refund pending, not final until the payment provider confirms it</span>
+    <span className="text-sm font-medium text-warning-foreground">Refund pending, not final until the payment provider confirms it</span>
   ) : (
-    <span className="text-sm font-medium text-stone-600">Refund confirmed by the payment provider</span>
+    <span className="text-sm font-medium text-neutral-foreground">Refund confirmed by the payment provider</span>
   )
 }

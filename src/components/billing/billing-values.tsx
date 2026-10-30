@@ -40,11 +40,11 @@ export function PlanModelText({ model }: { model: PlanModel | null }) {
 }
 
 const statusTone: Record<PlanStatus, string> = {
-  active: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  trialing: "border-sky-200 bg-sky-50 text-sky-800",
-  past_due: "border-amber-200 bg-amber-50 text-amber-800",
-  expired: "border-red-200 bg-red-50 text-red-700",
-  cancelled: "border-stone-300 bg-stone-100 text-stone-700",
+  active: "border-success-line bg-success-soft text-success-foreground",
+  trialing: "border-info-line bg-info-soft text-info-foreground",
+  past_due: "border-warning-line bg-warning-soft text-warning-foreground",
+  expired: "border-danger-line bg-danger-soft text-danger-foreground",
+  cancelled: "border-neutral-line bg-neutral-soft text-neutral-foreground",
 }
 
 /** The status the source reports. With none, nothing is assumed. The badge says nothing about access. */

@@ -396,3 +396,84 @@ test("a permission refusal is shown clearly (D9)", async ({ page }) => {
     await expect(page.getByRole("button", { name: /Save/ })).toHaveCount(0)
   }
 })
+
+// Settings visual redesign: accessibility, announcements, focus return and layout.
+
+async function expectCleanLayout(page: Page) {
+  await expectNoSeriousA11yViolations(page)
+  await expectNoHorizontalOverflow(page)
+}
+
+test("the overview, profile and order settings are accessible and stay inside the viewport", async ({ page }) => {
+  for (const [path, heading] of [
+    ["/settings", "Settings"],
+    ["/settings/profile", "Restaurant profile"],
+    ["/settings/orders", "Order settings"],
+  ] as const) {
+    await gotoAndSettle(page, path)
+    await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible()
+    await expectCleanLayout(page)
+  }
+})
+
+test("a failed load is announced on each page, with a way to retry", async ({ page }) => {
+  for (const path of ["/settings/profile", "/settings/orders"]) {
+    await gotoAndSettle(page, `${path}?preview=error`)
+    const alert = page.getByRole("alert").filter({ hasText: "We couldn't load your settings" })
+    await expect(alert).toBeVisible()
+    await expect(alert.getByRole("link", { name: "Try again" })).toHaveAttribute("href", path)
+    await expectCleanLayout(page)
+  }
+})
+
+test("profile errors are announced in a summary whose links focus the fields, and the page stays accessible", async ({ page }) => {
+  await gotoAndSettle(page, "/settings/profile")
+  await page.getByLabel(/^Restaurant name/).fill("")
+  await page.getByRole("button", { name: "Save profile" }).click()
+  const summary = page.getByRole("alert").filter({ hasText: "before saving" })
+  await expect(summary).toBeVisible()
+  await expect(summary).toBeFocused()
+  await expectCleanLayout(page)
+  await summary.getByRole("link", { name: "Enter the restaurant name." }).click()
+  await expect(page.getByLabel(/^Restaurant name/)).toBeFocused()
+  await expect(page.getByLabel(/^Restaurant name/)).toHaveAttribute("aria-invalid", "true")
+})
+
+test("order settings errors are announced in a summary, and the page stays accessible", async ({ page }) => {
+  await gotoAndSettle(page, "/settings/orders")
+  await page.getByLabel(/^Default prep time/).first().fill("")
+  await page.getByRole("button", { name: "Save order settings" }).click()
+  const summary = page.getByRole("alert").filter({ hasText: "before saving" })
+  await expect(summary).toBeVisible()
+  await expect(summary).toBeFocused()
+  await expectCleanLayout(page)
+})
+
+test("the turn-off dialog is accessible, and Go back returns focus to Save", async ({ page }) => {
+  await gotoAndSettle(page, "/settings/orders")
+  await page.getByRole("checkbox", { name: "Offer takeaway" }).uncheck()
+  const save = page.getByRole("button", { name: "Save order settings" })
+  await save.click()
+  const confirm = page.getByRole("alertdialog", { name: "Turn off takeaway?" })
+  await expect(confirm).toBeVisible()
+  await page.waitForTimeout(500)
+  await expectNoSeriousA11yViolations(page)
+  await confirm.getByRole("button", { name: "Go back" }).click()
+  await expect(confirm).toHaveCount(0)
+  await expect(save).toBeFocused()
+})
+
+test("every settings control stays inside the viewport", async ({ page }) => {
+  const width = page.viewportSize()!.width
+  for (const path of ["/settings/profile", "/settings/orders"]) {
+    await gotoAndSettle(page, path)
+    const boxes = await page
+      .locator("main input:visible, main textarea:visible, main button:visible, main select:visible, main a:visible")
+      .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect()).map((box) => ({ left: box.left, right: box.right })))
+    expect(boxes.length).toBeGreaterThan(8)
+    for (const box of boxes) {
+      expect(box.left).toBeGreaterThanOrEqual(0)
+      expect(box.right).toBeLessThanOrEqual(width)
+    }
+  }
+})

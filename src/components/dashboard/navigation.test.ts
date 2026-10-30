@@ -16,9 +16,11 @@ describe("dashboard navigation", () => {
     }
   })
 
-  it("leaves Release 2 modules out (POS 10, QR dine-in 11, multi-outlet 21)", () => {
+  // POS (10) and Tables (also module 10) are listed because the owner asked for the POS UI ahead of Release 2.
+  // They are design-and-preview screens: payment, tables and order entry say they aren't connected.
+  it("leaves the other Release 2 modules out (QR dine-in 11, multi-outlet 21)", () => {
     const modules = new Set(items.map((item) => item.prdModule))
-    for (const releaseTwo of [10, 11, 21]) expect(modules.has(releaseTwo)).toBe(false)
+    for (const releaseTwo of [11, 21]) expect(modules.has(releaseTwo)).toBe(false)
   })
 
   it("has unique titles", () => {

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ChevronRight } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -14,10 +14,10 @@ import { InstantValue, MoneyValue, PeriodText, RefundStatusText, SettlementStatu
 
 export function SettlementOverview({ settlement, context }: { settlement: SettlementDetailData; context: ZoneAndLocale }) {
   return (
-    <Card className="gap-4 shadow-none">
+    <Card className="gap-4 rounded-3xl border-transparent py-6 shadow-[0_8px_30px_rgb(31_26_23/6%)]">
       <CardHeader>
         <CardTitle>
-          <h2 className="text-base font-semibold">Settlement</h2>
+          <h2 className="text-lg font-semibold">Settlement</h2>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -63,7 +63,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 export function SettlementHeading({ settlement, locale }: { settlement: Pick<SettlementDetailData, "periodStart" | "periodEnd">; locale: string }) {
   return (
-    <h1 className="text-2xl font-semibold tracking-tight">
+    <h1 className="text-[1.75rem] leading-9 font-bold tracking-[-0.02em] sm:text-[2rem] sm:leading-10 lg:text-[2.5rem] lg:leading-[3rem]">
       Settlement <PeriodText settlement={settlement} locale={locale} />
     </h1>
   )
@@ -75,7 +75,7 @@ export function SettlementLines({ settlement, context }: { settlement: Settlemen
     return <p className="text-sm text-muted-foreground">No commission, fee, tax or adjustment lines were provided.</p>
   }
   return (
-    <ul className="flex flex-col divide-y rounded-xl border bg-card">
+    <ul className="flex flex-col divide-y divide-border-soft rounded-3xl bg-card shadow-[0_8px_30px_rgb(31_26_23/6%)]">
       {settlement.lines.map((line, index) => (
         <li key={index} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="min-w-0">
@@ -122,17 +122,17 @@ function RefundCell({ order, locale }: { order: SettlementOrder; locale: string 
 export function SettlementOrders({ orders, context }: { orders: SettlementOrder[]; context: ZoneAndLocale }) {
   return (
     <>
-      <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
+      <div className="hidden overflow-hidden rounded-3xl bg-card shadow-[0_8px_30px_rgb(31_26_23/6%)] lg:block">
         <Table>
           <TableHeader className="bg-muted/40">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="pl-4">Order</TableHead>
+              <TableHead className="pl-6">Order</TableHead>
               <TableHead>Placed</TableHead>
               <TableHead className="text-right">Order total</TableHead>
               <TableHead className="text-right">Commission</TableHead>
               <TableHead className="text-right">Net</TableHead>
               <TableHead>Refund</TableHead>
-              <TableHead className="pr-4 text-right">
+              <TableHead className="pr-6 text-right">
                 <span className="sr-only">Actions</span>
               </TableHead>
             </TableRow>
@@ -140,7 +140,7 @@ export function SettlementOrders({ orders, context }: { orders: SettlementOrder[
           <TableBody>
             {orders.map((order, index) => (
               <TableRow key={`${order.reference}-${index}`}>
-                <TableCell className="pl-4">
+                <TableCell className="pl-6">
                   <OrderReference order={order} />
                 </TableCell>
                 <TableCell className="text-muted-foreground">
@@ -158,14 +158,14 @@ export function SettlementOrders({ orders, context }: { orders: SettlementOrder[
                 <TableCell className="max-w-56 whitespace-normal">
                   <RefundCell order={order} locale={context.locale} />
                 </TableCell>
-                <TableCell className="pr-4 text-right">
+                <TableCell className="pr-6 text-right">
                   {orderHref(order) === null ? null : (
                     <Link
                       href={orderHref(order)!}
-                      className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      className="inline-flex items-center gap-2 rounded-full text-sm font-semibold text-primary-text outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                     >
                       View<span className="sr-only"> order {order.reference}</span>
-                      <ChevronRight aria-hidden className="size-4" />
+                      <span aria-hidden className="grid size-7 place-items-center rounded-full bg-primary-soft"><ArrowRight className="size-3.5" /></span>
                     </Link>
                   )}
                 </TableCell>
@@ -175,9 +175,9 @@ export function SettlementOrders({ orders, context }: { orders: SettlementOrder[
         </Table>
       </div>
 
-      <ul className="flex flex-col gap-3 md:hidden">
+      <ul className="grid gap-3 md:grid-cols-2 lg:hidden">
         {orders.map((order, index) => (
-          <li key={`${order.reference}-${index}`} className="rounded-xl border bg-card p-4">
+          <li key={`${order.reference}-${index}`} className="rounded-2xl bg-card p-4 shadow-[0_8px_30px_rgb(31_26_23/6%)]">
             <div className="flex items-start justify-between gap-3">
               <p>
                 <OrderReference order={order} />

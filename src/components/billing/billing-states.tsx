@@ -12,7 +12,7 @@ export function BillingNotConnected() {
       icon={PlugZap}
       title="Billing isn't connected yet"
       description="Your plan and fees will appear here once the Foodi billing service is connected. No plan or fee details are shown until then."
-      className="min-h-72 bg-card"
+      className="min-h-72 rounded-3xl border-border bg-card"
     />
   )
 }
@@ -24,7 +24,7 @@ export function NoPlan() {
       icon={FileQuestion}
       title="No plan found"
       description="We couldn't find a plan for your restaurant. If you expected one, contact Foodi support."
-      className="min-h-72 bg-card"
+      className="min-h-72 rounded-3xl border-border bg-card"
     />
   )
 }
@@ -33,9 +33,9 @@ export function BillingError({ retryHref }: { retryHref: string }) {
   return (
     <div
       role="alert"
-      className="flex min-h-72 flex-col items-center justify-center rounded-lg border border-dashed bg-card px-6 py-10 text-center"
+      className="flex min-h-72 flex-col items-center justify-center rounded-3xl bg-card px-6 py-10 text-center shadow-[0_8px_30px_rgb(31_26_23/6%)]"
     >
-      <span className="grid size-10 place-items-center rounded-full bg-red-50 text-red-600">
+      <span className="grid size-11 place-items-center rounded-full bg-danger-soft text-danger-foreground">
         <AlertTriangle aria-hidden className="size-5" />
       </span>
       <p className="mt-3 text-sm font-medium">We couldn&apos;t load your plan</p>
@@ -54,7 +54,7 @@ export function BillingForbidden() {
   return (
     <div
       role="alert"
-      className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-card px-6 py-10 text-center"
+      className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-3xl bg-card px-6 py-10 text-center shadow-[0_8px_30px_rgb(31_26_23/6%)]"
     >
       <ShieldAlert aria-hidden className="size-6 text-muted-foreground" />
       <p className="text-sm font-medium">You don&apos;t have permission to see billing</p>
@@ -66,10 +66,10 @@ export function BillingForbidden() {
 export function BillingSkeleton() {
   return (
     <div role="status" aria-label="Loading plan" className="flex flex-col gap-6">
-      <Skeleton className="h-28 rounded-xl" />
+      <Skeleton className="h-28 rounded-3xl" />
       <div className="grid gap-6 md:grid-cols-2">
-        <Skeleton className="h-40 rounded-xl" />
-        <Skeleton className="h-40 rounded-xl" />
+        <Skeleton className="h-40 rounded-3xl" />
+        <Skeleton className="h-40 rounded-3xl" />
       </div>
     </div>
   )

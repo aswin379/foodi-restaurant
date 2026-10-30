@@ -20,6 +20,7 @@ export default function MealPeriodsPage({ searchParams }: PageProps<"/menu/meal-
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        variant="hero"
         title="Meal periods"
         description="Name the times you serve, like Lunch or Dinner, and use them in item and category schedules. Changing a meal period changes it everywhere it's used."
       />
@@ -74,7 +75,7 @@ async function MealPeriodsView({
           icon={CalendarClock}
           title="No meal periods yet"
           description="There are no ready-made meal periods. Add your own with Add meal period, then choose them in an item's or category's schedule."
-          className="min-h-72 bg-card"
+          className="min-h-72 rounded-3xl border-border bg-card"
         />
       ) : (
         <MealPeriodsList periods={periods} timeZone={context.timeZone} />

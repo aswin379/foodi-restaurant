@@ -31,6 +31,7 @@ export default function ReviewsPage({ searchParams }: PageProps<"/reviews">) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        variant="hero"
         title="Reviews"
         description="See what customers say about your restaurant, and reply to their reviews."
       />

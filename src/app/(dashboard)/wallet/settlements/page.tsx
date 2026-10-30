@@ -26,12 +26,13 @@ export default function SettlementsPage({ searchParams }: PageProps<"/wallet/set
     <div className="flex flex-col gap-6">
       <Link
         href={WALLET_PATH}
-        className="inline-flex w-fit items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="inline-flex w-fit items-center gap-2 rounded-full text-sm font-semibold text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
-        <ArrowLeft aria-hidden className="size-4" />
+        <span aria-hidden className="grid size-8 place-items-center rounded-full bg-card shadow-[0_8px_30px_rgb(31_26_23/6%)]"><ArrowLeft className="size-4" /></span>
         Wallet
       </Link>
       <PageHeader
+        variant="hero"
         title="Settlements"
         description="Each settlement's period, status and amounts, as reported by Foodi."
       />

@@ -100,12 +100,12 @@ export function WeeklyHoursEditor({ hours }: { hours: WeeklyHours }) {
           tabIndex={-1}
           role="alert"
           aria-labelledby="hours-error-summary-title"
-          className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-destructive/30"
+          className="rounded-2xl border border-danger-line bg-danger-soft px-4 py-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          <p id="hours-error-summary-title" className="font-medium text-destructive">
+          <p id="hours-error-summary-title" className="font-semibold text-danger-foreground">
             Check {errorPaths.length === 1 ? "1 thing" : `${errorPaths.length} things`} before saving
           </p>
-          <ul className="mt-2 flex list-disc flex-col gap-1 pl-5">
+          <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-danger-foreground">
             {errorPaths.map((path) => (
               <li key={path}>
                 <a
@@ -133,12 +133,12 @@ export function WeeklyHoursEditor({ hours }: { hours: WeeklyHours }) {
       </p>
 
       <Tabs value={active} onValueChange={(value) => setActive(value as OrderType)}>
-        <TabsList aria-label="Order type">
+        <TabsList aria-label="Order type" className="h-auto flex-wrap">
           {ORDER_TYPES.map((type) => (
             <TabsTrigger key={type} value={type}>
               {orderTypeLabels[type]}
               {errorCount(type) ? (
-                <span className="ml-1 rounded-full bg-destructive px-1.5 text-[10px] text-white">
+                <span className="ml-1 rounded-full border border-danger-line bg-danger-soft px-1.5 py-px text-[11px] font-semibold text-danger-foreground">
                   {errorCount(type)}
                   <span className="sr-only"> {errorCount(type) === 1 ? "error" : "errors"}</span>
                 </span>
@@ -174,7 +174,7 @@ export function WeeklyHoursEditor({ hours }: { hours: WeeklyHours }) {
       </Tabs>
 
       {warnings.length ? (
-        <ul className="flex flex-col gap-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+        <ul className="flex flex-col gap-1 rounded-2xl border border-warning-line bg-warning-soft px-4 py-3 text-xs text-warning-foreground">
           {warnings.map((warning) => (
             <li key={warning} className="flex items-center gap-1.5">
               <AlertTriangle aria-hidden className="size-3.5 shrink-0" />
@@ -185,8 +185,8 @@ export function WeeklyHoursEditor({ hours }: { hours: WeeklyHours }) {
       ) : null}
 
       {saves ? (
-        <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs" aria-label="Saves as">
-          <p className="font-medium">Saves as</p>
+        <div className="rounded-2xl bg-background/70 p-4 text-xs ring-1 ring-border-soft" aria-label="Saves as">
+          <p className="text-sm font-semibold">Saves as</p>
           <dl className="mt-1 grid gap-1 text-muted-foreground sm:grid-cols-[auto_1fr] sm:gap-x-3">
             {ORDER_TYPES.map((type) => (
               <div key={type} className="contents">
@@ -200,7 +200,7 @@ export function WeeklyHoursEditor({ hours }: { hours: WeeklyHours }) {
 
       {generalFailure ? <ActionResultMessage result={generalFailure} successText="" /> : null}
 
-      <div className="flex justify-end border-t pt-4">
+      <div className="flex justify-end border-t border-border-soft pt-4">
         <Button type="submit" className="sm:min-w-36" aria-disabled={command.pending || undefined}>
           {command.pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
           Save hours
@@ -243,7 +243,7 @@ function DayRow({
   const allDayId = `${hoursFieldId(dayPath)}-all-day`
 
   return (
-    <li className="flex flex-col gap-3 rounded-lg border bg-background p-3">
+    <li className="flex flex-col gap-3 rounded-2xl bg-background/70 p-4 ring-1 ring-border-soft">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-center gap-2.5">

@@ -18,7 +18,7 @@ export function PreviewOrderControls() {
 
   return (
     <div className="flex flex-wrap items-center gap-2" aria-label="Preview tools" role="group">
-      <span className="text-xs font-medium tracking-wide text-amber-900 uppercase">Preview tools</span>
+      <span className="text-xs font-medium tracking-wide text-warning-foreground uppercase">Preview tools</span>
       <Button
         type="button"
         variant="outline"

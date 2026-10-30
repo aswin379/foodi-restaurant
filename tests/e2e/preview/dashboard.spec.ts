@@ -46,10 +46,11 @@ test("each section shows labelled preview data with links to real destinations",
 
   const recent = section(page, "Recent orders")
   await expect(recent).toContainText("Preview: sample orders")
-  const rows = recent.getByRole("list", { name: "Most recent orders" }).getByRole("listitem")
-  expect(await rows.count()).toBeGreaterThan(0)
-  expect(await rows.count()).toBeLessThanOrEqual(5)
-  for (const href of await rows.getByRole("link").evaluateAll((links) => links.map((link) => link.getAttribute("href")))) {
+  // A table from lg up, cards below: whichever is shown, each order is one link to its detail page.
+  const orderLinks = recent.locator('a[href^="/orders/prv-"]').filter({ visible: true })
+  expect(await orderLinks.count()).toBeGreaterThan(0)
+  expect(await orderLinks.count()).toBeLessThanOrEqual(5)
+  for (const href of await orderLinks.evaluateAll((links) => links.map((link) => link.getAttribute("href")))) {
     expect(href).toMatch(/^\/orders\/prv-\d+$/)
   }
 
@@ -97,7 +98,7 @@ test("every attention and recent-order link opens an existing page", async ({ pa
 
 test("a recent order opens its detail page", async ({ page }) => {
   await gotoAndSettle(page, "/dashboard")
-  const first = section(page, "Recent orders").getByRole("list", { name: "Most recent orders" }).getByRole("link").first()
+  const first = section(page, "Recent orders").locator('a[href^="/orders/prv-"]').filter({ visible: true }).first()
   const reference = (await first.textContent())!.trim()
   await first.click()
   await expect(page).toHaveURL(new RegExp(`/orders/${reference.toLowerCase()}$`))
@@ -157,4 +158,145 @@ test("the dashboard at tablet width (820 px) has no overflow or serious accessib
   await expectNoHorizontalOverflow(page)
   await expectNoSeriousA11yViolations(page)
   expectNoConsoleErrors(page)
+})
+
+// ---- Application shell (redesign Gate 4) ----
+
+/** Overlays fade in; axe must see the settled colours, not a half-transparent frame. */
+async function settleAnimations(page: Page) {
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+        .map((animation) => animation.finished.catch(() => undefined))
+    )
+  )
+}
+
+const isDesktop = (page: Page) => (page.viewportSize()?.width ?? 0) >= 1024
+
+test.describe("application shell", () => {
+  test("the Notifications popover and the Account menu have no accessibility findings, and give focus back", async ({ page }) => {
+    await gotoAndSettle(page, "/dashboard")
+
+    const bell = page.getByRole("button", { name: "Notifications" })
+    await bell.click()
+    await expect(page.getByRole("dialog", { name: "Notifications" })).toBeVisible()
+    await expect(page.getByText("No notifications")).toBeVisible()
+    await settleAnimations(page)
+    // Nothing is exempted: the popover is not a menu, and it doesn't hide the page from assistive technology.
+    await expectNoSeriousA11yViolations(page)
+    await page.keyboard.press("Escape")
+    await expect(page.getByRole("dialog", { name: "Notifications" })).toHaveCount(0)
+    await expect(bell).toBeFocused()
+
+    const account = page.getByRole("button", { name: "Account menu" })
+    await account.click()
+    await expect(page.getByRole("menuitem", { name: "Log out" })).toBeVisible()
+    await settleAnimations(page)
+    await expectNoSeriousA11yViolations(page)
+    await page.keyboard.press("Escape")
+    await expect(page.getByRole("menu")).toHaveCount(0)
+    await expect(account).toBeFocused()
+    expectNoConsoleErrors(page)
+  })
+
+  test("an open menu never hides the skip link inside an aria-hidden region", async ({ page }) => {
+    await gotoAndSettle(page, "/dashboard")
+    await page.getByRole("button", { name: "Account menu" }).click()
+    await expect(page.getByRole("menuitem", { name: "Log out" })).toBeVisible()
+    const hiddenAncestors = page.locator('a[href="#main-content"]').locator('xpath=ancestor-or-self::*[@aria-hidden="true"]')
+    await expect(hiddenAncestors).toHaveCount(0)
+  })
+
+  test("the menus work from the keyboard", async ({ page }) => {
+    await gotoAndSettle(page, "/dashboard")
+    const account = page.getByRole("button", { name: "Account menu" })
+    await account.focus()
+    await page.keyboard.press("Enter")
+    await expect(page.getByRole("menu")).toBeVisible()
+    await page.keyboard.press("ArrowDown")
+    await expect(page.getByRole("menuitem", { name: "Log out" })).toBeFocused()
+    await page.keyboard.press("Escape")
+    await expect(account).toBeFocused()
+  })
+
+  test("the skip link is the first stop and moves focus to the page content", async ({ page }) => {
+    await gotoAndSettle(page, "/dashboard")
+    await page.keyboard.press("Tab")
+    const skip = page.getByRole("link", { name: "Skip to content" })
+    await expect(skip).toBeFocused()
+    await expect(skip).toBeVisible()
+    await page.keyboard.press("Enter")
+    await expect(page.locator("#main-content")).toBeFocused()
+  })
+
+  test("the sidebar shows the groups, the active page, the restaurant card and Log out", async ({ page }) => {
+    test.skip(!isDesktop(page), "the sidebar is a drawer below 1024px; see the next test")
+    await gotoAndSettle(page, "/dashboard")
+    const sidebar = page.getByRole("complementary", { name: "Sidebar" })
+    await expect(sidebar).toBeVisible()
+    for (const group of ["Overview", "Operations", "Restaurant", "Business", "Help"]) {
+      await expect(sidebar.getByRole("heading", { level: 2, name: group })).toBeAttached()
+    }
+    await expect(sidebar.getByRole("link", { name: "Dashboard" })).toHaveAttribute("aria-current", "page")
+    await expect(sidebar.getByRole("link", { name: "Orders" })).not.toHaveAttribute("aria-current", "page")
+    // The restaurant card says plainly that nothing is connected: no invented name, ID or open status.
+    await expect(sidebar).toContainText("Your restaurant")
+    await expect(sidebar).toContainText("Not connected")
+    await expect(sidebar.getByRole("button", { name: "Log out" })).toBeVisible()
+    expect(await sidebar.evaluate((element) => element.getBoundingClientRect().width)).toBe(288)
+    // "Soon" items stay disabled, not links.
+    await expect(sidebar.getByRole("link", { name: /^Delivery/ })).toHaveCount(0)
+  })
+
+  test("the sidebar collapses to a rail and back, keeping every name for screen readers", async ({ page }) => {
+    test.skip(!isDesktop(page), "the sidebar is a drawer below 1024px")
+    await gotoAndSettle(page, "/dashboard")
+    const sidebar = page.getByRole("complementary", { name: "Sidebar" })
+    await page.getByRole("button", { name: "Collapse sidebar" }).click()
+    await expect.poll(() => sidebar.evaluate((element) => element.getBoundingClientRect().width)).toBe(108)
+    await expect(sidebar.getByRole("link", { name: "Orders" })).toBeVisible()
+    await expect(sidebar.getByRole("button", { name: "Log out" })).toBeVisible()
+    await expectNoSeriousA11yViolations(page)
+    await page.getByRole("button", { name: "Expand sidebar" }).click()
+    await expect.poll(() => sidebar.evaluate((element) => element.getBoundingClientRect().width)).toBe(288)
+  })
+
+  test("below 1024px the navigation is a drawer with the same links, and choosing one closes it", async ({ page }) => {
+    test.skip(isDesktop(page), "the drawer only exists below 1024px")
+    await gotoAndSettle(page, "/dashboard")
+    await expect(page.getByRole("complementary", { name: "Sidebar" })).toBeHidden()
+    await page.getByRole("button", { name: "Open navigation" }).click()
+    const drawer = page.getByRole("dialog", { name: "Navigation" })
+    await expect(drawer).toBeVisible()
+    await expect(drawer).toContainText("Not connected")
+    await expect(drawer.getByRole("button", { name: "Log out" })).toBeVisible()
+    await settleAnimations(page)
+    await expectNoSeriousA11yViolations(page)
+    await drawer.getByRole("link", { name: "Orders" }).click()
+    await expect(page).toHaveURL(/\/orders$/)
+    await expect(drawer).toHaveCount(0)
+  })
+
+  test("the dashboard recomposes at every width without overflow or accessibility findings", async ({ page }) => {
+    for (const width of [1440, 1024, 820, 390]) {
+      await page.setViewportSize({ width, height: 900 })
+      await gotoAndSettle(page, "/dashboard")
+      await expect(section(page, "Live orders")).toBeVisible()
+      await expectNoHorizontalOverflow(page)
+      await expectNoSeriousA11yViolations(page)
+    }
+    expectNoConsoleErrors(page)
+  })
+
+  test("the dashboard shows only what the data contract supplies: no invented metrics, charts or search", async ({ page }) => {
+    await gotoAndSettle(page, "/dashboard")
+    const main = page.locator("main")
+    await expect(main).not.toContainText(/sales|revenue|₹\s?24|rating|new customers|vs\. yesterday|top selling|analytics/i)
+    await expect(page.getByRole("searchbox")).toHaveCount(0)
+    await expect(page.getByRole("search")).toHaveCount(0)
+    await expect(page.locator("main canvas, main svg[role='img'][aria-label*='chart' i]")).toHaveCount(0)
+  })
 })

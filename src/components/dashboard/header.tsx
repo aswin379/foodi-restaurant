@@ -4,13 +4,13 @@ import { Suspense, startTransition } from "react"
 import { usePathname } from "next/navigation"
 import {
   Bell,
+  ChevronDown,
   CircleUser,
   LogOut,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
-  Store,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -22,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { signOut } from "@/lib/auth/sign-out"
 
 import { getActiveNavItem } from "./navigation"
@@ -38,7 +39,7 @@ export function DashboardHeader({
   onOpenMobileNav,
 }: DashboardHeaderProps) {
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 bg-background/60 px-4 backdrop-blur-md sm:px-6 lg:px-10">
       <Button
         variant="ghost"
         size="icon"
@@ -66,8 +67,7 @@ export function DashboardHeader({
       </Suspense>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        <RestaurantIdentity />
-        <NotificationsMenu />
+        <NotificationsPopover />
         <AccountMenu />
       </div>
     </header>
@@ -76,76 +76,50 @@ export function DashboardHeader({
 
 function CurrentPageTitle() {
   const title = getActiveNavItem(usePathname())?.title ?? "Dashboard"
-  return (
-    <p className="min-w-0 truncate text-[15px] font-semibold text-foreground">
-      {title}
-    </p>
-  )
+  return <p className="min-w-0 truncate text-base font-semibold text-foreground">{title}</p>
 }
 
-// Placeholder until restaurant identity comes from an authenticated session.
-function RestaurantIdentity() {
+// A popover, not a menu: it holds a message, not a list of actions, so it has no menu semantics to get wrong.
+// It is non-modal, so opening it never hides the rest of the page from assistive technology.
+function NotificationsPopover() {
   return (
-    <div className="mr-1 hidden items-center gap-2.5 rounded-lg border bg-card px-3 py-1.5 md:flex">
-      <span className="grid size-7 place-items-center rounded-md bg-muted text-muted-foreground">
-        <Store aria-hidden className="size-4" />
-      </span>
-      <span className="flex flex-col leading-tight">
-        <span className="text-sm font-medium">Your restaurant</span>
-        <span className="text-xs text-muted-foreground">Not connected</span>
-      </span>
-    </div>
-  )
-}
-
-function NotificationsMenu() {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Notifications"
-          className="text-muted-foreground"
-        >
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label="Notifications" className="rounded-full bg-card text-muted-foreground shadow-xs hover:bg-primary-faint">
           <Bell aria-hidden />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72 p-0">
-        <DropdownMenuLabel className="border-b px-4 py-3">
-          Notifications
-        </DropdownMenuLabel>
+      </PopoverTrigger>
+      <PopoverContent align="end" aria-label="Notifications" className="w-80 p-0">
+        <p className="border-b px-4 py-3 text-sm font-semibold">Notifications</p>
         <div className="flex flex-col items-center gap-2 px-6 py-8 text-center">
-          <Bell aria-hidden className="size-5 text-muted-foreground" />
-          <p className="text-sm font-medium">No notifications</p>
+          <span className="grid size-10 place-items-center rounded-full bg-primary-soft text-primary-text">
+            <Bell aria-hidden className="size-5" strokeWidth={1.75} />
+          </span>
+          <p className="text-sm font-semibold">No notifications</p>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Order and account alerts will appear here once your restaurant is
-            connected.
+            Order and account alerts will appear here once your restaurant is connected.
           </p>
         </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PopoverContent>
+    </Popover>
   )
 }
 
 function AccountMenu() {
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          aria-label="Account menu"
-          className="gap-2 px-2 text-muted-foreground"
-        >
-          <CircleUser aria-hidden className="size-5" />
-          <span className="hidden text-sm font-medium text-foreground sm:inline">
-            Account
+        <Button variant="ghost" aria-label="Account menu" className="gap-2 rounded-full bg-card py-1 pr-3 pl-1 text-foreground shadow-xs hover:bg-primary-faint">
+          <span className="grid size-8 place-items-center rounded-full bg-primary-soft text-primary-text">
+            <CircleUser aria-hidden className="size-5" strokeWidth={1.75} />
           </span>
+          <span className="hidden text-sm font-semibold sm:inline">Account</span>
+          <ChevronDown aria-hidden className="hidden size-4 text-muted-foreground sm:block" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60">
+      <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="font-normal">
-          <p className="text-sm font-medium">Account</p>
+          <p className="text-sm font-semibold">Account</p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
             Your account details will appear here once sign-in is connected.
           </p>

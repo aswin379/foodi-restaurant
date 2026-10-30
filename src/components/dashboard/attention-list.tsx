@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { CircleCheck, CircleAlert, CircleHelp } from "lucide-react"
+import { ArrowRight, CircleAlert, CircleCheck, CircleHelp } from "lucide-react"
 
 import { attentionItems, type AttentionInput } from "@/lib/dashboard/attention"
 import { isServiceError } from "@/lib/data-source/errors"
@@ -90,41 +90,46 @@ export async function AttentionList({
       description="Pause, waiting and late orders, unavailable items and sold-out dishes."
       badge={previewSources.length ? <PreviewDataBadge source={`sample ${listOf(previewSources)}`} /> : undefined}
     >
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         {items.length ? (
-          <ul className="flex flex-col gap-2" aria-label="Things that need attention">
+          <ul className="flex flex-col gap-3" aria-label="Things that need attention">
             {items.map((item) => (
-              <li key={item.id} className="flex flex-col gap-1 rounded-lg border border-amber-300 bg-amber-50/60 px-3 py-2.5 text-sm">
-                <span className="flex items-start gap-2 font-medium">
-                  <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-amber-700" />
-                  <span className="min-w-0 break-words">
+              <li key={item.id} className="flex gap-3 rounded-2xl border bg-card p-3.5 text-sm shadow-xs">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-warning-soft text-warning-foreground">
+                  <CircleAlert aria-hidden strokeWidth={1.75} className="size-5" />
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="font-semibold break-words">
                     {item.title}
                     {modes[itemSource[item.id]] === "preview" ? (
-                      <span className="ml-1 font-normal text-amber-900"> (preview)</span>
+                      <span className="ml-1 font-normal text-warning-foreground"> (preview)</span>
                     ) : null}
                   </span>
+                  <span className="break-words text-muted-foreground">{item.description}</span>
+                  <Link
+                    href={item.href}
+                    className="mt-1 inline-flex w-fit items-center gap-1 rounded-sm font-semibold text-primary-text outline-none hover:underline"
+                  >
+                    {item.linkLabel}
+                    <ArrowRight aria-hidden className="size-3.5" />
+                  </Link>
                 </span>
-                <span className="pl-6 break-words text-muted-foreground">{item.description}</span>
-                <Link
-                  href={item.href}
-                  className="ml-6 w-fit rounded-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  {item.linkLabel}
-                </Link>
               </li>
             ))}
           </ul>
         ) : unchecked.length === CHECK_COUNT ? (
           // Nothing could be checked: say so, never "all clear".
-          <p className="text-sm text-muted-foreground">These checks couldn&apos;t run, so nothing can be shown yet.</p>
+          <p className="rounded-xl border border-dashed bg-muted/50 px-4 py-4 text-sm text-muted-foreground">
+            These checks couldn&apos;t run, so nothing can be shown yet.
+          </p>
         ) : (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CircleCheck aria-hidden className="size-4 shrink-0 text-emerald-700" />
+          <p className="flex items-center gap-3 rounded-xl bg-success-soft px-4 py-3 text-sm text-success-foreground">
+            <CircleCheck aria-hidden className="size-5 shrink-0" />
             {unchecked.length ? "Nothing needs attention in the checks that loaded." : "Nothing needs attention right now."}
           </p>
         )}
         {unchecked.length ? (
-          <ul className="flex flex-col gap-1 text-xs text-muted-foreground" aria-label="Checks that couldn't run">
+          <ul className="flex flex-col gap-1.5 text-xs text-muted-foreground" aria-label="Checks that couldn't run">
             {unchecked.map(({ source, reason }) => (
               <li key={source} className="flex items-start gap-1.5">
                 <CircleHelp aria-hidden className="mt-0.5 size-3.5 shrink-0" />

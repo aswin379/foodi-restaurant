@@ -18,6 +18,7 @@ export default function NewMenuItemPage() {
     <div className="flex flex-col gap-6">
       <BackToMenuLink />
       <PageHeader
+        variant="hero"
         title="Add menu item"
         description="Describe the item, set its price, sizes and options, and choose its category."
       />

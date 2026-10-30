@@ -11,7 +11,7 @@ export function RatingStars({ rating, className }: { rating: ReviewRating; class
         <Star
           key={star}
           aria-hidden
-          className={cn("size-4", star <= rating ? "fill-amber-400 text-amber-500" : "text-muted-foreground/40")}
+          className={cn("size-4", star <= rating ? "fill-warning text-warning" : "text-muted-foreground/40")}
         />
       ))}
     </span>

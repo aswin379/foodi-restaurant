@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ChevronRight, Clock, ReceiptText, Store } from "lucide-react"
+import { ArrowRight, Clock, ReceiptText, Store } from "lucide-react"
 
 import { PageHeader } from "@/components/dashboard/page-header"
 import { SettingsNav } from "@/components/settings/settings-nav"
@@ -34,21 +34,29 @@ const SECTIONS = [
 export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Settings" description="How your restaurant appears and how it takes orders." />
-      <SettingsNav current="/settings" />
+      <PageHeader
+        variant="hero"
+        title="Settings"
+        description="How your restaurant appears and how it takes orders."
+        actions={<SettingsNav current="/settings" />}
+      />
       <ul className="grid gap-3 md:grid-cols-3" aria-label="Settings sections">
         {SECTIONS.map((section) => (
           <li key={section.href}>
             <Link
               href={section.href}
-              className="flex h-full items-start gap-3 rounded-xl border bg-card p-4 outline-none hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="group flex h-full items-start gap-4 rounded-3xl bg-card p-5 shadow-[0_8px_30px_rgb(31_26_23/6%)] outline-none transition-shadow hover:shadow-[0_12px_36px_rgb(214_63_8/16%)] focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:p-6"
             >
-              <section.icon aria-hidden className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-              <span className="flex min-w-0 flex-1 flex-col gap-1">
-                <span className="font-medium">{section.title}</span>
-                <span className="text-xs leading-relaxed text-muted-foreground">{section.description}</span>
+              <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-orange to-primary text-primary-foreground shadow-[0_6px_14px_rgb(214_63_8/30%)]">
+                <section.icon className="size-6" strokeWidth={1.75} />
               </span>
-              <ChevronRight aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <span className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="text-lg font-semibold">{section.title}</span>
+                <span className="text-sm leading-relaxed text-muted-foreground">{section.description}</span>
+              </span>
+              <span aria-hidden className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-primary-soft text-primary-text">
+                <ArrowRight className="size-4" />
+              </span>
             </Link>
           </li>
         ))}

@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 // the paper too.
 export default function PrintOrderPage({ params }: PageProps<"/print/orders/[orderId]">) {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 bg-white p-6 text-black print:max-w-none print:p-0">
+    <main className="mx-auto my-6 flex w-full max-w-md flex-col gap-6 rounded-3xl bg-white p-6 text-black shadow-[0_8px_30px_rgb(31_26_23/6%)] print:my-0 print:max-w-none print:rounded-none print:p-0 print:shadow-none">
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
         <PrintView params={params} />
       </Suspense>
@@ -48,7 +48,7 @@ async function PrintView({ params }: { params: Promise<{ orderId: string }> }) {
   return (
     <>
       <div className="flex flex-col gap-3 print:hidden">
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+        <p className="rounded-2xl border border-warning-line bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
           <span className="font-semibold">Development preview.</span> This page isn&apos;t protected by sign-in yet.
         </p>
         <div className="flex items-center justify-between gap-3">

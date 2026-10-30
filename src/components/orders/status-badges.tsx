@@ -5,22 +5,23 @@ import type { OrderStatus, OrderSummary, PaymentStatus } from "@/lib/orders/type
 import { cn } from "@/lib/utils"
 
 const orderStatusTone: Record<OrderStatus, string> = {
-  scheduled: "border-indigo-200 bg-indigo-50 text-indigo-800",
-  pending: "border-amber-200 bg-amber-50 text-amber-800",
-  accepted: "border-sky-200 bg-sky-50 text-sky-800",
-  ready: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  out_for_delivery: "border-teal-200 bg-teal-50 text-teal-800",
-  completed: "border-stone-200 bg-stone-100 text-stone-700",
-  rejected: "border-red-200 bg-red-50 text-red-700",
-  cancelled: "border-red-200 bg-red-50 text-red-700",
+  // The design system's status tones: one colour per meaning, everywhere an order status is shown.
+  scheduled: "border-violet-line bg-violet-soft text-violet-foreground",
+  pending: "border-warning-line bg-warning-soft text-warning-foreground",
+  accepted: "border-info-line bg-info-soft text-info-foreground",
+  ready: "border-success-line bg-success-soft text-success-foreground",
+  out_for_delivery: "border-cyan-line bg-cyan-soft text-cyan-foreground",
+  completed: "border-neutral-line bg-neutral-soft text-neutral-foreground",
+  rejected: "border-danger-line bg-danger-soft text-danger-foreground",
+  cancelled: "border-danger-line bg-danger-soft text-danger-foreground",
 }
 
 const paymentStatusTone: Record<PaymentStatus, string> = {
-  unpaid: "text-amber-800",
-  paid: "text-emerald-800",
-  failed: "text-red-700",
-  refund_pending: "text-amber-800",
-  refunded: "text-stone-600",
+  unpaid: "text-warning-foreground",
+  paid: "text-success-foreground",
+  failed: "text-danger-foreground",
+  refund_pending: "text-warning-foreground",
+  refunded: "text-neutral-foreground",
 }
 
 const pill =

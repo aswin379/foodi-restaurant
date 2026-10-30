@@ -31,6 +31,7 @@ export default function CustomersPage({ searchParams }: PageProps<"/customers">)
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        variant="hero"
         title="Customers"
         description="The people who have ordered from your restaurant, with their order history. Contact details are hidden."
       />

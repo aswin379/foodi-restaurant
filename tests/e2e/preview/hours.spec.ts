@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 
-import { expectNoConsoleErrors, gotoAndSettle } from "../helpers"
+import { expectNoConsoleErrors, expectNoHorizontalOverflow, expectNoSeriousA11yViolations, gotoAndSettle } from "../helpers"
 
 // Hours, special dates and pause against preview data. They change the shared
 // preview store, so they run one at a time and each starts from the reset
@@ -190,4 +190,104 @@ test("the pause dialog works from the keyboard, and Escape changes nothing", asy
   await expect(dialog).toHaveCount(0)
   await expect(page.getByRole("button", { name: "Pause new orders" })).toBeFocused()
   await expect(page.getByRole("region", { name: /Restaurant paused/ })).toHaveCount(0)
+})
+
+
+// Hours visual redesign: accessibility and layout. These run in this file's serial, reset-per-test
+// step because pausing changes the shared preview store.
+
+async function expectCleanLayout(page: Page) {
+  await expectNoSeriousA11yViolations(page)
+  await expectNoHorizontalOverflow(page)
+}
+
+test("weekly hours and special dates have no serious accessibility violations or overflow", async ({ page }) => {
+  await gotoAndSettle(page, "/hours")
+  await expect(page.getByRole("heading", { level: 1, name: "Availability & hours" })).toBeVisible()
+  await expectCleanLayout(page)
+  for (const tab of ["Takeaway", "Dine-in"]) {
+    await page.getByRole("tab", { name: tab }).click()
+    await expectCleanLayout(page)
+  }
+  await gotoAndSettle(page, "/hours/special-dates")
+  await expect(page.getByRole("heading", { level: 2, name: "Upcoming" })).toBeVisible()
+  await expectCleanLayout(page)
+})
+
+test("the empty and error scenarios are accessible and say what happened", async ({ page }) => {
+  await gotoAndSettle(page, "/hours/special-dates?preview=empty")
+  await expect(page.getByText("No special dates coming up.")).toBeVisible()
+  await expectCleanLayout(page)
+  await gotoAndSettle(page, "/hours?preview=error")
+  const alert = page.getByRole("alert").filter({ hasText: "We couldn't load your hours" })
+  await expect(alert).toBeVisible()
+  await expect(alert.getByRole("link", { name: "Try again" })).toHaveAttribute("href", "/hours")
+  await expectCleanLayout(page)
+})
+
+test("the pause dialog and the paused state are accessible, with the status in words", async ({ page }) => {
+  await gotoAndSettle(page, "/hours")
+  await page.getByRole("button", { name: "Pause new orders" }).click()
+  const dialog = page.getByRole("dialog", { name: "Pause new orders?" })
+  await expect(dialog).toBeVisible()
+  await page.waitForTimeout(500)
+  await expectNoSeriousA11yViolations(page)
+  await dialog.getByRole("button", { name: "Pause new orders" }).click()
+  const banner = page.getByRole("region", { name: /Restaurant paused until/ })
+  await expect(banner).toBeVisible()
+  await expectCleanLayout(page)
+  const status = page.getByRole("region", { name: "New orders right now" })
+  await expect(status.getByText("Paused", { exact: true })).toHaveCount(3)
+})
+
+test("each order type's status is a word, and no state uses the brand orange", async ({ page }) => {
+  await gotoAndSettle(page, "/hours")
+  const status = page.getByRole("region", { name: "New orders right now" })
+  // The sample estimate depends on the time of day, so this checks every state that is shown, not a particular one.
+  const tiles = status.getByRole("listitem")
+  await expect(tiles).toHaveCount(3)
+  for (const [index, label] of ["Delivery", "Takeaway", "Dine-in"].entries()) {
+    const tile = tiles.nth(index)
+    await expect(tile.getByText(label, { exact: true })).toBeVisible()
+    const chip = tile.getByText(/^(Open|Closed|Paused|Unresolved)$/)
+    await expect(chip).toBeVisible()
+    // Status colours are the semantic tones, never the primary orange (#D63F08).
+    const colours = await chip.evaluate((node) => {
+      const style = getComputedStyle(node)
+      return [style.color, style.backgroundColor, style.borderTopColor]
+    })
+    for (const colour of colours) expect(colour).not.toBe("rgb(214, 63, 8)")
+  }
+})
+
+test("a time error shows in the summary and as a count on its order-type tab, in words", async ({ page }) => {
+  await gotoAndSettle(page, "/hours")
+  await page.locator('input[type="time"]').filter({ visible: true }).first().fill("")
+  await page.getByRole("button", { name: "Save hours" }).click()
+  const summary = page.getByRole("alert").filter({ hasText: "before saving" })
+  await expect(summary).toBeVisible()
+  await expect(page.getByRole("tab", { name: /Delivery.*1 error/ })).toBeVisible()
+  await expectCleanLayout(page)
+})
+
+test("every weekly-hours control stays inside the viewport", async ({ page }) => {
+  await gotoAndSettle(page, "/hours")
+  const width = page.viewportSize()!.width
+  const boxes = await page
+    .locator("main input:visible, main button:visible, main [role=tab]:visible")
+    .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect()).map((box) => ({ left: box.left, right: box.right })))
+  expect(boxes.length).toBeGreaterThan(10)
+  for (const box of boxes) {
+    expect(box.left).toBeGreaterThanOrEqual(0)
+    expect(box.right).toBeLessThanOrEqual(width)
+  }
+})
+
+test("on the weekly page the live status comes before the weekly editor", async ({ page }) => {
+  await gotoAndSettle(page, "/hours")
+  const statusFirst = await page.getByRole("region", { name: "New orders right now" }).evaluate(
+    (node, other) => Boolean(node.compareDocumentPosition(other as Node) & Node.DOCUMENT_POSITION_FOLLOWING),
+    await page.getByRole("region", { name: "Weekly hours" }).elementHandle()
+  )
+  expect(statusFirst).toBe(true)
 })

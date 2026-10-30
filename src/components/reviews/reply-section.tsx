@@ -45,13 +45,13 @@ export function ReplySection({
 
   return (
     <section aria-labelledby="reply-heading" className="flex flex-col gap-4">
-      <h2 id="reply-heading" ref={headingRef} tabIndex={-1} className="text-base font-semibold outline-none">
+      <h2 id="reply-heading" ref={headingRef} tabIndex={-1} className="text-lg font-semibold outline-none">
         Your reply
       </h2>
       {canReply({ reply }) ? (
         <ReplyForm reviewId={reviewId} />
       ) : reply ? (
-        <div className="flex flex-col gap-2 rounded-lg border bg-muted/30 px-4 py-3 text-sm">
+        <div className="flex flex-col gap-2 rounded-2xl bg-background/70 px-4 py-3 text-sm ring-1 ring-border-soft">
           <p className="whitespace-pre-wrap">{reply.text}</p>
           <p className="text-xs text-muted-foreground">
             Replied <time dateTime={reply.repliedAt}>{formatDateTime(reply.repliedAt, context)}</time>
@@ -106,14 +106,14 @@ function ReplyForm({ reviewId }: { reviewId: string }) {
         />
         <p id={hintId} className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span>A reply can&apos;t be edited or deleted after you send it.</span>
-          <span className={left < 0 ? "font-medium text-destructive" : undefined}>
+          <span className={left < 0 ? "font-medium text-danger-foreground" : undefined}>
             {left >= 0
               ? `${left.toLocaleString("en")} of ${REVIEW_REPLY_MAX_LENGTH.toLocaleString("en")} characters left`
               : `${(-left).toLocaleString("en")} ${left === -1 ? "character" : "characters"} over the ${REVIEW_REPLY_MAX_LENGTH.toLocaleString("en")} limit`}
           </span>
         </p>
         {error ? (
-          <p id={errorId} className="text-sm text-destructive">
+          <p id={errorId} className="text-sm text-danger-foreground">
             {error}
           </p>
         ) : null}

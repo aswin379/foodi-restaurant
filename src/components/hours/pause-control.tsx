@@ -1,7 +1,7 @@
 "use client"
 
 import { useId, useState } from "react"
-import { Loader2, PauseCircle } from "lucide-react"
+import { CircleCheck, Loader2, PauseCircle } from "lucide-react"
 
 import { ActionResultMessage } from "@/components/shared/action-result-message"
 import { Button } from "@/components/ui/button"
@@ -34,14 +34,17 @@ export function PauseControl({ pause, timeZone, locale }: { pause: PauseState; t
   if (pause.paused) return <PauseBanner pause={pause} locale={locale} />
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-col gap-0.5 text-sm">
-        <p className="font-medium">Taking new orders</p>
+    <div className="flex flex-col gap-3 rounded-3xl bg-card px-5 py-4 shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-3 text-sm">
+        <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-success-soft text-success-foreground"><CircleCheck className="size-5" strokeWidth={1.75} /></span>
+        <div className="flex flex-col gap-0.5">
+        <p className="text-base font-semibold">Taking new orders</p>
         <p className="text-xs text-muted-foreground">
           {pause.lastResumedAt
             ? `Last resumed ${formatInstant(pause.lastResumedAt, { timeZone, locale })} by ${actorLabel(pause.lastResumedBy)}.`
             : "Pause new orders when the kitchen needs a break."}
         </p>
+        </div>
       </div>
       <PauseDialog timeZone={timeZone} locale={locale} />
     </div>
@@ -130,7 +133,7 @@ function PauseDialog({ timeZone, locale }: { timeZone: string; locale: string })
               maxLength={PAUSE_REASON_MAX + 50}
             />
             {reasonError ? (
-              <p id={`${id}-reason-error`} className="text-sm text-destructive">
+              <p id={`${id}-reason-error`} className="text-sm text-danger-foreground">
                 {reasonError}
               </p>
             ) : null}
