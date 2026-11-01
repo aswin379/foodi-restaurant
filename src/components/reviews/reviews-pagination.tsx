@@ -1,7 +1,6 @@
-import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { PageLink } from "@/components/shared/page-link"
 import { reviewsHref } from "@/lib/reviews/query"
 import type { ReviewListQuery, ReviewListResult } from "@/lib/reviews/types"
 
@@ -33,19 +32,3 @@ export function ReviewsPagination({ query, result }: { query: ReviewListQuery; r
   )
 }
 
-function PageLink({ href, label, children }: { href: string | null; label: string; children: React.ReactNode }) {
-  if (!href) {
-    return (
-      <Button variant="outline" size="sm" disabled aria-label={label}>
-        {children}
-      </Button>
-    )
-  }
-  return (
-    <Button asChild variant="outline" size="sm">
-      <Link href={href} aria-label={label}>
-        {children}
-      </Link>
-    </Button>
-  )
-}

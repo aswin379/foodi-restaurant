@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { NativeSelect } from "@/components/ui/native-select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { PERMISSION_AREAS, roleLabels, STAFF_ROLES, STAFF_STATUSES, type StaffData, type StaffMember, type StaffRole, type StaffStatus } from "@/lib/staff"
@@ -96,21 +96,27 @@ export function StaffDirectory({ data }: { data: StaffData }) {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="staff-role">Role</Label>
-              <NativeSelect id="staff-role" value={role} onChange={(event) => setRole(event.target.value as StaffRole | "all")} className="h-10 bg-background">
-                <option value="all">All roles</option>
-                {STAFF_ROLES.map((value) => (
-                  <option key={value} value={value}>{roleLabels[value]}</option>
-                ))}
-              </NativeSelect>
+              <Select value={role} onValueChange={(value) => setRole(value as StaffRole | "all")}>
+                <SelectTrigger id="staff-role" className="h-10 bg-background"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All roles</SelectItem>
+                  {STAFF_ROLES.map((value) => (
+                    <SelectItem key={value} value={value}>{roleLabels[value]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="staff-status">Status</Label>
-              <NativeSelect id="staff-status" value={status} onChange={(event) => setStatus(event.target.value as StaffStatus | "all")} className="h-10 bg-background">
-                <option value="all">All statuses</option>
-                {STAFF_STATUSES.map((value) => (
-                  <option key={value} value={value}>{statusStyle[value].label}</option>
-                ))}
-              </NativeSelect>
+              <Select value={status} onValueChange={(value) => setStatus(value as StaffStatus | "all")}>
+                <SelectTrigger id="staff-status" className="h-10 bg-background"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  {STAFF_STATUSES.map((value) => (
+                    <SelectItem key={value} value={value}>{statusStyle[value].label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -291,11 +297,14 @@ function InviteDialog({ onClose }: { onClose: () => void }) {
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor={`${id}-role`}>Role</Label>
-            <NativeSelect id={`${id}-role`} className="h-10" defaultValue="waiter">
-              {STAFF_ROLES.filter((value) => value !== "owner").map((value) => (
-                <option key={value} value={value}>{roleLabels[value]}</option>
-              ))}
-            </NativeSelect>
+            <Select defaultValue="waiter">
+              <SelectTrigger id={`${id}-role`} className="h-10"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {STAFF_ROLES.filter((value) => value !== "owner").map((value) => (
+                  <SelectItem key={value} value={value}>{roleLabels[value]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>

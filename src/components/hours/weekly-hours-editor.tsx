@@ -28,7 +28,7 @@ import {
 import { nextWeekday, WEEKDAYS, weekdayLabels, type Weekday } from "@/lib/time/weekly"
 
 import { FieldError, TimeWindowsFields, type FieldErrors } from "./time-windows-fields"
-import { useHoursCommand } from "./use-hours-command"
+import { useHoursCommand } from "@/hooks/use-hours-command"
 
 const newKey = () => `new-${crypto.randomUUID().slice(0, 8)}`
 const isBlank = (window: { start: string; end: string }) => window.start === "" && window.end === ""

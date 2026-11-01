@@ -34,7 +34,7 @@ import {
 } from "@/lib/menu/validation"
 
 import { ScheduleEditor } from "./schedule-editor"
-import { useMenuCommand } from "./use-menu-command"
+import { useMenuCommand } from "@/hooks/use-menu-command"
 
 /** What the category schedule needs (B3b); null when the restaurant's zone couldn't be loaded. */
 export type CategoryScheduleSupport = { timeZone: string; mealPeriods: MealPeriod[] | null } | null

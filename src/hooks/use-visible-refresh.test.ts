@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { REFRESH_INTERVAL_MS, useVisibleRefresh } from "./use-visible-refresh"
+import { REFRESH_INTERVAL_MS, useVisibleRefresh } from "@/hooks/use-visible-refresh"
 
 const refresh = vi.fn()
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }))

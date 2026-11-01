@@ -3,7 +3,7 @@
 import type { OrderSummary } from "@/lib/orders/types"
 
 import { OrderTimingChip } from "./order-timing"
-import { useNow } from "./use-now"
+import { useNow } from "@/hooks/use-now"
 
 /** A self-updating timing chip for server-rendered pages. */
 export function LiveTiming({

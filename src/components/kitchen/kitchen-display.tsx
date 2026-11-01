@@ -1,15 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import type { LucideIcon } from "lucide-react"
 import { Bike, ChefHat, Inbox, MessageSquareText, PackageCheck, Store, TriangleAlert, UtensilsCrossed } from "lucide-react"
 
 import { OrderActions } from "@/components/orders/order-actions"
 import { isUrgent, OrderTimingChip } from "@/components/orders/order-timing"
-import { useNow } from "@/components/orders/use-now"
+import { useNow } from "@/hooks/use-now"
 import { ConnectionStatus } from "@/components/shared/connection-status"
-import { REFRESH_INTERVAL_MS, useVisibleRefresh } from "@/components/shared/use-visible-refresh"
+import { REFRESH_INTERVAL_MS, useVisibleRefresh } from "@/hooks/use-visible-refresh"
+import { useOnline } from "@/hooks/use-online"
 import { ORDER_TYPES, orderTypeLabels, type OrderType } from "@/lib/domain/order-types"
 import { formatTime, type ZoneAndLocale } from "@/lib/orders/format"
 import type { OrderDetail, OrderStatus, Rider } from "@/lib/orders/types"
@@ -24,22 +25,6 @@ const COLUMNS: Column[] = [
 ]
 
 const TYPE_ICON: Record<OrderType, LucideIcon> = { delivery: Bike, takeaway: Store, dine_in: UtensilsCrossed }
-
-function useOnline() {
-  const [online, setOnline] = useState(true)
-  useEffect(() => {
-    const update = () => setOnline(navigator.onLine)
-    const first = setTimeout(update, 0)
-    window.addEventListener("online", update)
-    window.addEventListener("offline", update)
-    return () => {
-      clearTimeout(first)
-      window.removeEventListener("online", update)
-      window.removeEventListener("offline", update)
-    }
-  }, [])
-  return online
-}
 
 /**
  * Kitchen display on the existing order lifecycle: the same orders and the same actions as the Orders board,

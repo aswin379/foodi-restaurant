@@ -28,6 +28,15 @@
   --color-primary-line: var(--primary-line);
   --color-brand-orange: var(--brand-orange);
 
+  --color-sage: var(--sage);
+  --color-sage-foreground: var(--sage-foreground);
+  --color-sage-soft: var(--sage-soft);
+  --color-sage-line: var(--sage-line);
+  --color-peach: var(--peach);
+  --color-peach-foreground: var(--peach-foreground);
+  --color-peach-soft: var(--peach-soft);
+  --color-peach-line: var(--peach-line);
+
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -89,6 +98,16 @@
   --shadow-sm: 0 1px 2px rgb(31 26 23 / 4%), 0 2px 8px rgb(31 26 23 / 4%);
   --shadow-md: 0 8px 24px rgb(31 26 23 / 12%);
   --shadow-lg: 0 16px 48px rgb(31 26 23 / 18%);
+  /* Premium card elevation and its hover state, used by .surface-card. */
+  --shadow-card: 0 1px 2px rgb(31 26 23 / 4%), 0 8px 28px rgb(31 26 23 / 6%);
+  --shadow-card-hover: 0 2px 4px rgb(31 26 23 / 5%), 0 14px 36px rgb(31 26 23 / 10%);
+
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
 }
 
 :root {
@@ -110,6 +129,15 @@
   --primary-faint: #fff5ef;
   --primary-line: #ffd9c4;
   --brand-orange: #f26a1b;
+
+  --sage: #7a9e87;
+  --sage-foreground: #3b5a47;
+  --sage-soft: #eaf2ec;
+  --sage-line: #cfe1d5;
+  --peach: #ffb58a;
+  --peach-foreground: #8f3a12;
+  --peach-soft: #fff0e5;
+  --peach-line: #ffd9c2;
 
   --secondary: #f6efea;
   --secondary-foreground: #1f1a17;
@@ -184,4 +212,26 @@
 :where(a[href], button, input, select, textarea, summary, [role="button"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"], [tabindex]):focus-visible:not([tabindex="-1"]) {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* Page background: warm white with faint sage and peach glows. */
+.app-backdrop {
+  background:
+    radial-gradient(60rem 30rem at 100% -10%, var(--peach-soft), transparent 60%),
+    radial-gradient(50rem 28rem at -10% 110%, var(--sage-soft), transparent 60%),
+    var(--background);
+}
+
+/* Card elevation with a gentle lift on hover; the lift is skipped for reduced motion. */
+.surface-card {
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+.surface-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .surface-card.lift:hover {
+    transform: translateY(-2px);
+  }
 }

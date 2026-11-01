@@ -14,7 +14,7 @@ import { CONTRAST_TARGETS } from "./contrast"
 // - Interactive control borders use `input` (3:1). Card boundaries and dividers
 //   use the lighter `border` and `border-soft`.
 
-export type TokenGroup = "Brand" | "Surface and text" | "Lines" | "Action" | "Status"
+export type TokenGroup = "Brand" | "Accent" | "Surface and text" | "Lines" | "Action" | "Status"
 
 export type DesignToken = {
   /** The CSS custom property, without the leading dashes (`--primary`). */
@@ -49,6 +49,15 @@ export const designTokens: DesignToken[] = [
   token("primary-faint", "#FFF5EF", "Brand", "Hover surfaces"),
   token("primary-line", "#FFD9C4", "Brand", "Borders on a primary tint"),
   token("brand-orange", "#F26A1B", "Brand", "Decorative accents and icons only"),
+
+  token("sage", "#7A9E87", "Accent", "Decorative: healthy/open indicators, chart accents (never text)"),
+  token("sage-foreground", "#3B5A47", "Accent", "Text on the sage soft fill"),
+  token("sage-soft", "#EAF2EC", "Accent", "Calm highlight fills and icon tiles"),
+  token("sage-line", "#CFE1D5", "Accent", "Borders on a sage tint"),
+  token("peach", "#FFB58A", "Accent", "Decorative: glows, illustrations (never text)"),
+  token("peach-foreground", "#8F3A12", "Accent", "Text on the peach soft fill"),
+  token("peach-soft", "#FFF0E5", "Accent", "Warm highlight fills and empty-state art"),
+  token("peach-line", "#FFD9C2", "Accent", "Borders on a peach tint"),
 
   token("background", "#FBF7F4", "Surface and text", "App page background"),
   token("background-warm", "#FFF1DC", "Surface and text", "Warm end of the page gradient (cream), behind the shell"),
@@ -127,6 +136,10 @@ export const contrastPairs: ContrastPair[] = [
   pair("Destructive button text, hover", "destructive-foreground", "destructive-hover", text),
   pair("Error text on a card", "destructive", "card", text),
   pair("Error text on the page", "destructive", "background", text),
+  pair("Sage text on its soft fill", "sage-foreground", "sage-soft", text),
+  pair("Sage text on a card", "sage-foreground", "card", text),
+  pair("Peach text on its soft fill", "peach-foreground", "peach-soft", text),
+  pair("Peach text on a card", "peach-foreground", "card", text),
   pair("Star against a card", "star", "card", ui),
   pair("Brand orange against a card (icons)", "brand-orange", "card", ui),
   ...tones.map((tone) => pair(`${tone} text on its soft fill`, `${tone}-foreground`, `${tone}-soft`, text)),

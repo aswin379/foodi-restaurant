@@ -25,7 +25,7 @@ import { CANCEL_REASONS, REJECT_REASONS } from "@/lib/orders/reasons"
 import type { OrderDetail, Rider } from "@/lib/orders/types"
 import { cn } from "@/lib/utils"
 
-import type { useOrderCommand } from "./use-order-command"
+import type { useOrderCommand } from "@/hooks/use-order-command"
 
 export type DialogOrder = Pick<
   OrderDetail,

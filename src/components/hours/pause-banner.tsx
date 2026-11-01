@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { actorLabel, PAUSE_EFFECT_NOTE, resumeText } from "@/lib/hours/labels"
 import type { PauseState } from "@/lib/hours/types"
 
-import { useHoursCommand } from "./use-hours-command"
+import { useHoursCommand } from "@/hooks/use-hours-command"
 
 /**
  * Shown while the restaurant is paused (PRD §3.5 dashboard banner). The

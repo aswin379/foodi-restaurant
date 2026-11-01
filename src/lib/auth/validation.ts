@@ -12,18 +12,20 @@ export type LoginInput = {
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_EMAIL_LENGTH = 254
 
+export function validateEmail(email: string): string | undefined {
+  const trimmedEmail = email.trim()
+  if (!trimmedEmail) return "Enter your email address."
+  if (trimmedEmail.length > MAX_EMAIL_LENGTH || !EMAIL_PATTERN.test(trimmedEmail)) {
+    return "Enter a valid email address, like name@restaurant.com."
+  }
+  return undefined
+}
+
 export function validateLoginInput({ email, password }: LoginInput) {
   const errors: LoginFieldErrors = {}
-  const trimmedEmail = email.trim()
 
-  if (!trimmedEmail) {
-    errors.email = "Enter your email address."
-  } else if (
-    trimmedEmail.length > MAX_EMAIL_LENGTH ||
-    !EMAIL_PATTERN.test(trimmedEmail)
-  ) {
-    errors.email = "Enter a valid email address, like name@restaurant.com."
-  }
+  const emailError = validateEmail(email)
+  if (emailError) errors.email = emailError
 
   if (!password) {
     errors.password = "Enter your password."

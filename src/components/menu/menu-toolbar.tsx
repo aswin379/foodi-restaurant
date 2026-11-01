@@ -4,7 +4,7 @@ import { Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { NativeSelect } from "@/components/ui/native-select"
+import { CategoryFilterSelect } from "@/components/menu/category-filter-select"
 import { hasActiveMenuFilters, menuHref } from "@/lib/menu/query"
 import { listFilterLabels } from "@/lib/menu/labels"
 import { MENU_LIST_FILTERS, type MenuCategory, type MenuItemListQuery } from "@/lib/menu/types"
@@ -77,19 +77,11 @@ export function MenuToolbar({
         {categories ? (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="menu-category">Category</Label>
-            <NativeSelect
+            <CategoryFilterSelect
               id="menu-category"
-              name="category"
+              categories={categories.filter((category) => !category.archived)}
               defaultValue={query.categoryId ?? ""}
-              className="h-10 bg-background"
-            >
-              <option value="">All categories</option>
-              {categories.filter((category) => !category.archived).map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </NativeSelect>
+            />
           </div>
         ) : null}
         <div className="flex gap-2 sm:col-span-2 lg:col-span-1">

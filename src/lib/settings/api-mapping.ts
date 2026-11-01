@@ -5,14 +5,13 @@ import { ORDER_TYPES, type OrderType } from "@/lib/domain/order-types"
 import type { SettingsCommand } from "./commands"
 import type { SettingsCommandResult } from "./rules"
 import type { OrderSettings, OrderTypeSetting, RestaurantProfile } from "./types"
+import { isRecord } from "@/lib/api/guards"
 
 // Converts settings between the PROPOSED API shape (docs/settings-ui.md) and
 // the frontend model. Order types appear as record keys and go through
 // src/lib/api/mapping.ts, the only place backend names may differ. Anything
 // unexpected is an integration error, never guessed.
 
-type Raw = Record<string, unknown>
-const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value)
 const invalid = (what: string) => new ServiceError("unavailable", `Invalid settings data from API: ${what}`)
 
 function string(value: unknown, what: string): string {

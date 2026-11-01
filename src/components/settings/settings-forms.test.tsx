@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { RestaurantProfile } from "@/lib/settings/types"
 
 import { ProfileForm } from "./profile-form"
-import { REQUEST_FAILED_MESSAGE, useSettingsCommand } from "./use-settings-command"
+import { REQUEST_FAILED_MESSAGE, useSettingsCommand } from "@/hooks/use-settings-command"
 
 // The Server Action is replaced per test; the real one is covered by the
 // service tests and the browser tests.

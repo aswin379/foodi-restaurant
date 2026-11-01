@@ -12,6 +12,7 @@ import {
   type CustomerSort,
   type PageInfo,
 } from "./types"
+import { isRecord } from "@/lib/api/guards"
 
 // Converts customers between the PROPOSED API shape (docs/customers-ui.md)
 // and the frontend model. Anything unexpected is an integration error that
@@ -23,7 +24,6 @@ import {
 // authorization: the backend must enforce ownership and masking (C7).
 
 type Raw = Record<string, unknown>
-const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value)
 const invalid = (what: string) => new ServiceError("unavailable", `Invalid customer data from API: ${what}`)
 
 const ID_PATTERN = /^[\w-]{1,100}$/

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { activeUsage, mealPeriodLines, usageText, type MealPeriod } from "@/lib/menu/meal-periods"
 
 import { MealPeriodDialog, UsageNames } from "./meal-period-dialog"
-import { useMenuCommand } from "./use-menu-command"
+import { useMenuCommand } from "@/hooks/use-menu-command"
 
 /**
  * Meal periods with what uses each (B3b, H6). Active periods can be edited or

@@ -13,7 +13,7 @@ import type { SpecialDate, WeeklyHours } from "@/lib/hours/types"
 import { formatCalendarDate } from "@/lib/time/calendar"
 
 import { SpecialDateDialog } from "./special-date-dialog"
-import { useHoursCommand } from "./use-hours-command"
+import { useHoursCommand } from "@/hooks/use-hours-command"
 
 /** Upcoming special dates (editable) and recent past ones (read-only). */
 export function SpecialDatesList({

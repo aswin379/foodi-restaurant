@@ -242,9 +242,8 @@ test.describe("application shell", () => {
     }
     await expect(sidebar.getByRole("link", { name: "Dashboard" })).toHaveAttribute("aria-current", "page")
     await expect(sidebar.getByRole("link", { name: "Orders" })).not.toHaveAttribute("aria-current", "page")
-    // The restaurant card says plainly that nothing is connected: no invented name, ID or open status.
-    await expect(sidebar).toContainText("Your restaurant")
-    await expect(sidebar).toContainText("Not connected")
+    // The restaurant card is the switcher: the active restaurant's name, no invented ID or open status.
+    await expect(sidebar.getByRole("button", { name: /Preview Kitchen.*Switch restaurant/ })).toBeVisible()
     await expect(sidebar.getByRole("button", { name: "Log out" })).toBeVisible()
     expect(await sidebar.evaluate((element) => element.getBoundingClientRect().width)).toBe(288)
     // "Soon" items stay disabled, not links.
@@ -271,7 +270,7 @@ test.describe("application shell", () => {
     await page.getByRole("button", { name: "Open navigation" }).click()
     const drawer = page.getByRole("dialog", { name: "Navigation" })
     await expect(drawer).toBeVisible()
-    await expect(drawer).toContainText("Not connected")
+    await expect(drawer).toContainText("Preview Kitchen")
     await expect(drawer.getByRole("button", { name: "Log out" })).toBeVisible()
     await settleAnimations(page)
     await expectNoSeriousA11yViolations(page)

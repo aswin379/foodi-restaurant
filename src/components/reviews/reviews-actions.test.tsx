@@ -5,7 +5,7 @@ import type { Review, ReviewReply, ReviewReport } from "@/lib/reviews/types"
 
 import { ReplySection } from "./reply-section"
 import { ReportAbuse } from "./report-abuse"
-import { REQUEST_FAILED_MESSAGE } from "./use-review-command"
+import { REQUEST_FAILED_MESSAGE } from "@/hooks/use-review-command"
 
 // The Server Action is replaced per test; the real one is covered by the
 // service tests and the browser tests.

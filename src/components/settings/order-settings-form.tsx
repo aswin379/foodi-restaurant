@@ -27,7 +27,7 @@ import {
 } from "@/lib/settings/validation"
 
 import { FieldError, Section } from "./profile-form"
-import { useSettingsCommand } from "./use-settings-command"
+import { useSettingsCommand } from "@/hooks/use-settings-command"
 
 const ORDER = [
   orderSettingsPaths.orderTypes,

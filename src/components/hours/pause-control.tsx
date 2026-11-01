@@ -24,7 +24,7 @@ import { PAUSE_DURATIONS, type PauseDuration, type PauseState } from "@/lib/hour
 import { formatInstant } from "@/lib/time/format"
 
 import { PauseBanner } from "./pause-banner"
-import { useHoursCommand } from "./use-hours-command"
+import { useHoursCommand } from "@/hooks/use-hours-command"
 
 /**
  * Pause new orders (H5): restaurant-wide, one of the five PRD durations. The

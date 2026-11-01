@@ -1,14 +1,17 @@
 "use client"
 
-import { Suspense } from "react"
+import { Suspense, useId } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { m } from "framer-motion"
 
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useAuth } from "@/features/auth/auth-context"
+import { canSeeArea } from "@/features/staff/access"
 import { cn } from "@/lib/utils"
 
 import { dashboardNavigation, getActiveNavItem, type NavItem } from "./navigation"
@@ -38,9 +41,20 @@ function SidebarNavList({
   pathname,
 }: SidebarNavProps & { pathname: string | null }) {
   const activeItem = pathname ? getActiveNavItem(pathname) : null
+  // The desktop rail and the mobile sheet each render this list; separate ids stop their indicators sharing a layout.
+  const indicatorId = useId()
+  const { user } = useAuth()
+  // Staff only see links they hold the permission for (Soon placeholders included); empty groups disappear.
+  // Cosmetic: the API enforces access.
+  const groups = dashboardNavigation
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canSeeArea(user, item.href, item.title)),
+    }))
+    .filter((group) => group.items.length > 0)
   return (
     <nav aria-label="Restaurant admin" className="flex flex-col gap-5">
-      {dashboardNavigation.map((group, index) => (
+      {groups.map((group, index) => (
         <div key={group.label} className="flex flex-col gap-1.5">
           {/* Group names stay as real headings for screen readers; visually they are quiet labels,
               and on the collapsed rail a hairline replaces them. */}
@@ -59,6 +73,7 @@ function SidebarNavList({
                 <SidebarNavItem
                   item={item}
                   active={item === activeItem}
+                  indicatorId={indicatorId}
                   collapsed={collapsed}
                   onNavigate={onNavigate}
                 />
@@ -71,18 +86,21 @@ function SidebarNavList({
   )
 }
 
-// 40px rows (44px on tall screens), 20px icons. The active row is a solid brand pill with white text.
+// 40px rows (44px on tall screens), 20px icons. The active row is a soft peach pill (a shared-layout
+// indicator that slides between rows) with brand-coloured text, so orange stays an accent, not a block.
 const itemBase =
   "group relative flex h-10 w-full items-center gap-3 rounded-xl px-3 text-[15px] font-medium outline-none transition-colors [@media(min-height:1000px)]:h-11"
 
 function SidebarNavItem({
   item,
   active,
+  indicatorId,
   collapsed,
   onNavigate,
 }: {
   item: NavItem
   active: boolean
+  indicatorId: string
   collapsed: boolean
   onNavigate?: () => void
 }) {
@@ -95,21 +113,29 @@ function SidebarNavItem({
       aria-current={active ? "page" : undefined}
       className={cn(
         itemBase,
-        active
-          ? "bg-primary font-semibold text-primary-foreground shadow-[0_6px_14px_rgb(214_63_8/28%)]"
-          : "text-foreground/80 hover:bg-primary-faint hover:text-foreground",
+        active ? "font-semibold text-primary-text" : "text-foreground/80 hover:bg-primary-faint hover:text-foreground",
         collapsed && "justify-center px-0"
       )}
     >
+      {active ? (
+        <m.span
+          layoutId={indicatorId}
+          aria-hidden
+          transition={{ type: "spring", stiffness: 500, damping: 40 }}
+          className="absolute inset-0 rounded-xl border border-primary-line bg-primary-soft"
+        >
+          <span className="absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-full bg-primary" />
+        </m.span>
+      ) : null}
       <Icon
         aria-hidden
         strokeWidth={1.75}
         className={cn(
-          "size-5 shrink-0",
-          active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"
+          "relative size-5 shrink-0 transition-transform duration-200 group-hover:scale-110",
+          active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
         )}
       />
-      <span className={cn("truncate", collapsed && "sr-only")}>{item.title}</span>
+      <span className={cn("relative truncate", collapsed && "sr-only")}>{item.title}</span>
     </Link>
   ) : (
     <span

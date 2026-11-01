@@ -16,7 +16,7 @@ import {
 } from "@/lib/reviews/validation"
 import { replyPublicationLabels, type ReviewReply } from "@/lib/reviews/types"
 
-import { useReviewCommand } from "./use-review-command"
+import { useReviewCommand } from "@/hooks/use-review-command"
 
 /**
  * The restaurant's reply to a review (R5, R6). With no reply, a form; once a

@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { contrastRatio } from "@/lib/design/contrast"
 import { contrastPairs, designTokens, tokenHex, type TokenGroup } from "@/lib/design/tokens"
 
-const GROUPS: TokenGroup[] = ["Brand", "Surface and text", "Lines", "Action", "Status"]
+const GROUPS: TokenGroup[] = ["Brand", "Accent", "Surface and text", "Lines", "Action", "Status"]
 
 /** Every token with its HEX value and where it is used. The swatch carries no text, so it can't fail contrast itself. */
 export function ColourTokens() {

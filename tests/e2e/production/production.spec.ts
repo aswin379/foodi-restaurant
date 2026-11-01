@@ -23,7 +23,6 @@ const routes = [
   { path: "/menu/meal-periods", heading: /meal periods/i, disconnected: /meal periods aren.t connected yet/i },
   { path: "/hours", heading: /availability & hours/i, disconnected: /hours aren.t connected yet/i },
   { path: "/settings", heading: /^settings$/i },
-  { path: "/settings/profile", heading: /restaurant profile/i, disconnected: /settings aren.t connected yet/i },
   { path: "/settings/orders", heading: /order settings/i, disconnected: /settings aren.t connected yet/i },
   { path: "/hours/special-dates", heading: /availability & hours/i, disconnected: /hours aren.t connected yet/i },
   { path: "/reviews", heading: /^reviews$/i, disconnected: /reviews aren.t connected yet/i },
@@ -133,7 +132,7 @@ test("the dashboard shows no figures, sample data or placeholders in production"
 })
 
 test("settings offer no preview tools, forms or sample data in production", async ({ page }) => {
-  for (const path of ["/settings/profile", "/settings/orders", "/settings/profile?preview=forbidden"]) {
+  for (const path of ["/settings/orders", "/settings/orders?preview=forbidden"]) {
     await gotoAndSettle(page, path)
     await expect(page.getByText(/settings aren.t connected yet/i).first()).toBeVisible()
     await expect(page.getByRole("button", { name: /reset sample settings|save profile|save order settings/i })).toHaveCount(0)

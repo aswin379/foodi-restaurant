@@ -21,14 +21,13 @@ import {
   type WeeklyHours,
 } from "./types"
 import { hoursFromDraft } from "./weekly-hours"
+import { isRecord } from "@/lib/api/guards"
 
 // Converts hours data between the PROPOSED API shape (docs/hours-ui.md) and
 // the frontend model. Order types appear as record keys (`byOrderType`) and
 // as values (`orderTypes`); both go through src/lib/api/mapping.ts. Anything
 // unexpected in a response is an integration error, never guessed at.
 
-type Raw = Record<string, unknown>
-const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value)
 const invalid = (what: string) => new ServiceError("unavailable", `Invalid hours data from API: ${what}`)
 
 function string(value: unknown, what: string): string {

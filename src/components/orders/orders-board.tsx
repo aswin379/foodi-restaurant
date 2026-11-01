@@ -1,18 +1,18 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import type { LucideIcon } from "lucide-react"
 import { CalendarClock, ChefHat, Inbox, PackageCheck } from "lucide-react"
 
 import { ConnectionStatus } from "@/components/shared/connection-status"
-import { REFRESH_INTERVAL_MS, useVisibleRefresh } from "@/components/shared/use-visible-refresh"
+import { REFRESH_INTERVAL_MS, useVisibleRefresh } from "@/hooks/use-visible-refresh"
+import { useOnline } from "@/hooks/use-online"
 import type { ZoneAndLocale } from "@/lib/orders/format"
 import type { OrderDetail, Rider } from "@/lib/orders/types"
 import { cn } from "@/lib/utils"
 
 import { BoardOrderCard } from "./board-order-card"
 import { NewOrderAlarm } from "./new-order-alarm"
-import { useNow } from "./use-now"
+import { useNow } from "@/hooks/use-now"
 
 /** PRD §7: polling fallback interval until real-time transport exists. */
 export const BOARD_POLL_MS = REFRESH_INTERVAL_MS
@@ -32,22 +32,6 @@ const COLUMN_TONES = {
   kitchen: "bg-info-soft text-info-foreground",
   ready: "bg-success-soft text-success-foreground",
   scheduled: "bg-violet-soft text-violet-foreground",
-}
-
-function useOnline() {
-  const [online, setOnline] = useState(true)
-  useEffect(() => {
-    const update = () => setOnline(navigator.onLine)
-    const first = setTimeout(update, 0)
-    window.addEventListener("online", update)
-    window.addEventListener("offline", update)
-    return () => {
-      clearTimeout(first)
-      window.removeEventListener("online", update)
-      window.removeEventListener("offline", update)
-    }
-  }, [])
-  return online
 }
 
 /**

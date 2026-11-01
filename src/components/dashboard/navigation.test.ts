@@ -4,7 +4,7 @@ import { join } from "node:path"
 
 import { describe, expect, it } from "vitest"
 
-import { dashboardNavigation, getActiveNavItem } from "./navigation"
+import { dashboardNavigation, getActiveNavItem, getOwnerPageTitle } from "./navigation"
 
 const items = dashboardNavigation.flatMap((group) => group.items)
 const appDir = join(process.cwd(), "src", "app", "(dashboard)")
@@ -33,5 +33,12 @@ describe("dashboard navigation", () => {
     expect(getActiveNavItem("/menu/abc/edit")?.title).toBe("Menu")
     expect(getActiveNavItem("/orders/PRV-1001")?.title).toBe("Orders")
     expect(getActiveNavItem("/menus")).toBeNull()
+  })
+
+  it("titles the owner-level pages", () => {
+    expect(getOwnerPageTitle("/restaurants")).toBe("My restaurants")
+    expect(getOwnerPageTitle("/restaurants/new")).toBe("Add restaurant")
+    expect(getOwnerPageTitle("/restaurants/12")).toBe("Restaurant application")
+    expect(getOwnerPageTitle("/orders")).toBeNull()
   })
 })

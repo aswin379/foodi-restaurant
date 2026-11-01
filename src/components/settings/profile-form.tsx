@@ -23,7 +23,7 @@ import {
   type ProfileDraft,
 } from "@/lib/settings/validation"
 
-import { useSettingsCommand } from "./use-settings-command"
+import { useSettingsCommand } from "@/hooks/use-settings-command"
 
 // Field paths in the order they appear, for the error summary.
 const ORDER = [

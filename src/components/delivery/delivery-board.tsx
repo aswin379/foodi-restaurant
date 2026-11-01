@@ -1,15 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
 import type { LucideIcon } from "lucide-react"
 import { Bike, CalendarClock, ChefHat, Inbox, MapPin, MessageSquareText, PackageCheck, Route, UserRound } from "lucide-react"
 
 import { OrderActions } from "@/components/orders/order-actions"
 import { OrderTimingChip } from "@/components/orders/order-timing"
-import { useNow } from "@/components/orders/use-now"
+import { useNow } from "@/hooks/use-now"
 import { ConnectionStatus } from "@/components/shared/connection-status"
-import { REFRESH_INTERVAL_MS, useVisibleRefresh } from "@/components/shared/use-visible-refresh"
+import { REFRESH_INTERVAL_MS, useVisibleRefresh } from "@/hooks/use-visible-refresh"
+import { useOnline } from "@/hooks/use-online"
 import { formatMoney, type ZoneAndLocale } from "@/lib/orders/format"
 import type { OrderDetail, OrderStatus, Rider } from "@/lib/orders/types"
 import { cn } from "@/lib/utils"
@@ -27,22 +27,6 @@ const STAGES: Stage[] = [
   { id: "out", title: "Out for delivery", icon: Bike, tone: "bg-cyan-soft text-cyan-foreground", statuses: ["out_for_delivery"], empty: "No deliveries on the road." },
   { id: "scheduled", title: "Scheduled", icon: CalendarClock, tone: "bg-violet-soft text-violet-foreground", statuses: ["scheduled"], empty: "No scheduled deliveries." },
 ]
-
-function useOnline() {
-  const [online, setOnline] = useState(true)
-  useEffect(() => {
-    const update = () => setOnline(navigator.onLine)
-    const first = setTimeout(update, 0)
-    window.addEventListener("online", update)
-    window.addEventListener("offline", update)
-    return () => {
-      clearTimeout(first)
-      window.removeEventListener("online", update)
-      window.removeEventListener("offline", update)
-    }
-  }, [])
-  return online
-}
 
 /**
  * Delivery operations, built on the existing order lifecycle: the same orders as the Orders board, only the

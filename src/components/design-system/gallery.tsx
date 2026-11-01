@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { NativeSelect } from "@/components/ui/native-select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
@@ -107,10 +107,13 @@ export function FormGallery() {
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="ds-select">Select</Label>
-          <NativeSelect id="ds-select" defaultValue="one">
-            <option value="one">First option</option>
-            <option value="two">Second option</option>
-          </NativeSelect>
+          <Select defaultValue="one">
+            <SelectTrigger id="ds-select"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="one">First option</SelectItem>
+              <SelectItem value="two">Second option</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="ds-textarea">Text area</Label>

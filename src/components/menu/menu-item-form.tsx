@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { NativeSelect } from "@/components/ui/native-select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
@@ -46,7 +46,7 @@ import { errorProps, FieldError, OptionGroupsEditor, SizesEditor } from "./item-
 import { soldOutUntilText } from "./item-status-badge"
 import { ScheduleEditor } from "./schedule-editor"
 import { SoldOutChoices } from "./sold-out-dialog"
-import { useMenuCommand } from "./use-menu-command"
+import { useMenuCommand } from "@/hooks/use-menu-command"
 
 /** Keys for new rows; the server mints real ids. Only [\w-] so they survive parsing. */
 const newKey = () => `new-${crypto.randomUUID().slice(0, 8)}`
@@ -272,22 +272,27 @@ export function MenuItemForm({
                 <FieldLabel htmlFor={fieldId("categoryId")} required>
                   Category
                 </FieldLabel>
-                <NativeSelect
-                  {...errorProps("categoryId", errors)}
+                <Select
                   value={draft.categoryId}
-                  onChange={(event) => update({ categoryId: event.target.value })}
+                  onValueChange={(categoryId) => update({ categoryId })}
                   disabled={!activeCategories}
-                  aria-required="true"
-                  className="h-10 bg-background"
                 >
-                  <option value="">Choose a category</option>
-                  {activeCategories?.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                      {category.active ? "" : " (switched off)"}
-                    </option>
-                  ))}
-                </NativeSelect>
+                  <SelectTrigger
+                    {...errorProps("categoryId", errors)}
+                    aria-required="true"
+                    className="h-10 bg-background"
+                  >
+                    <SelectValue placeholder="Choose a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeCategories?.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                        {category.active ? "" : " (switched off)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {!activeCategories ? (
                   <p className="text-xs text-muted-foreground">Categories aren&apos;t connected yet.</p>
                 ) : null}
@@ -359,18 +364,21 @@ export function MenuItemForm({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
                 <FieldLabel htmlFor={fieldId("spiceLevel")}>Spice level</FieldLabel>
-                <NativeSelect
-                  id={fieldId("spiceLevel")}
+                <Select
                   value={draft.spiceLevel}
-                  onChange={(event) => update({ spiceLevel: event.target.value as MenuItemDraft["spiceLevel"] })}
-                  className="h-10 bg-background"
+                  onValueChange={(level) => update({ spiceLevel: level as MenuItemDraft["spiceLevel"] })}
                 >
-                  {SPICE_LEVELS.map((level) => (
-                    <option key={level} value={level}>
-                      {spiceLabels[level]}
-                    </option>
-                  ))}
-                </NativeSelect>
+                  <SelectTrigger id={fieldId("spiceLevel")} className="h-10 bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SPICE_LEVELS.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {spiceLabels[level]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex flex-col gap-2">
                 <FieldLabel htmlFor={fieldId("calories")}>Calories (kcal per serving)</FieldLabel>

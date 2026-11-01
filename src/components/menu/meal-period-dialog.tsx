@@ -34,7 +34,7 @@ import {
 } from "@/lib/menu/meal-periods"
 import { nextWeekday, WEEKDAYS, weekdayLabels, type Weekday } from "@/lib/time/weekly"
 
-import { useMenuCommand } from "./use-menu-command"
+import { useMenuCommand } from "@/hooks/use-menu-command"
 
 const newKey = () => `new-${crypto.randomUUID().slice(0, 8)}`
 const isBlank = (window: { start: string; end: string }) => window.start === "" && window.end === ""

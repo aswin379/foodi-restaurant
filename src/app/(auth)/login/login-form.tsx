@@ -1,19 +1,14 @@
 "use client"
 
-import {
-  startTransition,
-  useActionState,
-  useId,
-  useRef,
-  useState,
-} from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useAuth } from "@/features/auth/auth-context"
 import { authLinks } from "@/lib/auth/routes"
 import {
   validateLoginInput,
@@ -22,15 +17,10 @@ import {
 } from "@/lib/auth/validation"
 import { cn } from "@/lib/utils"
 
-import { signIn, type SignInState } from "./actions"
-
-const initialState: SignInState = {}
-
 export function LoginForm() {
   const id = useId()
   const emailId = `${id}-email`
   const passwordId = `${id}-password`
-  const rememberId = `${id}-remember`
   const emailErrorId = `${emailId}-error`
   const passwordErrorId = `${passwordId}-error`
   const formErrorId = `${id}-form-error`
@@ -40,27 +30,26 @@ export function LoginForm() {
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [remember, setRemember] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<LoginFieldErrors>({})
+  const [formError, setFormError] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
 
-  const [state, formAction, pending] = useActionState(
-    async (prevState: SignInState, formData: FormData) => {
-      const result = await signIn(prevState, formData)
-      setErrors(result.fieldErrors ?? {})
-      return result
-    },
-    initialState
-  )
+  const router = useRouter()
+  const { status, login } = useAuth()
+
+  // Signed in already (or just now): go to the dashboard.
+  useEffect(() => {
+    // My Restaurants sends an owner with one approved restaurant straight to its dashboard (auto=1).
+    if (status === "authenticated") router.replace("/restaurants?auto=1")
+  }, [status, router])
 
   function focusFirstInvalid(fieldErrors: LoginFieldErrors) {
     if (fieldErrors.email) emailRef.current?.focus()
     else if (fieldErrors.password) passwordRef.current?.focus()
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    // Dispatch manually so React doesn't reset the form after the action:
-    // a failed attempt should leave the user's input in place.
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (pending) return
 
@@ -71,8 +60,19 @@ export function LoginForm() {
       return
     }
 
-    const formData = new FormData(event.currentTarget)
-    startTransition(() => formAction(formData))
+    setErrors({})
+    setFormError(null)
+    setPending(true)
+    try {
+      await login(email.trim(), password)
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "We couldn't sign you in right now. Please try again in a moment."
+      )
+      setPending(false)
+    }
   }
 
   // Re-check a field when it loses focus, but only once it holds an error,
@@ -85,21 +85,20 @@ export function LoginForm() {
 
   return (
     <form
-      action={formAction}
       onSubmit={handleSubmit}
       noValidate
       aria-busy={pending}
-      aria-describedby={state.formError ? formErrorId : undefined}
+      aria-describedby={formError ? formErrorId : undefined}
       className="space-y-5"
     >
-      {state.formError && !pending ? (
+      {formError && !pending ? (
         <div
           id={formErrorId}
           role="alert"
           className="flex gap-3 rounded-2xl border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger-foreground"
         >
           <AlertCircle aria-hidden className="mt-0.5 size-4 shrink-0" />
-          <p className="leading-relaxed">{state.formError}</p>
+          <p className="leading-relaxed">{formError}</p>
         </div>
       ) : null}
 
@@ -179,22 +178,6 @@ export function LoginForm() {
           </Button>
         </div>
         <FieldError id={passwordErrorId} message={errors.password} />
-      </div>
-
-      <div className="flex items-center gap-2.5">
-        <Checkbox
-          id={rememberId}
-          name="remember"
-          checked={remember}
-          onCheckedChange={(checked) => setRemember(checked === true)}
-          className="size-[18px]"
-        />
-        <Label
-          htmlFor={rememberId}
-          className="cursor-pointer font-normal text-muted-foreground"
-        >
-          Keep me signed in on this device
-        </Label>
       </div>
 
       <Button

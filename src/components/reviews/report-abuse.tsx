@@ -12,7 +12,7 @@ import { formatDateTime, type ZoneAndLocale } from "@/lib/orders/format"
 import { REVIEW_REPORT_REASONS, reportReasonLabel } from "@/lib/reviews/reasons"
 import type { ReviewReport } from "@/lib/reviews/types"
 
-import { useReviewCommand } from "./use-review-command"
+import { useReviewCommand } from "@/hooks/use-review-command"
 
 const emptySelection: ReasonSelection = { reason: null, note: "" }
 

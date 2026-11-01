@@ -10,6 +10,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { MotionProvider } from "@/components/motion/motion-provider"
 import { Notifications } from "@/components/shared/notifications"
 import { cn } from "@/lib/utils"
 
@@ -28,7 +29,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       >
         Skip to content
       </a>
-      <div className="flex min-h-dvh bg-[linear-gradient(135deg,var(--color-background)_0%,var(--color-background-warm)_100%)]">
+      <MotionProvider>
+      <div className="app-backdrop flex min-h-dvh">
         <aside
           id="dashboard-sidebar"
           aria-label="Sidebar"
@@ -37,7 +39,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             collapsed ? "w-[108px]" : "w-[288px]"
           )}
         >
-          <div className="h-full overflow-hidden rounded-3xl bg-card shadow-[0_8px_30px_rgb(31_26_23/6%)]">
+          <div className="surface-card h-full overflow-hidden rounded-3xl bg-card">
             <SidebarContent collapsed={collapsed} />
           </div>
         </aside>
@@ -66,12 +68,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
+      </MotionProvider>
       <Notifications />
     </TooltipProvider>
   )
 }
 
-// Remove once the dashboard is protected by real authentication and data.
+// Remove once the other dashboard sections show live restaurant data.
 function DevelopmentNotice() {
   return (
     <div
@@ -80,9 +83,9 @@ function DevelopmentNotice() {
     >
       <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />
       <p>
-        <span className="font-semibold">Development preview.</span> This area
-        isn&apos;t protected by sign-in yet and doesn&apos;t show live
-        restaurant data.
+        <span className="font-semibold">Development preview.</span> Only
+        sign-in and Branches use live restaurant data. The other sections are
+        still previews.
       </p>
     </div>
   )

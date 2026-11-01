@@ -23,7 +23,7 @@ import {
   RejectOrderDialog,
   type DialogOrder,
 } from "./order-dialogs"
-import { useOrderCommand } from "./use-order-command"
+import { useOrderCommand } from "@/hooks/use-order-command"
 
 type DialogAction = Exclude<OrderActionId, "mark_ready" | "complete">
 

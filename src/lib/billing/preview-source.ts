@@ -1,6 +1,7 @@
 import "server-only"
 
 import { ServiceError } from "@/lib/data-source/errors"
+import { delay } from "@/lib/data-source/preview-store"
 import { PREVIEW_RESTAURANT } from "@/lib/restaurant/context"
 
 import type { BillingAdapter } from "./adapter"
@@ -18,8 +19,6 @@ type Scenario = (typeof SCENARIOS)[number]
 export function parsePreviewScenario(value: unknown): Scenario | null {
   return typeof value === "string" && (SCENARIOS as readonly string[]).includes(value) ? (value as Scenario) : null
 }
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 async function applyScenario(value: unknown) {
   const scenario = parsePreviewScenario(value)

@@ -1,7 +1,7 @@
 "use client"
 
-import { Suspense, startTransition } from "react"
-import { usePathname } from "next/navigation"
+import { Suspense } from "react"
+import { usePathname, useRouter } from "next/navigation"
 import {
   Bell,
   ChevronDown,
@@ -23,9 +23,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { signOut } from "@/lib/auth/sign-out"
+import { useAuth } from "@/features/auth/auth-context"
+import { useRestaurants } from "@/features/restaurants/restaurant-context"
 
-import { getActiveNavItem } from "./navigation"
+import { getActiveNavItem, getOwnerPageTitle } from "./navigation"
 
 type DashboardHeaderProps = {
   sidebarCollapsed: boolean
@@ -39,7 +40,7 @@ export function DashboardHeader({
   onOpenMobileNav,
 }: DashboardHeaderProps) {
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 bg-background/60 px-4 backdrop-blur-md sm:px-6 lg:px-10">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border-soft/70 bg-background/70 px-4 backdrop-blur-xl sm:px-6 lg:px-10">
       <Button
         variant="ghost"
         size="icon"
@@ -75,7 +76,8 @@ export function DashboardHeader({
 }
 
 function CurrentPageTitle() {
-  const title = getActiveNavItem(usePathname())?.title ?? "Dashboard"
+  const pathname = usePathname()
+  const title = getActiveNavItem(pathname)?.title ?? getOwnerPageTitle(pathname) ?? "Dashboard"
   return <p className="min-w-0 truncate text-base font-semibold text-foreground">{title}</p>
 }
 
@@ -85,7 +87,7 @@ function NotificationsPopover() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Notifications" className="rounded-full bg-card text-muted-foreground shadow-xs hover:bg-primary-faint">
+        <Button variant="ghost" size="icon" aria-label="Notifications" className="rounded-full bg-card text-muted-foreground shadow-xs transition-transform hover:scale-105 hover:bg-primary-faint">
           <Bell aria-hidden />
         </Button>
       </PopoverTrigger>
@@ -106,12 +108,22 @@ function NotificationsPopover() {
 }
 
 function AccountMenu() {
+  const { user, logout } = useAuth()
+  const { active } = useRestaurants()
+  const router = useRouter()
+  const initials = user ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase() : ""
+
+  async function handleLogout() {
+    await logout()
+    router.replace("/login")
+  }
+
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" aria-label="Account menu" className="gap-2 rounded-full bg-card py-1 pr-3 pl-1 text-foreground shadow-xs hover:bg-primary-faint">
-          <span className="grid size-8 place-items-center rounded-full bg-primary-soft text-primary-text">
-            <CircleUser aria-hidden className="size-5" strokeWidth={1.75} />
+          <span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-brand-orange to-primary text-xs font-bold text-primary-foreground">
+            {initials ? <span aria-hidden>{initials}</span> : <CircleUser aria-hidden className="size-5" strokeWidth={1.75} />}
           </span>
           <span className="hidden text-sm font-semibold sm:inline">Account</span>
           <ChevronDown aria-hidden className="hidden size-4 text-muted-foreground sm:block" />
@@ -119,9 +131,14 @@ function AccountMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="font-normal">
-          <p className="text-sm font-semibold">Account</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            Your account details will appear here once sign-in is connected.
+          <p className="text-sm font-semibold">
+            {user ? `${user.firstName} ${user.lastName}` : "Account"}
+          </p>
+          <p className="mt-0.5 truncate text-xs leading-relaxed text-muted-foreground">
+            {active?.name ?? user?.restaurant.name}
+          </p>
+          <p className="truncate text-xs leading-relaxed text-muted-foreground">
+            {user?.email}
           </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -131,7 +148,7 @@ function AccountMenu() {
           <span className="ml-auto text-xs text-muted-foreground">Soon</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => startTransition(() => signOut())}>
+        <DropdownMenuItem onSelect={handleLogout}>
           <LogOut aria-hidden />
           Log out
         </DropdownMenuItem>

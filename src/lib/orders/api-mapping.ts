@@ -2,14 +2,13 @@ import { ServiceError } from "@/lib/data-source/errors"
 
 import type { OrdersDaySummary } from "./summary"
 import { ORDER_STATUSES, type OrderStatus } from "./types"
+import { isRecord } from "@/lib/api/guards"
 
 // Response parsing for the PROPOSED orders summary contract
 // (docs/dashboard-ui.md). Order statuses are read as the canonical names
 // (PRD §4.1); the backend's names aren't decided, and an unknown, missing or
 // malformed value is an integration error, never guessed or turned into 0.
 
-type Raw = Record<string, unknown>
-const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value)
 const invalid = (what: string) => new ServiceError("unavailable", `Invalid orders summary from API: ${what}`)
 const isOrderStatus = (value: string): value is OrderStatus => (ORDER_STATUSES as readonly string[]).includes(value)
 

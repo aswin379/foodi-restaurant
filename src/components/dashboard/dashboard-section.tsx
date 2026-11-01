@@ -53,7 +53,7 @@ export function DashboardSection({
   }
 
   return (
-    <Card className={cn("gap-5 rounded-3xl border-transparent py-6 shadow-[0_8px_30px_rgb(31_26_23/6%)]", className)} aria-labelledby={`${id}-title`} role="region">
+    <Card className={cn("surface-card gap-5 rounded-3xl border-transparent py-6", className)} aria-labelledby={`${id}-title`} role="region">
       {heading}
       <div className={cn(flush ? "" : "px-6")}>{children}</div>
     </Card>

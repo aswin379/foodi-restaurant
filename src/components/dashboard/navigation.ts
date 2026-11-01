@@ -8,6 +8,7 @@ import {
   Contact,
   Armchair,
   CreditCard,
+  GitBranch,
   LayoutDashboard,
   MonitorSmartphone,
   LifeBuoy,
@@ -66,6 +67,8 @@ export const dashboardNavigation: NavGroup[] = [
     label: "Restaurant",
     items: [
       { title: "Restaurant profile", icon: Store, href: "/settings/profile", prdModule: 18 },
+      // Counted under module 18: the PRD keeps multi-outlet (21) out of Release 1.
+      { title: "Branches", icon: GitBranch, href: "/branches", prdModule: 18 },
       { title: "Settings", icon: Settings, href: "/settings", prdModule: 18 },
       { title: "Staff & roles", icon: Users, href: "/staff", prdModule: 20 },
     ],
@@ -105,4 +108,12 @@ export function getActiveNavItem(pathname: string) {
     }
   }
   return active
+}
+
+/** Header title for owner-level pages that are not sidebar items (My restaurants, Add restaurant). */
+export function getOwnerPageTitle(pathname: string) {
+  if (pathname === "/restaurants") return "My restaurants"
+  if (pathname === "/restaurants/new") return "Add restaurant"
+  if (pathname.startsWith("/restaurants/")) return "Restaurant application"
+  return null
 }

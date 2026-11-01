@@ -13,6 +13,7 @@ import {
   type ReviewReply,
   type ReviewReport,
 } from "./types"
+import { isRecord } from "@/lib/api/guards"
 
 // Converts reviews between the PROPOSED API shape (docs/reviews-ui.md) and the
 // frontend model. Anything unexpected is an integration error that fails
@@ -20,8 +21,6 @@ import {
 // guessed, and only the fields below are read, so a contact detail the API
 // might send alongside a review can't reach the screen (R3).
 
-type Raw = Record<string, unknown>
-const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value)
 const invalid = (what: string) => new ServiceError("unavailable", `Invalid review data from API: ${what}`)
 
 const ID_PATTERN = /^[\w-]{1,100}$/

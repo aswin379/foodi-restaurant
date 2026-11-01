@@ -95,3 +95,6 @@ export function getPreviewCollection<Item extends { id: string }>(
 export function clearPreviewCollections() {
   registry().clear()
 }
+
+/** Simulated latency for preview sources. */
+export const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))

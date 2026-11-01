@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Bike, BellRing, CalendarClock, ChefHat, PackageCheck, type LucideIcon } from "lucide-react"
 
+import { CountUp } from "@/components/motion/count-up"
 import { countLiveOrders, LIVE_STATUSES, type ActiveOrderStatus } from "@/lib/dashboard/live-orders"
 import { getOrderBoard, ordersMode } from "@/lib/orders/service"
 
@@ -40,9 +41,9 @@ export async function LiveOrdersCard({ previewScenario, retryHref }: { previewSc
             <li key={status} className="last:col-span-2 sm:last:col-span-1">
               <Link
                 href={`/orders#${anchor}`}
-                className="group flex h-full items-center gap-3 rounded-3xl bg-card p-4 shadow-[0_8px_30px_rgb(31_26_23/6%)] outline-none transition-shadow hover:shadow-[0_12px_36px_rgb(214_63_8/16%)] sm:gap-4 sm:p-5"
+                className="surface-card lift group flex h-full items-center gap-3 rounded-3xl bg-card p-4 outline-none sm:gap-4 sm:p-5"
               >
-                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-orange to-primary text-primary-foreground shadow-[0_6px_14px_rgb(214_63_8/30%)] sm:size-12">
+                <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-peach-soft to-primary-soft text-primary ring-1 ring-primary-line transition-transform duration-200 group-hover:scale-110 sm:size-12">
                   <Icon aria-hidden strokeWidth={1.75} className="size-[22px] sm:size-6" />
                 </span>
                 <span className="flex min-w-0 flex-col">
@@ -50,7 +51,7 @@ export async function LiveOrdersCard({ previewScenario, retryHref }: { previewSc
                   {/* The name comes from the visible text, kept apart for screen readers: "New 3 orders, open the board". */}
                   <span className="sr-only"> </span>
                   <span className="text-[1.75rem] leading-9 font-bold tracking-tight tabular-nums sm:text-[2rem] sm:leading-10">
-                    {counts[status]}
+                    <CountUp value={counts[status]} />
                   </span>
                   <span className="sr-only"> {counts[status] === 1 ? "order" : "orders"}, open the board</span>
                 </span>

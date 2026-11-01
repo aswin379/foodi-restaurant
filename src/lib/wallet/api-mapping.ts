@@ -15,6 +15,7 @@ import {
   type SettlementSummary,
   type WalletSummary,
 } from "./types"
+import { isRecord } from "@/lib/api/guards"
 
 // Converts wallet data between the PROPOSED API shape (docs/wallet-ui.md) and
 // the frontend model. Anything unexpected is an integration error that fails
@@ -28,7 +29,6 @@ import {
 // not check that amounts add up, and the UI never claims it does.
 
 type Raw = Record<string, unknown>
-const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value)
 const invalid = (what: string) => new ServiceError("unavailable", `Invalid wallet data from API: ${what}`)
 
 const ID_PATTERN = /^[\w-]{1,100}$/

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 
-import { expectNoConsoleErrors, expectNoHorizontalOverflow, expectNoSeriousA11yViolations, gotoAndSettle } from "../helpers"
+import { expectNoConsoleErrors, expectNoHorizontalOverflow, expectNoSeriousA11yViolations, gotoAndSettle, mockOwnerSession } from "../helpers"
 
 // Menu workflows against preview data. They change the shared preview store,
 // so they run one at a time and each starts from the reset sample menu.
@@ -97,7 +97,8 @@ test("a new item needs a name, a category and a price", async ({ page }) => {
   await expect(page.getByRole("combobox", { name: /Category/ })).toBeFocused()
 
   await page.getByRole("textbox", { name: /Item name/ }).fill("Aloo paratha")
-  await page.getByRole("combobox", { name: /Category/ }).selectOption({ label: "Breads" })
+  await page.getByRole("combobox", { name: /Category/ }).click()
+  await page.getByRole("option", { name: "Breads" }).click()
   await page.getByRole("textbox", { name: /Price/ }).fill("90")
   await page.getByRole("radio", { name: "Veg", exact: true }).check()
   await page.getByRole("checkbox", { name: "Gluten" }).check()
@@ -112,7 +113,8 @@ test("a new item needs a name, a category and a price", async ({ page }) => {
 test("sizes replace the price, and option groups enforce their limits", async ({ page }) => {
   await gotoAndSettle(page, "/menu/new")
   await page.getByRole("textbox", { name: /Item name/ }).fill("Thali")
-  await page.getByRole("combobox", { name: /Category/ }).selectOption({ label: "Mains" })
+  await page.getByRole("combobox", { name: /Category/ }).click()
+  await page.getByRole("option", { name: "Mains" }).click()
 
   await page.getByRole("button", { name: "Add size" }).click()
   await page.getByRole("button", { name: "Add size" }).click()
@@ -254,7 +256,8 @@ const orderTypes = (page: Page, name: string) => page.getByRole("group", { name:
 test("an item can be scheduled for set days and times, in the restaurant's time zone", async ({ page }) => {
   await gotoAndSettle(page, "/menu/new")
   await page.getByRole("textbox", { name: /Item name/ }).fill("Lunch thali")
-  await page.getByRole("combobox", { name: /Category/ }).selectOption({ label: "Mains" })
+  await page.getByRole("combobox", { name: /Category/ }).click()
+  await page.getByRole("option", { name: "Mains" }).click()
   await page.getByRole("textbox", { name: /Price/ }).fill("200")
 
   await page.getByRole("radio", { name: "Only at set times" }).check()
@@ -339,7 +342,8 @@ test("schedule windows are checked, and overlapping ones are shown merged", asyn
 test("windows have their own order types, and a day can be All day (Q12, Q13)", async ({ page }) => {
   await gotoAndSettle(page, "/menu/new")
   await page.getByRole("textbox", { name: /Item name/ }).fill("Weekend thali")
-  await page.getByRole("combobox", { name: /Category/ }).selectOption({ label: "Mains" })
+  await page.getByRole("combobox", { name: /Category/ }).click()
+  await page.getByRole("option", { name: "Mains" }).click()
   await page.getByRole("textbox", { name: /Price/ }).fill("250")
   await page.getByRole("radio", { name: "Only at set times" }).check()
   const summary = page.getByRole("alert").filter({ hasText: "before saving" })
@@ -537,6 +541,7 @@ test.describe("meal periods and category schedules (B3b)", () => {
 
     // Someone changes Lunch after this editor loaded.
     const other = await context.newPage()
+    await mockOwnerSession(other)
     await other.goto("/menu/meal-periods")
     await other.waitForLoadState("networkidle")
     await other.getByRole("button", { name: "Edit Lunch" }).click()

@@ -4,6 +4,7 @@ import Link from "next/link"
 
 import { Separator } from "@/components/ui/separator"
 import { authLinks } from "@/lib/auth/routes"
+import { SITE_DESCRIPTION, SITE_LOGO, SITE_NAME, siteUrl } from "@/lib/seo"
 
 import { BrandPanel } from "./brand-panel"
 import { LoginForm } from "./login-form"
@@ -11,6 +12,25 @@ import { LoginForm } from "./login-form"
 export const metadata: Metadata = {
   title: "Sign in",
   description: "Sign in to manage your restaurant on Foodi.",
+  alternates: { canonical: "/login" },
+  openGraph: {
+    url: "/login",
+    title: `Sign in · ${SITE_NAME}`,
+    description: "Sign in to manage your restaurant on Foodi.",
+  },
+  twitter: {
+    title: `Sign in · ${SITE_NAME}`,
+    description: "Sign in to manage your restaurant on Foodi.",
+  },
+}
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Foodi",
+  description: SITE_DESCRIPTION,
+  url: siteUrl.origin,
+  logo: new URL(SITE_LOGO, siteUrl).toString(),
 }
 
 const footerLinkClass =
@@ -84,6 +104,10 @@ export default function LoginPage() {
       </main>
 
       <BrandPanel />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
+      />
     </div>
   )
 }

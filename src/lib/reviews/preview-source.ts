@@ -1,7 +1,7 @@
 import "server-only"
 
 import { ServiceError } from "@/lib/data-source/errors"
-import { getPreviewCollection } from "@/lib/data-source/preview-store"
+import { getPreviewCollection, delay } from "@/lib/data-source/preview-store"
 import { PREVIEW_RESTAURANT } from "@/lib/restaurant/context"
 
 import type { ReviewsAdapter } from "./adapter"
@@ -19,8 +19,6 @@ import type { Review, ReviewListResult } from "./types"
 export function parsePreviewScenario(value: unknown) {
   return value === "empty" || value === "error" || value === "slow" || value === "forbidden" ? value : null
 }
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 async function applyScenario(value: unknown) {
   const scenario = parsePreviewScenario(value)

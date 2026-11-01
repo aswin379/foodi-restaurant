@@ -2,14 +2,16 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { LogOut, Store } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { LogOut } from "lucide-react"
 
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { signOut } from "@/lib/auth/sign-out"
+import { useAuth } from "@/features/auth/auth-context"
+import { RestaurantSwitcher } from "@/features/restaurants/components/restaurant-switcher"
 import { cn } from "@/lib/utils"
 
 import { DASHBOARD_HOME } from "./navigation"
@@ -55,50 +57,26 @@ export function SidebarContent({
       </div>
 
       <div className={cn("flex shrink-0 flex-col gap-1 border-t border-border-soft p-3", collapsed && "items-center px-2")}>
-        <RestaurantCard collapsed={collapsed} />
+        <RestaurantSwitcher collapsed={collapsed} />
         <SignOutButton collapsed={collapsed} />
       </div>
     </div>
   )
 }
 
-// Placeholder until restaurant identity comes from an authenticated session: it says plainly that nothing is
-// connected, and shows no name, ID or open/closed status that isn't real.
-function RestaurantCard({ collapsed }: { collapsed: boolean }) {
-  const icon = (
-    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary-text">
-      <Store aria-hidden className="size-5" strokeWidth={1.75} />
-    </span>
-  )
-  if (collapsed) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div tabIndex={0} role="img" aria-label="Your restaurant, not connected" className="rounded-xl outline-none">
-            {icon}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="right" sideOffset={8}>
-          Your restaurant · Not connected
-        </TooltipContent>
-      </Tooltip>
-    )
-  }
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border bg-card p-3 shadow-xs">
-      {icon}
-      <span className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-sm font-semibold">Your restaurant</span>
-        <span className="text-xs text-muted-foreground">Not connected</span>
-      </span>
-    </div>
-  )
-}
-
 function SignOutButton({ collapsed }: { collapsed: boolean }) {
+  const { logout } = useAuth()
+  const router = useRouter()
+
+  async function handleLogout() {
+    await logout()
+    router.replace("/login")
+  }
+
   const button = (
     <button
-      type="submit"
+      type="button"
+      onClick={handleLogout}
       className={cn(
         "flex h-10 w-full items-center gap-3 rounded-xl px-3 text-[15px] font-medium text-foreground/80 outline-none transition-colors hover:bg-primary-faint hover:text-foreground",
         collapsed && "justify-center px-0"
@@ -110,7 +88,7 @@ function SignOutButton({ collapsed }: { collapsed: boolean }) {
   )
 
   return (
-    <form action={signOut} className="w-full">
+    <div className="w-full">
       {collapsed ? (
         <Tooltip>
           <TooltipTrigger asChild>{button}</TooltipTrigger>
@@ -121,6 +99,6 @@ function SignOutButton({ collapsed }: { collapsed: boolean }) {
       ) : (
         button
       )}
-    </form>
+    </div>
   )
 }

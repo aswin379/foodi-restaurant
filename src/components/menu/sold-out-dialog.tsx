@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { HIDDEN_FROM_CUSTOMERS_NOTE } from "@/lib/menu/labels"
 import { SOLD_OUT_REASON_MAX, type SoldOutChoice } from "@/lib/menu/validation"
 
-import type { useMenuCommand } from "./use-menu-command"
+import type { useMenuCommand } from "@/hooks/use-menu-command"
 
 export const soldOutChoiceLabels: Record<SoldOutChoice, string> = {
   next_opening: "Until next opening",

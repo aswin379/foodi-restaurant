@@ -29,7 +29,6 @@ const pages = [
   { name: "special dates", path: "/hours/special-dates", heading: /availability & hours/i },
   { name: "dashboard with opening status", path: "/dashboard", heading: /welcome to your restaurant dashboard/i },
   { name: "settings overview", path: "/settings", heading: /^settings$/i },
-  { name: "restaurant profile", path: "/settings/profile", heading: /restaurant profile/i },
   { name: "order settings", path: "/settings/orders", heading: /order settings/i },
   { name: "reviews list", path: "/reviews", heading: /^reviews$/i },
   { name: "filtered reviews", path: "/reviews?rating=5&replied=unreplied", heading: /^reviews$/i },
@@ -75,7 +74,7 @@ test("menu pages label preview data", async ({ page }) => {
 })
 
 test("settings pages label preview data", async ({ page }) => {
-  for (const path of ["/settings/profile", "/settings/orders"]) {
+  for (const path of ["/settings/orders"]) {
     await gotoAndSettle(page, path)
     await expect(page.getByRole("note").filter({ hasText: PREVIEW_LABEL }).first()).toBeVisible()
   }

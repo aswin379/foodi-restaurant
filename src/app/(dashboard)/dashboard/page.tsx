@@ -7,6 +7,7 @@ import { DashboardSection } from "@/components/dashboard/dashboard-section"
 import { SectionSkeleton } from "@/components/dashboard/dashboard-states"
 import { LiveOrdersCard } from "@/components/dashboard/live-orders-card"
 import { OpeningStatus as OpeningStatusPanel } from "@/components/dashboard/opening-status"
+import { Reveal } from "@/components/motion/reveal"
 import { PageHeader } from "@/components/dashboard/page-header"
 import { QuickLinks } from "@/components/dashboard/quick-links"
 import { RecentOrders } from "@/components/dashboard/recent-orders"
@@ -56,18 +57,24 @@ export default function DashboardPage({ searchParams }: PageProps<"/dashboard">)
         <OpeningStatus />
       </Suspense>
 
-      <Suspense fallback={<LoadingSection id="live-orders" title="Live orders" variant="plain" />}>
-        <LiveOrders searchParams={searchParams} />
-      </Suspense>
+      <Reveal delay={0.05}>
+        <Suspense fallback={<LoadingSection id="live-orders" title="Live orders" variant="plain" />}>
+          <LiveOrders searchParams={searchParams} />
+        </Suspense>
+      </Reveal>
 
       <div className="grid items-start gap-6 lg:grid-cols-3 lg:gap-8">
         <div className="flex flex-col gap-6 lg:col-span-2 lg:gap-8">
-          <Suspense fallback={<LoadingSection id="recent-orders" title="Recent orders" rows={5} />}>
-            <Recent searchParams={searchParams} />
-          </Suspense>
-          <Suspense fallback={<LoadingSection id="today-orders" title="Today's orders" />}>
-            <Today searchParams={searchParams} />
-          </Suspense>
+          <Reveal delay={0.12}>
+            <Suspense fallback={<LoadingSection id="recent-orders" title="Recent orders" rows={5} />}>
+              <Recent searchParams={searchParams} />
+            </Suspense>
+          </Reveal>
+          <Reveal delay={0.18}>
+            <Suspense fallback={<LoadingSection id="today-orders" title="Today's orders" />}>
+              <Today searchParams={searchParams} />
+            </Suspense>
+          </Reveal>
         </div>
         <div className="flex flex-col gap-6 lg:gap-8">
           <Suspense fallback={<LoadingSection id="attention" title="Needs attention" />}>

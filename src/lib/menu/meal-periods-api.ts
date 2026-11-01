@@ -2,13 +2,12 @@ import { ServiceError } from "@/lib/data-source/errors"
 import { dayRulesFromApi } from "@/lib/hours/api-mapping"
 
 import type { MealPeriod, MealPeriodStatus, UsageRef } from "./meal-periods"
+import { isRecord } from "@/lib/api/guards"
 
 // Meal periods from the PROPOSED API (docs/meal-periods-ui.md). They hold no
 // order types, so nothing here needs the order-type mapping. New in B3b, with
 // no older shape: anything unexpected is an integration error, never guessed.
 
-type Raw = Record<string, unknown>
-const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value)
 const invalid = (what: string) => new ServiceError("unavailable", `Invalid meal period from API: ${what}`)
 
 function string(value: unknown, what: string): string {

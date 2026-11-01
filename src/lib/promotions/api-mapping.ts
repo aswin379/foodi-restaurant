@@ -15,6 +15,7 @@ import {
   type PromotionDiscount,
   type PromotionListResult,
 } from "./types"
+import { isRecord } from "@/lib/api/guards"
 
 // Converts promotions between the PROPOSED API shape (docs/promotions-ui.md)
 // and the frontend model. Anything unexpected is an integration error that
@@ -29,7 +30,6 @@ import {
 // infers no eligibility and checks no status against a date.
 
 type Raw = Record<string, unknown>
-const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value)
 const invalid = (what: string) => new ServiceError("unavailable", `Invalid promotion data from API: ${what}`)
 
 const ID_PATTERN = /^[\w-]{1,100}$/

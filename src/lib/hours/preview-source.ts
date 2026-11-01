@@ -1,7 +1,7 @@
 import "server-only"
 
 import { ServiceError } from "@/lib/data-source/errors"
-import { getPreviewCollection } from "@/lib/data-source/preview-store"
+import { getPreviewCollection, delay } from "@/lib/data-source/preview-store"
 import { PREVIEW_RESTAURANT } from "@/lib/restaurant/context"
 import { localClock } from "@/lib/time/calendar"
 
@@ -21,8 +21,6 @@ import { emptyHoursDraft, hoursFromDraft } from "./weekly-hours"
 export function parsePreviewScenario(value: unknown) {
   return value === "empty" || value === "error" || value === "slow" ? value : null
 }
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 async function applyScenario(value: unknown) {
   const scenario = parsePreviewScenario(value)

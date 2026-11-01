@@ -1,7 +1,7 @@
 import "server-only"
 
 import { ServiceError } from "@/lib/data-source/errors"
-import { getPreviewCollection } from "@/lib/data-source/preview-store"
+import { getPreviewCollection, delay } from "@/lib/data-source/preview-store"
 
 import type { SettingsAdapter } from "./adapter"
 import { buildFixtureSettings } from "./fixtures/settings"
@@ -17,8 +17,6 @@ import { applySettingsCommand, type SettingsCommandResult, type SettingsState } 
 export function parsePreviewScenario(value: unknown) {
   return value === "empty" || value === "error" || value === "slow" || value === "forbidden" ? value : null
 }
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 async function applyScenario(value: unknown) {
   const scenario = parsePreviewScenario(value)

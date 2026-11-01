@@ -19,7 +19,7 @@ import type { ItemStatus } from "@/lib/menu/rules"
 import type { MenuItem } from "@/lib/menu/types"
 
 import { SoldOutDialog } from "./sold-out-dialog"
-import { useMenuCommand } from "./use-menu-command"
+import { useMenuCommand } from "@/hooks/use-menu-command"
 
 type Dialog = "sold_out" | "archive" | "delete" | null
 

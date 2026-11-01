@@ -13,7 +13,7 @@ import { scheduleLines } from "@/lib/menu/schedule"
 import type { MenuCategory } from "@/lib/menu/types"
 
 import { CategoryDialog, type CategoryScheduleSupport } from "./category-dialog"
-import { useMenuCommand } from "./use-menu-command"
+import { useMenuCommand } from "@/hooks/use-menu-command"
 
 const itemsHref = (category: MenuCategory) => `/menu?category=${encodeURIComponent(category.id)}`
 

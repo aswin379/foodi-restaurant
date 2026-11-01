@@ -6,7 +6,7 @@ export const authLinks: {
   terms: string | null
   privacy: string | null
 } = {
-  forgotPassword: null,
+  forgotPassword: "/forgot-password",
   restaurantOnboarding: null,
   terms: null,
   privacy: null,
