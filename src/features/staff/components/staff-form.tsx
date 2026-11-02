@@ -40,13 +40,20 @@ const inputClass = "h-11 rounded-xl bg-white px-3.5 shadow-none"
 
 function initialValues(meta: StaffMeta, staff?: StaffMember): StaffFormValues {
   const operational = meta.restaurants.filter((r) => r.isOperational)
+  const defaultSellerIds = staff
+    ? (staff.restaurants && staff.restaurants.length > 0
+        ? staff.restaurants.map((r) => String(r.id))
+        : [String(staff.restaurant.id)])
+    : operational.length === 1 && operational[0]
+      ? [String(operational[0].id)]
+      : []
+
   return {
     name: staff?.name ?? "",
     email: staff?.email ?? "",
     mobile: staff?.mobile ?? "",
     password: "",
-    // One restaurant is chosen for the owner; several must be picked.
-    sellerId: staff ? String(staff.restaurant.id) : operational.length === 1 ? String(operational[0]?.id) : "",
+    sellerIds: defaultSellerIds,
     designation: staff ? String(staff.designation.id) : "",
     customDesignation: "",
     rolePreset: staff?.rolePreset ?? "custom",
@@ -64,13 +71,26 @@ export function StaffForm({ meta, staff, onSaved, onCancel }: StaffFormProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  // Built-in titles plus this restaurant's own; editing keeps the member's restaurant.
-  const restaurantId = values.sellerId ? Number(values.sellerId) : null
-  const designations = meta.designations.filter((d) => !d.custom || d.sellerId === restaurantId)
+  // Built-in titles plus custom titles of the selected restaurants
+  const selectedSellerIds = values.sellerIds.map(Number)
+  const designations = meta.designations.filter(
+    (d) => !d.custom || (d.sellerId !== null && selectedSellerIds.includes(d.sellerId))
+  )
 
   function set<K extends keyof StaffFormValues>(key: K, value: StaffFormValues[K]) {
     setValues((current) => ({ ...current, [key]: value }))
     if (errors[key]) setErrors((current) => ({ ...current, [key]: undefined }))
+  }
+
+  function toggleRestaurant(sellerId: string, checked: boolean) {
+    setValues((current) => {
+      const next = new Set(current.sellerIds)
+      if (checked) next.add(sellerId)
+      else next.delete(sellerId)
+      const list = Array.from(next)
+      if (errors.sellerIds) setErrors((errs) => ({ ...errs, sellerIds: undefined }))
+      return { ...current, sellerIds: list }
+    })
   }
 
   function applyPreset(key: string) {
@@ -121,7 +141,12 @@ export function StaffForm({ meta, staff, onSaved, onCancel }: StaffFormProps) {
     }
   }
 
-  function field(key: keyof StaffFormValues, label: string, children: (props: { id: string; invalid: boolean; describedBy?: string }) => React.ReactNode, hint?: string) {
+  function field(
+    key: keyof StaffFormValues,
+    label: string,
+    children: (props: { id: string; invalid: boolean; describedBy?: string }) => React.ReactNode,
+    hint?: string
+  ) {
     const fieldId = `${id}-${key}`
     const errorId = `${fieldId}-error`
     return (
@@ -178,25 +203,68 @@ export function StaffForm({ meta, staff, onSaved, onCancel }: StaffFormProps) {
 
       <fieldset className="space-y-4">
         <legend className="mb-1 text-sm font-semibold">Assignment</legend>
-        {field("sellerId", "Restaurant", (p) =>
-          editing || !needsChoice ? (
-            // Single restaurant, or editing: shown for clarity, not selectable.
-            <Input id={p.id} readOnly disabled value={staff?.restaurant.name ?? operational[0]?.name ?? ""} className={inputClass} />
-          ) : (
-            <Select value={values.sellerId} onValueChange={(v) => set("sellerId", v)}>
-              <SelectTrigger id={p.id} aria-invalid={p.invalid || undefined} aria-describedby={p.describedBy} className="h-11 w-full rounded-xl bg-white">
-                <SelectValue placeholder="Select a restaurant" />
-              </SelectTrigger>
-              <SelectContent>
-                {operational.map((r) => (
-                  <SelectItem key={r.id} value={String(r.id)}>
-                    {r.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+        {!needsChoice ? (
+          // Case A: Owner has one restaurant - automatically assigned and displayed
+          field(
+            "sellerIds",
+            "Restaurant",
+            (p) => (
+              <Input
+                id={p.id}
+                readOnly
+                disabled
+                value={operational[0]?.name ?? staff?.restaurant.name ?? ""}
+                className={inputClass}
+              />
+            ),
+            "Automatically assigned to your restaurant."
           )
+        ) : (
+          // Case B: Owner has multiple restaurants - multi-selection field
+          <div className="space-y-2">
+            <Label>Assigned restaurants</Label>
+            <p className="text-xs text-muted-foreground">
+              Select one or multiple restaurants this staff member can access.
+            </p>
+            <div className="space-y-2.5 rounded-2xl border p-4 bg-white">
+              {operational.map((r) => {
+                const boxId = `${id}-rest-${r.id}`
+                const isChecked = values.sellerIds.includes(String(r.id))
+                return (
+                  <div key={r.id} className="flex items-center gap-2.5">
+                    <Checkbox
+                      id={boxId}
+                      checked={isChecked}
+                      onCheckedChange={(checked) => toggleRestaurant(String(r.id), checked === true)}
+                    />
+                    <Label htmlFor={boxId} className="font-normal cursor-pointer text-sm">
+                      {r.name}
+                    </Label>
+                  </div>
+                )
+              })}
+            </div>
+            {errors.sellerIds ? (
+              <p className="flex items-center gap-1.5 text-sm text-danger-foreground">
+                <AlertCircle aria-hidden className="size-3.5 shrink-0" />
+                {errors.sellerIds}
+              </p>
+            ) : null}
+            {values.sellerIds.length > 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Selected:{" "}
+                <span className="font-medium text-foreground">
+                  {operational
+                    .filter((r) => values.sellerIds.includes(String(r.id)))
+                    .map((r) => r.name)
+                    .join(", ")}
+                </span>
+              </p>
+            ) : null}
+          </div>
         )}
+
         {field(
           "designation",
           "Designation",

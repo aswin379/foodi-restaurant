@@ -5,7 +5,6 @@ import { AlertCircle, Loader2 } from "lucide-react"
 
 import { ActionResultMessage } from "@/components/shared/action-result-message"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogClose,
@@ -20,12 +19,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { ORDER_TYPES, orderTypeLabels } from "@/lib/domain/order-types"
 import type { MealPeriod } from "@/lib/menu/meal-periods"
 import { scheduleDraftFrom } from "@/lib/menu/schedule"
 import type { MenuCategory } from "@/lib/menu/types"
 import {
   CATEGORY_NAME_MAX,
+  DESCRIPTION_MAX,
   fieldId,
   hasErrors,
   validateCategoryDraft,
@@ -103,9 +102,9 @@ export function CategoryDialog({
             ? `${id}-name`
             : nextErrors.description
               ? `${id}-description`
-              : nextErrors.channels || !scheduleError
-                ? `${id}-channels`
-                : fieldId(scheduleError)
+              : scheduleError
+                ? fieldId(scheduleError)
+                : `${id}-name`
         )
         ?.focus()
       return
@@ -146,6 +145,7 @@ export function CategoryDialog({
             <Input
               id={`${id}-name`}
               value={draft.name}
+              placeholder="e.g. Salads, Main Course, Beverages"
               onChange={(event) => update({ name: event.target.value })}
               maxLength={CATEGORY_NAME_MAX + 20}
               autoComplete="off"
@@ -165,11 +165,16 @@ export function CategoryDialog({
             <Textarea
               id={`${id}-description`}
               value={draft.description}
+              placeholder="Brief description of this category (e.g. Refreshing greens and house dressings)..."
               onChange={(event) => update({ description: event.target.value })}
               rows={2}
+              maxLength={DESCRIPTION_MAX + 50}
               aria-invalid={errors.description ? true : undefined}
               aria-describedby={errors.description ? `${id}-description-error` : undefined}
             />
+            <p className="text-[11px] text-muted-foreground text-right">
+              {draft.description.length}/{DESCRIPTION_MAX}
+            </p>
             {fieldError("description")}
           </div>
 
@@ -188,25 +193,6 @@ export function CategoryDialog({
               </p>
             </div>
           </div>
-
-          <fieldset className="grid gap-2">
-            <legend id={`${id}-channels`} tabIndex={-1} className="mb-1 text-sm font-medium outline-none">
-              Order types
-            </legend>
-            {ORDER_TYPES.map((type) => (
-              <div key={type} className="flex items-center gap-2.5">
-                <Checkbox
-                  id={`${id}-channel-${type}`}
-                  checked={draft.channels[type]}
-                  onCheckedChange={(checked) => update({ channels: { ...draft.channels, [type]: checked === true } })}
-                />
-                <Label htmlFor={`${id}-channel-${type}`} className="font-normal">
-                  {orderTypeLabels[type]}
-                </Label>
-              </div>
-            ))}
-            {fieldError("channels")}
-          </fieldset>
 
           <div className="flex flex-col gap-2 border-t pt-4">
             <h3 className="text-sm font-medium">When its items can be ordered</h3>

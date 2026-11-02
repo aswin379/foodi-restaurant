@@ -4,6 +4,7 @@ import { useCallback, useRef, useState, useTransition } from "react"
 
 import { runMenuCommand } from "@/app/(dashboard)/menu/actions"
 import { notifyActionResult } from "@/components/shared/notifications"
+import { getAccessToken, getActiveRestaurantId, syncAuthCookies } from "@/lib/api-client"
 import { createIdempotencyKey } from "@/lib/api/idempotency"
 import type { ActionResult } from "@/lib/data-source/result"
 import type { MenuCommand } from "@/lib/menu/commands"
@@ -28,7 +29,15 @@ export function useMenuCommand() {
     (command: MenuCommand, successText: string, onSuccess?: (result: MenuCommandResult) => void) => {
       const idempotencyKey = (keyRef.current ??= createIdempotencyKey())
       startTransition(async () => {
-        const outcome = await runMenuCommand({ command, idempotencyKey })
+        const token = getAccessToken()
+        const restaurantId = getActiveRestaurantId()
+        syncAuthCookies(token, restaurantId)
+        const outcome = await runMenuCommand({
+          command,
+          idempotencyKey,
+          accessToken: token ?? undefined,
+          restaurantId: restaurantId ?? undefined,
+        })
         setResult(outcome)
         if (outcome.ok) {
           keyRef.current = null

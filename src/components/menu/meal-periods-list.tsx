@@ -17,7 +17,15 @@ import { useMenuCommand } from "@/hooks/use-menu-command"
  * never used. The menu rules on the server decide; refusals are shown next
  * to the period.
  */
-export function MealPeriodsList({ periods, timeZone }: { periods: MealPeriod[]; timeZone: string }) {
+export function MealPeriodsList({
+  periods,
+  timeZone,
+  onRefresh,
+}: {
+  periods: MealPeriod[]
+  timeZone: string
+  onRefresh?: () => void
+}) {
   const active = periods.filter((period) => period.status === "active")
   const archived = periods.filter((period) => period.status === "archived")
   return (
@@ -29,7 +37,7 @@ export function MealPeriodsList({ periods, timeZone }: { periods: MealPeriod[]; 
         {active.length ? (
           <ul aria-labelledby="active-meal-periods" className="flex flex-col gap-2">
             {active.map((period) => (
-              <MealPeriodRow key={period.id} period={period} timeZone={timeZone} />
+              <MealPeriodRow key={period.id} period={period} timeZone={timeZone} onRefresh={onRefresh} />
             ))}
           </ul>
         ) : (
@@ -43,7 +51,7 @@ export function MealPeriodsList({ periods, timeZone }: { periods: MealPeriod[]; 
           </h2>
           <ul aria-labelledby="archived-meal-periods" className="flex flex-col gap-2">
             {archived.map((period) => (
-              <MealPeriodRow key={period.id} period={period} timeZone={timeZone} />
+              <MealPeriodRow key={period.id} period={period} timeZone={timeZone} onRefresh={onRefresh} />
             ))}
           </ul>
         </section>
@@ -54,7 +62,15 @@ export function MealPeriodsList({ periods, timeZone }: { periods: MealPeriod[]; 
 
 type Dialog = "archive" | "delete" | null
 
-function MealPeriodRow({ period, timeZone }: { period: MealPeriod; timeZone: string }) {
+function MealPeriodRow({
+  period,
+  timeZone,
+  onRefresh,
+}: {
+  period: MealPeriod
+  timeZone: string
+  onRefresh?: () => void
+}) {
   const command = useMenuCommand()
   const [dialog, setDialog] = useState<Dialog>(null)
   const [restoring, setRestoring] = useState(false)
@@ -113,7 +129,7 @@ function MealPeriodRow({ period, timeZone }: { period: MealPeriod; timeZone: str
               if (command.pending) return
               command.begin()
               setRestoring(true)
-              command.run({ type: "restore_meal_period", periodId: period.id }, `${period.name} restored`)
+              command.run({ type: "restore_meal_period", periodId: period.id }, `${period.name} restored`, () => onRefresh?.())
             }}
           >
             {command.pending && restoring ? <Loader2 aria-hidden className="animate-spin" /> : <ArchiveRestore aria-hidden />}
@@ -124,6 +140,7 @@ function MealPeriodRow({ period, timeZone }: { period: MealPeriod; timeZone: str
             <MealPeriodDialog
               period={period}
               timeZone={timeZone}
+              onSaved={onRefresh}
               trigger={
                 <Button variant="ghost" size="sm">
                   <Pencil aria-hidden />
@@ -168,7 +185,10 @@ function MealPeriodRow({ period, timeZone }: { period: MealPeriod; timeZone: str
           confirmLabel="Archive meal period"
           pending={command.pending}
           onConfirm={() =>
-            command.run({ type: "archive_meal_period", periodId: period.id }, `${period.name} archived`, () => setDialog(null))
+            command.run({ type: "archive_meal_period", periodId: period.id }, `${period.name} archived`, () => {
+              setDialog(null)
+              onRefresh?.()
+            })
           }
         >
           {usedText ? (
@@ -189,7 +209,10 @@ function MealPeriodRow({ period, timeZone }: { period: MealPeriod; timeZone: str
           destructive
           pending={command.pending}
           onConfirm={() =>
-            command.run({ type: "delete_meal_period", periodId: period.id }, `${period.name} deleted`, () => setDialog(null))
+            command.run({ type: "delete_meal_period", periodId: period.id }, `${period.name} deleted`, () => {
+              setDialog(null)
+              onRefresh?.()
+            })
           }
         >
           {command.result && !command.result.ok ? <ActionResultMessage result={command.result} successText="" /> : null}

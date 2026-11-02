@@ -6,6 +6,7 @@ export type StaffMember = {
   email: string
   mobile: string | null
   restaurant: { id: number; name: string }
+  restaurants: Array<{ id: number; name: string; status?: string }>
   designation: { id: number; name: string }
   rolePreset: string
   status: StaffStatus
@@ -55,6 +56,8 @@ export type StaffInput = {
   permissions: string[]
   designationId?: number
   customDesignation?: string
+  sellerId?: number
+  sellerIds?: number[]
 }
 
-export type CreateStaffInput = StaffInput & { email: string; password: string; sellerId?: number }
+export type CreateStaffInput = StaffInput & { email: string; password: string; sellerId?: number; sellerIds?: number[] }

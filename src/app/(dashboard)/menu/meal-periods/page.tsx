@@ -1,16 +1,11 @@
 import { Suspense } from "react"
 import type { Metadata } from "next"
-import { CalendarClock, Plus } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import { EmptyState } from "@/components/dashboard/empty-state"
 import { PageHeader } from "@/components/dashboard/page-header"
-import { MealPeriodDialog } from "@/components/menu/meal-period-dialog"
-import { MealPeriodsList } from "@/components/menu/meal-periods-list"
-import { MenuListSkeleton, MenuLoadFailure } from "@/components/menu/menu-states"
-import { PreviewMenuControls } from "@/components/menu/preview-menu-controls"
-import { PreviewNotice } from "@/components/shared/preview-notice"
+import { MealPeriodsLiveView } from "@/components/menu/meal-periods-live-view"
+import { MenuListSkeleton } from "@/components/menu/menu-states"
 import { getMenuContext, listMealPeriods, menuMode } from "@/lib/menu/service"
+import type { MealPeriod } from "@/lib/menu/meal-periods"
 
 export const metadata: Metadata = {
   title: "Meal periods",
@@ -38,48 +33,29 @@ async function MealPeriodsView({
 }) {
   const { preview } = await searchParams
 
-  let loaded
-  try {
-    const [context, periods] = await Promise.all([getMenuContext(), listMealPeriods(preview)])
-    loaded = { context, periods }
-  } catch (error) {
-    // No fallback data: a failed request is shown as a failure.
-    return <MenuLoadFailure error={error} retryHref="/menu/meal-periods" what="meal_periods" />
-  }
-  const { context, periods } = loaded
+  let timeZone = "Asia/Kolkata"
+  let periods: MealPeriod[] | null = null
 
-  // The add button sits in this streamed section, since it needs the restaurant's zone.
-  const add = (
-    <MealPeriodDialog
-      timeZone={context.timeZone}
-      trigger={
-        <Button className="w-fit">
-          <Plus aria-hidden />
-          Add meal period
-        </Button>
-      }
-    />
-  )
+  try {
+    const context = await getMenuContext()
+    timeZone = context.timeZone
+  } catch {
+    // Default restaurant timezone
+  }
+
+  try {
+    periods = await listMealPeriods(preview)
+  } catch {
+    // When in live API mode without pre-synced cookies during initial SSR,
+    // let MealPeriodsLiveView seamlessly fetch on the client with the in-memory bearer token!
+    periods = null
+  }
 
   return (
-    <div className="flex flex-col gap-4">
-      {menuMode() === "preview" ? (
-        <>
-          <PreviewNotice detail="Sample meal periods have ids starting prv-. A real restaurant starts with none." />
-          <PreviewMenuControls />
-        </>
-      ) : null}
-      {add}
-      {periods.length === 0 ? (
-        <EmptyState
-          icon={CalendarClock}
-          title="No meal periods yet"
-          description="There are no ready-made meal periods. Add your own with Add meal period, then choose them in an item's or category's schedule."
-          className="min-h-72 rounded-3xl border-border bg-card"
-        />
-      ) : (
-        <MealPeriodsList periods={periods} timeZone={context.timeZone} />
-      )}
-    </div>
+    <MealPeriodsLiveView
+      initialPeriods={periods}
+      timeZone={timeZone}
+      isPreview={menuMode() === "preview"}
+    />
   )
 }

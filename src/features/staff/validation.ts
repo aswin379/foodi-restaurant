@@ -9,7 +9,8 @@ export type StaffFormValues = {
   email: string
   mobile: string
   password: string
-  sellerId: string
+  /** Selected restaurant IDs as text. */
+  sellerIds: string[]
   /** A designation id as text, or CUSTOM_DESIGNATION to type a new title. */
   designation: string
   customDesignation: string
@@ -28,7 +29,9 @@ export function validateStaff(values: StaffFormValues, mode: "create" | "edit", 
   if (mode === "create") {
     if (!EMAIL.test(values.email.trim())) errors.email = "Enter a valid email address."
     if (values.password.length < PASSWORD_MIN) errors.password = `Use at least ${PASSWORD_MIN} characters.`
-    if (needsRestaurant && !values.sellerId) errors.sellerId = "Select a restaurant."
+  }
+  if (needsRestaurant && values.sellerIds.length === 0) {
+    errors.sellerIds = "Select at least one restaurant."
   }
   if (values.mobile.trim() && !MOBILE.test(values.mobile.replace(/[\s-]/g, ""))) {
     errors.mobile = "Enter a valid mobile number."
@@ -52,12 +55,13 @@ export function toEditInput(values: StaffFormValues): StaffInput {
     mobile: values.mobile.trim() ? values.mobile.trim() : null,
     rolePreset: values.rolePreset,
     permissions: values.permissions,
+    ...(values.sellerIds.length > 0 ? { sellerIds: values.sellerIds.map(Number) } : {}),
     ...designationFields(values),
   }
 }
 
 export function toCreateInput(values: StaffFormValues): CreateStaffInput {
-  const { name, rolePreset, permissions, designationId, customDesignation } = toEditInput(values)
+  const { name, rolePreset, permissions, designationId, customDesignation, sellerIds } = toEditInput(values)
   return {
     name,
     rolePreset,
@@ -67,7 +71,7 @@ export function toCreateInput(values: StaffFormValues): CreateStaffInput {
     ...(values.mobile.trim() ? { mobile: values.mobile.trim() } : {}),
     email: values.email.trim(),
     password: values.password,
-    ...(values.sellerId ? { sellerId: Number(values.sellerId) } : {}),
+    ...(sellerIds && sellerIds.length > 0 ? { sellerIds } : {}),
   }
 }
 
@@ -77,7 +81,12 @@ export function fieldErrorsFrom(details: unknown): FieldErrors {
   if (!Array.isArray(details)) return errors
   for (const item of details as Array<{ path?: string; message?: string }>) {
     if (!item.path || !item.message) continue
-    const key = item.path === "designationId" ? "designation" : item.path
+    const key =
+      item.path === "designationId"
+        ? "designation"
+        : item.path === "sellerId" || item.path === "sellerIds"
+          ? "sellerIds"
+          : item.path
     if (!(key in errors)) (errors as Record<string, string>)[key] = item.message
   }
   return errors

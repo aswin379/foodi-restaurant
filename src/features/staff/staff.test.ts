@@ -17,7 +17,7 @@ const valid: StaffFormValues = {
   email: "asha@example.com",
   mobile: "",
   password: "long-enough-password",
-  sellerId: "",
+  sellerIds: [],
   designation: "3",
   customDesignation: "",
   rolePreset: "custom",
@@ -41,8 +41,9 @@ describe("validateStaff", () => {
   })
 
   it("requires the restaurant only when the owner must choose", () => {
-    expect(validateStaff(valid, "create", true).sellerId).toBeDefined()
-    expect(validateStaff({ ...valid, sellerId: "7" }, "create", true).sellerId).toBeUndefined()
+    expect(validateStaff(valid, "create", true).sellerIds).toBeDefined()
+    expect(validateStaff({ ...valid, sellerIds: ["7"] }, "create", true).sellerIds).toBeUndefined()
+    expect(validateStaff({ ...valid, sellerIds: ["7", "8"] }, "create", true).sellerIds).toBeUndefined()
   })
 
   it("checks name, email, password, mobile and designation", () => {
@@ -70,19 +71,27 @@ describe("toCreateInput", () => {
     expect(custom.designationId).toBeUndefined()
   })
 
-  it("omits an empty mobile and an unchosen restaurant", () => {
+  it("omits an empty mobile and unchosen restaurants", () => {
     const input = toCreateInput(valid)
     expect("mobile" in input).toBe(false)
-    expect("sellerId" in input).toBe(false)
-    expect(toCreateInput({ ...valid, sellerId: "9" }).sellerId).toBe(9)
+    expect("sellerIds" in input).toBe(false)
+    expect(toCreateInput({ ...valid, sellerIds: ["9"] }).sellerIds).toEqual([9])
+    expect(toCreateInput({ ...valid, sellerIds: ["9", "12"] }).sellerIds).toEqual([9, 12])
   })
 })
 
 describe("fieldErrorsFrom", () => {
   it("maps server details onto form fields", () => {
-    expect(fieldErrorsFrom([{ path: "designationId", message: "Choose a designation" }, { path: "email", message: "Taken" }])).toEqual({
+    expect(
+      fieldErrorsFrom([
+        { path: "designationId", message: "Choose a designation" },
+        { path: "email", message: "Taken" },
+        { path: "sellerIds", message: "Select at least one restaurant" },
+      ])
+    ).toEqual({
       designation: "Choose a designation",
       email: "Taken",
+      sellerIds: "Select at least one restaurant",
     })
     expect(fieldErrorsFrom(undefined)).toEqual({})
   })
@@ -130,5 +139,6 @@ describe("canSeeArea", () => {
 
   it("never derives access from a designation", () => {
     expect(canSeeArea(user({ role: "staff", designation: "Accountant", permissions: [] }), "/reports")).toBe(false)
+    expect(canSeeArea(user({ role: "staff", designation: "Branch Manager", permissions: [] }), "/reports")).toBe(false)
   })
 })

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { LocateFixed } from "lucide-react"
+import { LocateFixed, MapPin } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -146,7 +146,17 @@ export function LocationPicker({
     )
   }
 
-  if (!hasMapsKey) return null
+  if (!hasMapsKey) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground bg-muted/20">
+        <MapPin aria-hidden className="size-6 text-muted-foreground mb-1.5" />
+        <p className="font-medium text-foreground">Google Maps is not configured</p>
+        <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">
+          Set <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> in <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">seller/.env</code> to enable map searching and pin selection. You can still type coordinates directly below.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-2">

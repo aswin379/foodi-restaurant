@@ -1,16 +1,9 @@
 import "server-only"
 
+import { cookies } from "next/headers"
 import { ServiceError } from "@/lib/data-source/errors"
 import { resolveDataSourceMode } from "@/lib/data-source/mode"
 
-/**
- * Per-restaurant settings every screen needs to format data: the IANA time
- * zone (PRD §3.2), currency and locale. In api mode these will come from the
- * restaurant's session and profile, which don't exist yet.
- *
- * Orders, Menu and Hours read the zone and locale from here (through their
- * own data sources) rather than hard-coding them.
- */
 export type RestaurantContext = {
   restaurantId: string
   /** Null until a real profile is available. */
@@ -28,10 +21,26 @@ export const PREVIEW_RESTAURANT: RestaurantContext = {
   locale: "en-IN",
 }
 
-/** Throws ServiceError("not_configured") outside preview mode. */
+/** Returns the active restaurant context. */
 export async function getRestaurantContext(): Promise<RestaurantContext> {
   if (resolveDataSourceMode(process.env.FOODI_RESTAURANT_DATA_SOURCE) === "preview") {
     return { ...PREVIEW_RESTAURANT }
   }
+
+  if (process.env.FOODI_API_ENABLED === "true") {
+    let restaurantId = PREVIEW_RESTAURANT.restaurantId
+    try {
+      const cookieStore = await cookies()
+      const id = cookieStore.get("foodi_seller_restaurant_id")?.value
+      if (id) restaurantId = id
+    } catch {
+      // Running outside request context
+    }
+    return {
+      ...PREVIEW_RESTAURANT,
+      restaurantId,
+    }
+  }
+
   throw new ServiceError("not_configured")
 }

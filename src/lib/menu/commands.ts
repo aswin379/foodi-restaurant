@@ -111,7 +111,7 @@ export function itemDraftFrom(value: unknown): MenuItemDraft {
     spiceLevel: isSpiceLevel(raw.spiceLevel) ? raw.spiceLevel : "none",
     tags: [...new Set(list(raw.tags, 10).filter(isItemTag))],
     calories: text(raw.calories, 10),
-    channels: channels(raw.channels),
+    channels: isRecord(raw.channels) ? channels(raw.channels) : { delivery: true, takeaway: true, dine_in: true },
     soldOut: soldOutDraft(raw.soldOut),
     schedule: scheduleDraftFromInput(raw.schedule),
     image: imageChange(raw.image),
@@ -124,7 +124,7 @@ export function categoryDraftFrom(value: unknown): CategoryDraft {
     name: text(raw.name, 200),
     description: text(raw.description, 1000),
     active: raw.active !== false,
-    channels: channels(raw.channels),
+    channels: isRecord(raw.channels) ? channels(raw.channels) : { delivery: true, takeaway: true, dine_in: true },
     // Not sent = keep the saved schedule, so a caller can't wipe it by leaving it out.
     ...(raw.schedule === undefined ? {} : { schedule: scheduleDraftFromInput(raw.schedule) }),
   }

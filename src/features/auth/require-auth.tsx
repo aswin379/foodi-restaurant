@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 
 import { useAuth } from "./auth-context"
+import { refreshSession } from "@/lib/api-client"
 
 /**
  * Keeps signed-out visitors off the dashboard. This is a convenience only: the API checks the
@@ -13,9 +14,19 @@ import { useAuth } from "./auth-context"
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { status } = useAuth()
   const router = useRouter()
+  const refreshedRef = useRef(false)
 
   useEffect(() => {
-    if (status === "anonymous") router.replace("/login")
+    if (status === "anonymous") {
+      router.replace("/login")
+    } else if (status === "authenticated" && typeof document !== "undefined") {
+      if (!document.cookie.includes("foodi_seller_token") && !refreshedRef.current) {
+        refreshedRef.current = true
+        refreshSession().then(() => {
+          router.refresh()
+        }).catch(() => {})
+      }
+    }
   }, [status, router])
 
   if (status !== "authenticated") {

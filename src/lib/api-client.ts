@@ -25,15 +25,43 @@ type Envelope<T> = {
 /** The access token lives in memory only; the refresh token is an HttpOnly cookie. */
 let accessToken: string | null = null
 let onSessionLost: (() => void) | null = null
-/** The restaurant requests act on. The API re-checks that this owner may use it on every request. */
 let activeRestaurantId: number | null = null
+
+export function getAccessToken(): string | null {
+  return accessToken
+}
+
+export function getActiveRestaurantId(): number | null {
+  return activeRestaurantId
+}
+
+/** The restaurant requests act on. The API re-checks that this owner may use it on every request. */
+export function syncAuthCookies(token?: string | null, restaurantId?: number | null) {
+  if (typeof document === 'undefined') return
+  const tokenToSet = token !== undefined ? token : accessToken
+  const idToSet = restaurantId !== undefined ? restaurantId : activeRestaurantId
+
+  if (tokenToSet) {
+    document.cookie = `foodi_seller_token=${tokenToSet}; path=/; max-age=86400; SameSite=Lax`
+  } else if (token === null) {
+    document.cookie = 'foodi_seller_token=; path=/; max-age=0; SameSite=Lax'
+  }
+
+  if (idToSet !== undefined && idToSet !== null) {
+    document.cookie = `foodi_seller_restaurant_id=${idToSet}; path=/; max-age=86400; SameSite=Lax`
+  } else if (restaurantId === null) {
+    document.cookie = 'foodi_seller_restaurant_id=; path=/; max-age=0; SameSite=Lax'
+  }
+}
 
 export function setActiveRestaurantId(id: number | null) {
   activeRestaurantId = id
+  syncAuthCookies(accessToken, id)
 }
 
 export function setAccessToken(token: string | null) {
   accessToken = token
+  syncAuthCookies(token, activeRestaurantId)
 }
 
 export function setSessionLostHandler(handler: (() => void) | null) {
@@ -78,6 +106,7 @@ export function refreshSession(): Promise<Session> {
     .then((response) => parse<Session>(response))
     .then((session) => {
       accessToken = session.accessToken
+      syncAuthCookies(accessToken, activeRestaurantId)
       return session
     })
     .finally(() => {
@@ -94,6 +123,7 @@ export async function loginRequest(email: string, password: string): Promise<Ses
   })
   const session = await parse<Session>(response)
   accessToken = session.accessToken
+  syncAuthCookies(accessToken, activeRestaurantId)
   return session
 }
 
@@ -124,6 +154,8 @@ export async function logoutRequest(): Promise<void> {
     await send("/seller/auth/logout", { method: "POST", headers: CSRF_HEADERS })
   } finally {
     accessToken = null
+    activeRestaurantId = null
+    syncAuthCookies(null, null)
   }
 }
 
@@ -135,6 +167,9 @@ export async function api<T>(
   path: string,
   init: { method?: string; body?: unknown; restaurantScoped?: boolean } = {}
 ): Promise<T> {
+  if (accessToken) {
+    syncAuthCookies(accessToken, activeRestaurantId)
+  }
   // FormData (image uploads) is sent as is; the browser sets the multipart boundary.
   const isForm = init.body instanceof FormData
   const run = () =>

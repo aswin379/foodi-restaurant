@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { hoursFieldId, type DayDraft } from "@/lib/hours/weekly-hours"
+import { hoursFieldId, type DayDraft, type WindowDraft } from "@/lib/hours/weekly-hours"
 import {
   activeUsage,
   MEAL_PERIOD_NAME_MAX,
@@ -38,6 +38,32 @@ import { useMenuCommand } from "@/hooks/use-menu-command"
 
 const newKey = () => `new-${crypto.randomUUID().slice(0, 8)}`
 const isBlank = (window: { start: string; end: string }) => window.start === "" && window.end === ""
+
+function areAllDaysConfiguredSame(days: Record<Weekday, DayDraft>): {
+  isAllDays: boolean
+  allDay: boolean
+  windows: WindowDraft[]
+} {
+  const allEnabled = WEEKDAYS.every((d) => days[d]?.enabled)
+  if (!allEnabled) return { isAllDays: false, allDay: false, windows: [] }
+
+  const first = days[WEEKDAYS[0]]
+  const firstAllDay = first.allDay
+  const firstWinStr = JSON.stringify(first.windows.map((w) => ({ start: w.start, end: w.end })))
+
+  const same = WEEKDAYS.every((d) => {
+    const day = days[d]
+    if (day.allDay !== firstAllDay) return false
+    const winStr = JSON.stringify(day.windows.map((w) => ({ start: w.start, end: w.end })))
+    return winStr === firstWinStr
+  })
+
+  return {
+    isAllDays: same,
+    allDay: firstAllDay,
+    windows: first.windows,
+  }
+}
 
 /** Error paths in the order they appear. */
 function summaryOrder(draft: MealPeriodDraft) {
@@ -66,10 +92,12 @@ export function MealPeriodDialog({
   period,
   timeZone,
   trigger,
+  onSaved,
 }: {
   period?: MealPeriod
   timeZone: string
   trigger: React.ReactNode
+  onSaved?: () => void
 }) {
   const id = useId()
   const command = useMenuCommand()
@@ -96,6 +124,53 @@ export function MealPeriodDialog({
     if (Object.keys(localErrors).length) setLocalErrors(validateMealPeriodDraft(next))
   }
 
+  const allDaysState = areAllDaysConfiguredSame(draft.days)
+
+  function handleToggleAllDays(enabled: boolean) {
+    const nextDays: Record<Weekday, DayDraft> = { ...draft.days }
+    if (enabled) {
+      const sampleWindows = draft.days.mon.windows.length > 0
+        ? draft.days.mon.windows
+        : [{ key: newKey(), start: "09:00", end: "17:00" }]
+      for (const day of WEEKDAYS) {
+        nextDays[day] = {
+          enabled: true,
+          allDay: false,
+          windows: sampleWindows.map((w, i) => ({ key: `${day}-${i + 1}`, start: w.start, end: w.end })),
+        }
+      }
+    } else {
+      for (const day of WEEKDAYS) {
+        nextDays[day] = { enabled: false, allDay: false, windows: [] }
+      }
+    }
+    update({ ...draft, days: nextDays })
+  }
+
+  function handleAllDaysAllDay(allDay: boolean) {
+    const nextDays: Record<Weekday, DayDraft> = { ...draft.days }
+    for (const day of WEEKDAYS) {
+      nextDays[day] = {
+        enabled: true,
+        allDay,
+        windows: allDay ? [] : [{ key: `${day}-1`, start: "09:00", end: "17:00" }],
+      }
+    }
+    update({ ...draft, days: nextDays })
+  }
+
+  function handleAllDaysWindowsChange(newWindows: WindowDraft[]) {
+    const nextDays: Record<Weekday, DayDraft> = { ...draft.days }
+    for (const day of WEEKDAYS) {
+      nextDays[day] = {
+        enabled: true,
+        allDay: false,
+        windows: newWindows.map((w, i) => ({ key: `${day}-${i + 1}`, start: w.start, end: w.end })),
+      }
+    }
+    update({ ...draft, days: nextDays })
+  }
+
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const nextErrors = validateMealPeriodDraft(draft)
@@ -109,7 +184,10 @@ export function MealPeriodDialog({
     command.run(
       { type: "save_meal_period", periodId: period?.id ?? null, version: period?.version ?? null, draft },
       editing ? `${name} updated` : `${name} added`,
-      () => setOpen(false)
+      () => {
+        setOpen(false)
+        onSaved?.()
+      }
     )
   }
 
@@ -178,17 +256,78 @@ export function MealPeriodDialog({
               </span>
             </p>
             <FieldError path={mealPeriodPaths.days} errors={errors} />
-            <ul className="flex flex-col gap-2" aria-label="Days">
-              {WEEKDAYS.map((day) => (
-                <DayRow
-                  key={day}
-                  day={day}
-                  value={draft.days[day]}
-                  errors={errors}
-                  onChange={(next) => update({ ...draft, days: { ...draft.days, [day]: next } })}
-                />
-              ))}
-            </ul>
+            {/* All Days Master Row */}
+            <div className="flex flex-col gap-3 rounded-xl border-2 border-primary/20 bg-primary/[0.03] p-3.5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                <div className="flex items-center gap-2.5">
+                  <Checkbox
+                    id={`${id}-all-days`}
+                    checked={allDaysState.isAllDays}
+                    onCheckedChange={(checked) => handleToggleAllDays(checked === true)}
+                  />
+                  <Label htmlFor={`${id}-all-days`} className="font-semibold cursor-pointer">
+                    All Days <span className="text-xs font-normal text-muted-foreground">(Monday – Sunday)</span>
+                  </Label>
+                </div>
+                {allDaysState.isAllDays ? (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id={`${id}-all-days-all-day`}
+                      checked={allDaysState.allDay}
+                      onCheckedChange={(checked) => handleAllDaysAllDay(checked === true)}
+                    />
+                    <Label htmlFor={`${id}-all-days-all-day`} className="text-xs font-normal cursor-pointer">
+                      All day (midnight to midnight)
+                    </Label>
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Select to apply same time Mon–Sun</span>
+                )}
+              </div>
+
+              {allDaysState.isAllDays && allDaysState.allDay ? (
+                <p className="text-xs text-muted-foreground">All 7 days are available midnight to midnight.</p>
+              ) : null}
+
+              {allDaysState.isAllDays && !allDaysState.allDay ? (
+                <div className="pt-1">
+                  <TimeWindowsFields
+                    windows={allDaysState.windows}
+                    name="All Days"
+                    nextDayLabel="the next day"
+                    paths={{
+                      window: (key) => mealPeriodPaths.window("mon", key),
+                      start: (key) => mealPeriodPaths.start("mon", key),
+                      end: (key) => mealPeriodPaths.end("mon", key),
+                    }}
+                    errors={errors}
+                    newKey={newKey}
+                    onChange={handleAllDaysWindowsChange}
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            {/* Individual Day Breakdown */}
+            <details className="group mt-1 rounded-lg border bg-muted/20 p-2" open={!allDaysState.isAllDays}>
+              <summary className="flex cursor-pointer select-none items-center justify-between px-1 py-1 text-xs font-medium text-muted-foreground hover:text-foreground">
+                <span>Customize individual days (Mon–Sun)</span>
+                <span className="text-[11px] underline">
+                  {allDaysState.isAllDays ? "Show individual days" : "Hide individual days"}
+                </span>
+              </summary>
+              <ul className="mt-3 flex flex-col gap-2" aria-label="Individual Days">
+                {WEEKDAYS.map((day) => (
+                  <DayRow
+                    key={day}
+                    day={day}
+                    value={draft.days[day]}
+                    errors={errors}
+                    onChange={(next) => update({ ...draft, days: { ...draft.days, [day]: next } })}
+                  />
+                ))}
+              </ul>
+            </details>
           </fieldset>
 
           {saves ? (

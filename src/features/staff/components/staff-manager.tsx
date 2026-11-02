@@ -278,7 +278,13 @@ export function StaffManager() {
                     <TableCell>
                       <Badge variant="neutral">{member.designation.name}</Badge>
                     </TableCell>
-                    {multiRestaurant ? <TableCell>{member.restaurant.name}</TableCell> : null}
+                    {multiRestaurant ? (
+                      <TableCell>
+                        {member.restaurants && member.restaurants.length > 0
+                          ? member.restaurants.map((r) => r.name).join(", ")
+                          : member.restaurant.name}
+                      </TableCell>
+                    ) : null}
                     <TableCell>
                       <Badge variant={member.status === "active" ? "success" : "outline"}>
                         {member.status === "active" ? "Active" : "Inactive"}
@@ -371,8 +377,12 @@ export function StaffManager() {
                 <DialogDescription>{viewing.email}</DialogDescription>
               </DialogHeader>
               <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-                <dt className="text-muted-foreground">Restaurant</dt>
-                <dd>{viewing.restaurant.name}</dd>
+                <dt className="text-muted-foreground">Restaurant{viewing.restaurants && viewing.restaurants.length > 1 ? "s" : ""}</dt>
+                <dd>
+                  {viewing.restaurants && viewing.restaurants.length > 0
+                    ? viewing.restaurants.map((r) => r.name).join(", ")
+                    : viewing.restaurant.name}
+                </dd>
                 <dt className="text-muted-foreground">Designation</dt>
                 <dd>{viewing.designation.name}</dd>
                 <dt className="text-muted-foreground">Mobile</dt>

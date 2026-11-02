@@ -3,6 +3,7 @@
 import { refresh } from "next/cache"
 
 import { isIdempotencyKey } from "@/lib/api/idempotency"
+import { withRequestAuth } from "@/lib/api/transport"
 import { actionFailure, runAction, type ActionResult } from "@/lib/data-source/result"
 import { parseMenuCommand } from "@/lib/menu/commands"
 import type { MealPeriod } from "@/lib/menu/meal-periods"
@@ -16,13 +17,21 @@ import { listMealPeriods, menuMode, performMenuCommand, resetMenuPreview } from 
 export async function runMenuCommand(input: {
   command: unknown
   idempotencyKey: unknown
+  accessToken?: string
+  restaurantId?: number | string
 }): Promise<ActionResult<MenuCommandResult>> {
   if (!isIdempotencyKey(input.idempotencyKey)) return actionFailure("validation")
   const parsed = parseMenuCommand(input.command)
   if (!parsed.ok) return actionFailure("validation", parsed.fieldErrors)
 
   const idempotencyKey = input.idempotencyKey
-  const result = await runAction(menuMode(), () => performMenuCommand(parsed.command, idempotencyKey))
+  const authContext = {
+    accessToken: input.accessToken,
+    restaurantId: input.restaurantId,
+  }
+  const result = await withRequestAuth(authContext, () =>
+    runAction(menuMode(), () => performMenuCommand(parsed.command, idempotencyKey))
+  )
   if (result.ok) refresh()
   return result
 }
@@ -31,8 +40,11 @@ export async function runMenuCommand(input: {
  * Re-reads the meal periods (B3b), so "Convert to custom times" can check
  * whether a period changed since the editor loaded. Read-only.
  */
-export async function readMealPeriods(): Promise<ActionResult<MealPeriod[]>> {
-  return runAction(menuMode(), () => listMealPeriods())
+export async function readMealPeriods(auth?: {
+  accessToken?: string
+  restaurantId?: number | string
+}): Promise<ActionResult<MealPeriod[]>> {
+  return withRequestAuth(auth ?? {}, () => runAction(menuMode(), () => listMealPeriods()))
 }
 
 /** Preview only: restores the starting sample menu. Refused outside preview mode. */
