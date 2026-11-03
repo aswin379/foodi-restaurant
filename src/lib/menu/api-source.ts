@@ -3,32 +3,21 @@ import "server-only"
 import { getApiTransport } from "@/lib/api/transport"
 import { getRestaurantContext } from "@/lib/restaurant/context"
 
-import type { MenuAdapter } from "./adapter"
+import type { CuisineOption, MenuAdapter } from "./adapter"
 import { categoryFromApi, commandResultFromApi, commandToApi, itemFromApi, itemListFromApi } from "./api-mapping"
 import { mealPeriodListFromApi } from "./meal-periods-api"
 import type { MenuCommandResult } from "./rules"
 import type { MenuCategory, MenuItem, MenuItemListResult } from "./types"
 
-/**
- * Integration point for the Foodi menu API.
- *
- * No seller API exists yet, so the transport reports `not_configured` for
- * every call and the pages show "Menu isn't connected yet". The paths below
- * are the PROPOSED contract in docs/menu-ui.md, not confirmed endpoints.
- * Image upload needs its own endpoint (and server-side compression) once the
- * contract is fixed. Never fall back to preview data.
- */
 const PROPOSED_PATHS = {
   items: "/seller/menu/items",
   item: (id: string) => `/seller/menu/items/${encodeURIComponent(id)}`,
   categories: "/seller/menu/categories",
-  /** B3b, PROPOSED (docs/meal-periods-ui.md). Changes go through `commands`. */
   mealPeriods: "/seller/menu/meal-periods",
   commands: "/seller/menu/commands",
+  cuisines: "/seller/menu/cuisines",
 }
 
-// Responses and command bodies carry order-type names, so they go through
-// api-mapping.ts in both directions.
 export const apiMenuAdapter: MenuAdapter = {
   context: getRestaurantContext,
 
@@ -53,12 +42,24 @@ export const apiMenuAdapter: MenuAdapter = {
   },
 
   async listCategories() {
-    const categories = await getApiTransport().request<MenuCategory[]>({ method: "GET", path: PROPOSED_PATHS.categories })
-    return categories.map(categoryFromApi)
+    const res = await getApiTransport().request<MenuCategory[] | { categories: MenuCategory[] }>({
+      method: "GET",
+      path: PROPOSED_PATHS.categories,
+    })
+    const list = Array.isArray(res) ? res : Array.isArray(res?.categories) ? res.categories : []
+    return list.map(categoryFromApi)
   },
 
   async listMealPeriods() {
     return mealPeriodListFromApi(await getApiTransport().request<unknown>({ method: "GET", path: PROPOSED_PATHS.mealPeriods }))
+  },
+
+  async listCuisines() {
+    const res = await getApiTransport().request<CuisineOption[] | { cuisines: CuisineOption[] }>({
+      method: "GET",
+      path: PROPOSED_PATHS.cuisines,
+    })
+    return Array.isArray(res) ? res : Array.isArray(res?.cuisines) ? res.cuisines : []
   },
 
   async act(command, idempotencyKey) {

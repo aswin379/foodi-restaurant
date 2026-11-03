@@ -5,6 +5,7 @@ import { CalendarClock, Plus, Tags } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/dashboard/page-header"
+import { MenuExportImportButtons } from "@/components/menu/menu-export-import"
 import { MenuItemsList } from "@/components/menu/menu-items-list"
 import { MenuPagination } from "@/components/menu/menu-pagination"
 import { MenuEmpty, MenuListSkeleton, MenuLoadFailure, MenuNoResults } from "@/components/menu/menu-states"
@@ -23,34 +24,50 @@ export const metadata: Metadata = {
 export default function MenuPage({ searchParams }: PageProps<"/menu">) {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        variant="hero"
-        title="Menu"
-        description="Manage the dishes and drinks on your menu, their prices and options, and whether they can be ordered."
-        actions={
-          // Three actions: let them wrap on narrow screens.
-          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
-            <Button asChild variant="outline">
-              <Link href="/menu/categories">
-                <Tags aria-hidden />
-                Categories
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/menu/meal-periods">
-                <CalendarClock aria-hidden />
-                Meal periods
-              </Link>
-            </Button>
-            <Button asChild className="col-span-2 sm:col-auto">
+      <div className="flex flex-col gap-4">
+        {/* Top Header: Title and Horizontal Description */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-baseline gap-2 sm:gap-3">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              Menu
+            </h1>
+            <span className="text-sm text-muted-foreground sm:text-base font-normal">
+              · Manage the dishes and drinks on your menu, their prices and options, and whether they can be ordered.
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button asChild>
               <Link href="/menu/new">
-                <Plus aria-hidden />
+                <Plus aria-hidden className="mr-1 size-4" />
                 Add item
               </Link>
             </Button>
           </div>
-        }
-      />
+        </div>
+
+        {/* Action Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border-soft bg-card/60 p-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <MenuExportImportButtons />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/menu/categories">
+                <Tags aria-hidden className="mr-1.5 size-3.5" />
+                Categories
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/menu/meal-periods">
+                <CalendarClock aria-hidden className="mr-1.5 size-3.5" />
+                Meal periods
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <Suspense fallback={<MenuListSkeleton />}>
         <MenuView searchParams={searchParams} />
       </Suspense>
@@ -62,14 +79,12 @@ async function MenuView({ searchParams }: { searchParams: Promise<RawSearchParam
   const params = await searchParams
   const query = parseMenuItemListQuery(params)
 
-  // The category filter is optional: if categories fail, the list still loads.
   let categories: MenuCategory[] | null = null
   try {
     categories = await listMenuCategories()
   } catch {
     categories = null
   }
-  // Only for naming meal periods in schedule summaries; the list says when they couldn't load.
   let mealPeriods: MealPeriod[] | null = null
   try {
     mealPeriods = await listMealPeriods()
@@ -82,7 +97,6 @@ async function MenuView({ searchParams }: { searchParams: Promise<RawSearchParam
     <div className="flex flex-col gap-4">
       {isPreview ? <PreviewNotice detail="Sample items have ids starting prv-." /> : null}
       <MenuToolbar query={query} categories={categories} />
-      {/* Keyed so a new filter shows the loading state instead of stale rows. */}
       <Suspense key={menuHref(query)} fallback={<MenuListSkeleton />}>
         <MenuResults
           query={query}
@@ -114,13 +128,10 @@ async function MenuResults({
     const [context, result] = await Promise.all([getMenuContext(), listMenuItems(query, preview)])
     loaded = { context, result }
   } catch (error) {
-    // No fallback data: a failed request is shown as a failure.
     return <MenuLoadFailure error={error} retryHref={menuHref(query)} />
   }
   const { context, result } = loaded
 
-  // Preview tools sit inside this streamed section, so their dialog can't
-  // open (and hide the page) before the list has hydrated.
   const tools = isPreview ? <PreviewMenuControls /> : null
   if (result.totalItems === 0) {
     const filtered = query.filter !== "all" || hasActiveMenuFilters(query)

@@ -95,6 +95,15 @@ export function createPreviewMenuAdapter(): MenuAdapter {
         .sort((a, b) => Number(a.archived) - Number(b.archived) || a.position - b.position)
     },
 
+    async listCuisines() {
+      return [
+        { id: 1, name: "Kerala" },
+        { id: 2, name: "Chinese" },
+        { id: 3, name: "Arabic" },
+        { id: 4, name: "Italian" },
+      ]
+    },
+
     async listMealPeriods(previewScenario?: unknown) {
       const scenario = await applyScenario(previewScenario)
       if (scenario === "empty") return []

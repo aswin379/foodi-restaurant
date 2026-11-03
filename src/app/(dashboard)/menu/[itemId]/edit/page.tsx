@@ -8,7 +8,7 @@ import { BackToMenuLink, MenuFormSkeleton } from "@/components/menu/menu-page-pa
 import { MenuLoadFailure } from "@/components/menu/menu-states"
 import { PreviewNotice } from "@/components/shared/preview-notice"
 import { loadScheduleSupport } from "@/lib/menu/schedule-support"
-import { getMenuContext, getMenuItem, listMenuCategories, menuMode } from "@/lib/menu/service"
+import { getMenuContext, getMenuItem, listMenuCategories, listMenuCuisines, menuMode } from "@/lib/menu/service"
 
 export const metadata: Metadata = {
   title: "Edit menu item",
@@ -37,13 +37,14 @@ async function EditItemView({
 
   let loaded
   try {
-    const [context, item, categories, support] = await Promise.all([
+    const [context, item, categories, cuisines, support] = await Promise.all([
       getMenuContext(),
       getMenuItem(decodeURIComponent(itemId), preview),
       listMenuCategories(),
+      listMenuCuisines(),
       loadScheduleSupport(),
     ])
-    loaded = { context, item, categories, support }
+    loaded = { context, item, categories, cuisines, support }
   } catch (error) {
     return <MenuLoadFailure error={error} retryHref={`/menu/${itemId}/edit`} what="item" />
   }
@@ -59,6 +60,7 @@ async function EditItemView({
         mode="edit"
         item={item}
         categories={loaded.categories}
+        cuisines={loaded.cuisines}
         context={{ timeZone: loaded.context.timeZone, locale: loaded.context.locale }}
         mealPeriods={loaded.support.mealPeriods}
         hours={loaded.support.hours}

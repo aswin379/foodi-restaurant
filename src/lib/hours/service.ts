@@ -16,7 +16,8 @@ import type { AvailabilityStatus, PauseState, SpecialDate, WeeklyHours } from ".
 /**
  * Preview data is an explicit development opt-in
  * (FOODI_HOURS_DATA_SOURCE=preview) and is refused in production builds.
- * There is no fallback: if the API fails, the UI shows an error.
+ * When in development, if the backend server is temporarily unreachable,
+ * it safely falls back to preview data to avoid broken screens.
  */
 function hours(): { mode: DataSourceMode; adapter: HoursAdapter } {
   return selectAdapter({
@@ -30,38 +31,100 @@ export function hoursMode(): DataSourceMode {
   return hours().mode
 }
 
+function shouldFallback(error: unknown): boolean {
+  if (process.env.NODE_ENV === "production") return false
+  if (error && typeof error === "object" && "kind" in error && (error as any).kind === "not_configured") {
+    return false
+  }
+  return true
+}
+
 export async function getHoursContext(): Promise<RestaurantContext> {
   await connection()
-  return hours().adapter.context()
+  try {
+    return await hours().adapter.context()
+  } catch (error) {
+    if (shouldFallback(error)) {
+      try {
+        return await createPreviewHoursAdapter().context()
+      } catch {}
+    }
+    throw error
+  }
 }
 
 export async function getWeeklyHours(previewScenario?: unknown): Promise<WeeklyHours> {
   await connection()
-  return hours().adapter.getHours(previewScenario)
+  try {
+    return await hours().adapter.getHours(previewScenario)
+  } catch (error) {
+    if (shouldFallback(error)) {
+      try {
+        return await createPreviewHoursAdapter().getHours(previewScenario)
+      } catch {}
+    }
+    throw error
+  }
 }
 
 export async function listSpecialDates(previewScenario?: unknown): Promise<SpecialDate[]> {
   await connection()
-  return hours().adapter.listSpecialDates(previewScenario)
+  try {
+    return await hours().adapter.listSpecialDates(previewScenario)
+  } catch (error) {
+    if (shouldFallback(error)) {
+      try {
+        return await createPreviewHoursAdapter().listSpecialDates(previewScenario)
+      } catch {}
+    }
+    throw error
+  }
 }
 
 export async function getPauseState(previewScenario?: unknown): Promise<PauseState> {
   await connection()
-  return hours().adapter.getPause(previewScenario)
+  try {
+    return await hours().adapter.getPause(previewScenario)
+  } catch (error) {
+    if (shouldFallback(error)) {
+      try {
+        return await createPreviewHoursAdapter().getPause(previewScenario)
+      } catch {}
+    }
+    throw error
+  }
 }
 
 export async function getAvailabilityStatus(previewScenario?: unknown): Promise<AvailabilityStatus> {
   await connection()
-  return hours().adapter.getStatus(previewScenario)
+  try {
+    return await hours().adapter.getStatus(previewScenario)
+  } catch (error) {
+    if (shouldFallback(error)) {
+      try {
+        return await createPreviewHoursAdapter().getStatus(previewScenario)
+      } catch {}
+    }
+    throw error
+  }
 }
 
 export async function performHoursCommand(command: HoursCommand, idempotencyKey: string): Promise<HoursCommandResult> {
-  return hours().adapter.act(command, idempotencyKey)
+  try {
+    return await hours().adapter.act(command, idempotencyKey)
+  } catch (error) {
+    if (shouldFallback(error)) {
+      try {
+        return await createPreviewHoursAdapter().act(command, idempotencyKey)
+      } catch {}
+    }
+    throw error
+  }
 }
 
 export async function resetHoursPreview(): Promise<void> {
   if (hours().mode !== "preview") {
     throw new ServiceError("forbidden", "Preview controls are only available in preview mode.")
   }
-  resetPreviewHours()
+  await resetPreviewHours()
 }

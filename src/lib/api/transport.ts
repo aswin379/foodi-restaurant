@@ -147,6 +147,9 @@ export const httpApiTransport: FoodiApiTransport = {
     if (payload && typeof payload === "object" && !Array.isArray(payload) && "periods" in payload) {
       payload = (payload as { periods: unknown }).periods
     }
+    if (payload && typeof payload === "object" && !Array.isArray(payload) && "categories" in payload) {
+      payload = (payload as { categories: unknown }).categories
+    }
     return payload as Response
   },
 }

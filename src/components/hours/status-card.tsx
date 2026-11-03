@@ -1,5 +1,11 @@
-import { FlaskConical } from "lucide-react"
+"use client"
 
+import { useTransition } from "react"
+import { useRouter } from "next/navigation"
+import { FlaskConical, RotateCw } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { useVisibleRefresh } from "@/hooks/use-visible-refresh"
 import { ORDER_TYPES, orderTypeLabels } from "@/lib/domain/order-types"
 import { immediateReasonLabels, immediateStateLabels } from "@/lib/hours/labels"
 import type { AvailabilityStatus, ImmediateState } from "@/lib/hours/types"
@@ -16,25 +22,56 @@ const STATE_STYLES: Record<ImmediateState, string> = {
 
 /**
  * Whether each order type takes new immediate orders right now, with the
- * reason. Shows only what the server reports (or, in preview, a labelled
- * estimate); nothing is worked out in the browser. Scheduled orders are
- * mentioned only when the server reports them (P-2).
+ * reason. Shows live server availability, auto-refreshing periodically.
  */
 export function StatusCard({ status, locale, className }: { status: AvailabilityStatus; locale: string; className?: string }) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+
+  // Auto-refresh availability live while tab is active
+  useVisibleRefresh(true, 15_000)
+
   const estimate = status.source === "preview_estimate"
   const context = { timeZone: status.timeZone, locale }
+
+  const handleRefresh = () => {
+    startTransition(() => {
+      router.refresh()
+    })
+  }
+
   return (
     <section
       aria-labelledby="hours-status-title"
       className={cn("flex flex-col gap-4 rounded-3xl bg-card p-5 shadow-[0_8px_30px_rgb(31_26_23/6%)] sm:p-6", className)}
     >
-      <div className="flex flex-col gap-0.5">
-        <h2 id="hours-status-title" className="text-lg leading-7 font-semibold">
-          New orders right now
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          As of {formatInstant(status.asOf, context, "time")} ({status.timeZone})
-        </p>
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <h2 id="hours-status-title" className="text-lg leading-7 font-semibold">
+              New orders right now
+            </h2>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            As of {formatInstant(status.asOf, context, "time")} ({status.timeZone})
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={handleRefresh}
+          disabled={isPending}
+          title="Refresh live status"
+          className="size-8 text-muted-foreground hover:text-foreground"
+        >
+          <RotateCw className={cn("size-3.5", isPending && "animate-spin")} />
+          <span className="sr-only">Refresh live status</span>
+        </Button>
       </div>
       {estimate ? (
         <p className="flex items-start gap-2 rounded-xl bg-warning-soft px-3 py-2 text-xs text-warning-foreground">

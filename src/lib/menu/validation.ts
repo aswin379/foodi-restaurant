@@ -18,8 +18,8 @@ import {
 // Errors are keyed by field path (e.g. "groups.<key>.max"); the form turns a
 // path into the matching field id with fieldId().
 
-export const ITEM_NAME_MAX = 120
-export const DESCRIPTION_MAX = 500
+export const ITEM_NAME_MAX = 40
+export const DESCRIPTION_MAX = 1000
 export const CATEGORY_NAME_MAX = 60
 export const OPTION_NAME_MAX = 60
 export const SOLD_OUT_REASON_MAX = 120
@@ -63,6 +63,7 @@ export type MenuItemDraft = {
   name: string
   description: string
   categoryId: string
+  cuisineId?: string
   price: string
   sizes: SizeDraft[]
   groups: GroupDraft[]

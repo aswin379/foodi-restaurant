@@ -18,21 +18,25 @@ export function channelSettingsToApi(settings: ChannelSettings): Record<string, 
   return Object.fromEntries(ORDER_TYPES.map((type) => [toApiOrderType(type), settings[type]]))
 }
 
-/**
- * Order types from the API. Unknown or missing order types and non-boolean
- * values are integration errors, never guessed at.
- */
+/** Order types from the API, translated into Foodi's product names (G6). */
 export function channelSettingsFromApi(value: unknown): ChannelSettings {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new ServiceError("unavailable", "Invalid order types from API: not an object")
+    throw new ServiceError("unavailable", "Channel settings from API are missing or not an object.")
   }
+  const record = value as Record<string, unknown>
   const settings: Partial<Record<OrderType, boolean>> = {}
-  for (const [key, enabled] of Object.entries(value)) {
-    if (typeof enabled !== "boolean") throw new ServiceError("unavailable", `Invalid order type setting from API: ${key}`)
-    settings[fromApiOrderType(key)] = enabled
+  for (const [key, enabled] of Object.entries(record)) {
+    if (typeof enabled !== "boolean") {
+      throw new ServiceError("unavailable", `Non-boolean channel setting: ${key} = ${String(enabled)}`)
+    }
+    const orderType = fromApiOrderType(key)
+    settings[orderType] = enabled
   }
-  const missing = ORDER_TYPES.filter((type) => settings[type] === undefined)
-  if (missing.length) throw new ServiceError("unavailable", `Order types missing from API: ${missing.join(", ")}`)
+  for (const type of ORDER_TYPES) {
+    if (settings[type] === undefined) {
+      throw new ServiceError("unavailable", `Missing channel setting from API: ${type}`)
+    }
+  }
   return settings as ChannelSettings
 }
 
@@ -43,9 +47,27 @@ export function itemFromApi(item: MenuItem): MenuItem {
 }
 
 /** A category: its order types first, then its schedule (B3b; missing = always), read against them. */
-export function categoryFromApi(category: MenuCategory): MenuCategory {
-  const channels = channelSettingsFromApi(category.channels)
-  return { ...category, channels, schedule: scheduleFromApi(category.schedule, channels) }
+export function categoryFromApi(raw: unknown): MenuCategory {
+  const cat = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>
+  const channels = channelSettingsFromApi(cat.channels)
+  const active =
+    cat.active !== undefined
+      ? Boolean(cat.active)
+      : cat.isActive !== undefined
+      ? Boolean(cat.isActive)
+      : true
+  return {
+    id: String(cat.id ?? ""),
+    name: String(cat.name ?? ""),
+    description: (cat.description as string | null) ?? null,
+    position: Number(cat.position) || 0,
+    active,
+    channels,
+    schedule: scheduleFromApi(cat.schedule, channels),
+    archived: cat.archived !== undefined ? Boolean(cat.archived) : !active,
+    usedOnOrders: Boolean(cat.usedOnOrders),
+    itemCount: Number(cat.itemCount ?? cat.foodCount) || 0,
+  }
 }
 
 export function itemListFromApi(result: MenuItemListResult): MenuItemListResult {

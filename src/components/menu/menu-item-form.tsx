@@ -56,6 +56,7 @@ function draftFrom(item: MenuItem | undefined): MenuItemDraft {
     name: item?.name ?? "",
     description: item?.description ?? "",
     categoryId: item?.categoryId ?? "",
+    cuisineId: item?.cuisineId ?? "",
     price: item && item.sizes.length === 0 ? toPriceInput(item.price.amountMinor) : "",
     sizes: (item?.sizes ?? []).map((size) => ({
       key: size.id,
@@ -98,6 +99,7 @@ function summaryOrder(draft: MenuItemDraft) {
     "name",
     "description",
     "categoryId",
+    "cuisineId",
     "price",
     "sizes",
     ...draft.sizes.flatMap((size) => [`sizes.${size.key}.name`, `sizes.${size.key}.price`]),
@@ -147,6 +149,7 @@ export function MenuItemForm({
   mode,
   item,
   categories,
+  cuisines,
   context,
   mealPeriods,
   hours,
@@ -155,6 +158,7 @@ export function MenuItemForm({
   item?: MenuItem
   /** Null when categories couldn't be loaded. */
   categories: MenuCategory[] | null
+  cuisines?: Array<{ id: number; name: string }> | null
   context: ZoneAndLocale
   /** B3b: null when meal periods couldn't be loaded. */
   mealPeriods: MealPeriod[] | null
@@ -243,14 +247,17 @@ export function MenuItemForm({
                 Item name
               </FieldLabel>
               <Input
-                {...errorProps("name", errors)}
+                {...errorProps("name", errors, "item-name-count")}
                 value={draft.name}
                 onChange={(event) => update({ name: event.target.value })}
-                maxLength={ITEM_NAME_MAX + 20}
+                maxLength={ITEM_NAME_MAX}
                 autoComplete="off"
                 aria-required="true"
                 className="h-10 bg-background"
               />
+              <p id="item-name-count" className="text-xs text-muted-foreground">
+                {draft.name.trim().length} of {ITEM_NAME_MAX} characters
+              </p>
               <FieldError path="name" errors={errors} />
             </div>
             <div className="flex flex-col gap-2">
@@ -298,6 +305,36 @@ export function MenuItemForm({
                 ) : null}
                 <FieldError path="categoryId" errors={errors} />
               </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <FieldLabel htmlFor={fieldId("cuisineId")}>Cuisine</FieldLabel>
+                  <span className="text-xs text-muted-foreground">Optional</span>
+                </div>
+                <Select
+                  value={draft.cuisineId || "none"}
+                  onValueChange={(val) => update({ cuisineId: val === "none" ? "" : val })}
+                >
+                  <SelectTrigger id={fieldId("cuisineId")} className="h-10 bg-background">
+                    <SelectValue placeholder="Choose a cuisine" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None (General)</SelectItem>
+                    {cuisines?.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {cuisines && cuisines.length > 0
+                    ? "Assigned from your restaurant's cuisines"
+                    : "No cuisines assigned to your restaurant"}
+                </p>
+                <FieldError path="cuisineId" errors={errors} />
+              </div>
+            </div>
               <div className="flex flex-col gap-2">
                 {draft.sizes.length === 0 ? (
                   <>
@@ -324,7 +361,6 @@ export function MenuItemForm({
                   </>
                 )}
               </div>
-            </div>
             <fieldset className="grid gap-2">
               <legend className="mb-1 text-sm font-medium">Food type</legend>
               <RadioGroup

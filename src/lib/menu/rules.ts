@@ -241,6 +241,7 @@ function itemFromDraft(
     description: draft.description.trim() || null,
     categoryId: category.id,
     categoryName: category.name,
+    cuisineId: draft.cuisineId ? draft.cuisineId : null,
     price,
     sizes,
     optionGroups,

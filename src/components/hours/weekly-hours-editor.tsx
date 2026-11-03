@@ -277,29 +277,53 @@ function DayRow({
                 onCheckedChange={(checked) =>
                   onChange(
                     checked === true
-                      ? // Untouched empty rows go; windows with times stay and are flagged.
-                        { ...value, allDay: true, windows: value.windows.filter((window) => !isBlank(window)) }
-                      : { ...value, allDay: false, windows: value.windows.length ? value.windows : [{ key: newKey(), start: "", end: "" }] }
+                      ? { ...value, allDay: true, windows: [] }
+                      : {
+                          ...value,
+                          allDay: false,
+                          windows:
+                            value.windows.length > 0
+                              ? value.windows
+                              : [{ key: newKey(), start: "11:00", end: "23:00" }],
+                        }
                   )
                 }
               />
-              <Label htmlFor={allDayId} className="font-normal">
-                All day<span className="sr-only"> for {name}</span>
+              <Label htmlFor={allDayId} className="cursor-pointer text-xs font-medium">
+                All day (24 hours)<span className="sr-only"> for {name}</span>
               </Label>
             </div>
           ) : (
-            <span className="text-xs text-muted-foreground">Closed</span>
+            <span className="text-xs text-muted-foreground font-medium">Closed</span>
           )}
         </div>
-        {value.enabled ? <CopyDay day={day} name={name} onCopy={onCopy} /> : null}
+        {value.enabled ? (
+          <div className="flex items-center gap-1.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              title={`Apply ${label}'s hours to all days`}
+              onClick={() => onCopy(WEEKDAYS.filter((target) => target !== day))}
+            >
+              <Copy className="size-3.5 mr-1" />
+              Apply to all days
+            </Button>
+            <CopyDay day={day} name={name} onCopy={onCopy} />
+          </div>
+        ) : null}
       </div>
       <FieldError path={dayPath} errors={errors} />
       {value.enabled && value.allDay ? (
-        <p className="text-xs text-muted-foreground">Open all day: midnight to midnight.</p>
+        <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+          <span className="size-2 rounded-full bg-emerald-500" />
+          Open 24 hours all day (midnight to midnight). Timers not needed.
+        </div>
       ) : null}
-      {value.enabled && (!value.allDay || value.windows.length > 0) ? (
+      {value.enabled && !value.allDay ? (
         <TimeWindowsFields
-          windows={value.windows}
+          windows={value.windows.length > 0 ? value.windows : [{ key: newKey(), start: "11:00", end: "23:00" }]}
           name={name}
           nextDayLabel={weekdayLabels[nextWeekday(day)]}
           paths={{

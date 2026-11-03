@@ -5,6 +5,8 @@ import type { MealPeriod } from "./meal-periods"
 import type { MenuCommandResult } from "./rules"
 import type { MenuCategory, MenuItem, MenuItemListQuery, MenuItemListResult } from "./types"
 
+export type CuisineOption = { id: number; name: string }
+
 /**
  * What the Menu screens need from a data source: the Foodi API
  * (api-source.ts) or labelled preview data (preview-source.ts).
@@ -19,6 +21,8 @@ export type MenuAdapter = {
   listCategories(previewScenario?: unknown): Promise<MenuCategory[]>
   /** Every meal period, archived ones included, with what uses each (B3b). */
   listMealPeriods(previewScenario?: unknown): Promise<MealPeriod[]>
+  /** Assigned cuisines for this restaurant. */
+  listCuisines(previewScenario?: unknown): Promise<CuisineOption[]>
   /** Applies a restaurant command. Replays the stored result for a repeated key. */
   act(command: MenuCommand, idempotencyKey: string): Promise<MenuCommandResult>
 }
