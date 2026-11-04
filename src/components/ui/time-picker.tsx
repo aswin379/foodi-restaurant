@@ -5,10 +5,12 @@ import { Check, Clock } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format12Hour, parseClockInput, to12Hour, to24Hour, type Period } from "@/lib/time/clock12"
 import { cn } from "@/lib/utils"
 
 export interface TimePickerProps {
   id?: string
+  /** "HH:mm" (24-hour). The picker shows it as a 12-hour time but always reports "HH:mm". */
   value?: string
   onChange?: (value: string) => void
   disabled?: boolean
@@ -20,8 +22,9 @@ export interface TimePickerProps {
 }
 
 const PRESETS = ["09:00", "11:00", "12:00", "15:00", "18:00", "22:00", "23:30", "00:00"]
-const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"))
+const HOURS_12 = Array.from({ length: 12 }, (_, i) => i + 1)
 const MINUTES = ["00", "15", "30", "45"]
+const PERIODS: Period[] = ["AM", "PM"]
 
 export function TimePicker({
   id,
@@ -31,18 +34,16 @@ export function TimePicker({
   className,
   "aria-invalid": ariaInvalid,
   "aria-describedby": ariaDescribedBy,
-  placeholder = "Select time",
+  placeholder = "e.g. 6:00 PM",
 }: TimePickerProps) {
   const [open, setOpen] = React.useState(false)
-  const [inputValue, setInputValue] = React.useState(value)
+  // While typing, the raw text is shown; otherwise the stored "HH:mm" is shown as a 12-hour time.
+  const [draft, setDraft] = React.useState<string | null>(null)
   const hourScrollRef = React.useRef<HTMLDivElement>(null)
   const minuteScrollRef = React.useRef<HTMLDivElement>(null)
 
-  React.useEffect(() => {
-    setInputValue(value)
-  }, [value])
-
-  const [currentH = "09", currentM = "00"] = (inputValue || "09:00").split(":")
+  const display = draft ?? format12Hour(value)
+  const current = to12Hour(value) ?? { hour: 9, minute: "00", period: "AM" as Period }
 
   // Scroll active hour & minute into view when popover opens
   React.useEffect(() => {
@@ -57,30 +58,24 @@ export function TimePicker({
     }
   }, [open])
 
-  const handleSelect = (time: string) => {
-    setInputValue(time)
-    onChange?.(time)
-  }
-
-  const handleHourSelect = (newH: string) => {
-    const time = `${newH}:${currentM || "00"}`
-    setInputValue(time)
-    onChange?.(time)
-  }
-
-  const handleMinuteSelect = (newM: string) => {
-    const time = `${currentH || "00"}:${newM}`
-    setInputValue(time)
+  // Everything below hands "HH:mm" (24-hour) to onChange, whatever is shown.
+  const pick = (time: string) => {
+    setDraft(null)
     onChange?.(time)
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setInputValue(val)
-    if (/^([01]\d|2[0-3]):[0-5]\d$/.test(val)) {
-      onChange?.(val)
-    }
+    const text = e.target.value
+    setDraft(text)
+    const parsed = parseClockInput(text)
+    if (parsed) onChange?.(parsed)
   }
+
+  const optionClass = (selected: boolean) =>
+    cn(
+      "rounded-md py-1 text-center text-xs tabular-nums font-medium transition-colors",
+      selected ? "bg-primary text-primary-foreground font-semibold shadow-xs" : "text-foreground hover:bg-neutral-100"
+    )
 
   return (
     <div className={cn("relative flex items-center", className)}>
@@ -89,10 +84,11 @@ export function TimePicker({
           <input
             id={id}
             type="text"
-            value={inputValue}
+            value={display}
             placeholder={placeholder}
             disabled={disabled}
             onChange={handleInputChange}
+            onBlur={() => setDraft(null)}
             aria-invalid={ariaInvalid}
             aria-describedby={ariaDescribedBy}
             className={cn(
@@ -119,7 +115,7 @@ export function TimePicker({
         <PopoverContent
           align="start"
           sideOffset={6}
-          className="w-72 p-3 shadow-xl rounded-2xl border bg-popover"
+          className="w-80 p-3 shadow-xl rounded-2xl border bg-popover"
         >
           <div className="flex flex-col gap-3">
             {/* Header */}
@@ -127,7 +123,7 @@ export function TimePicker({
               <div className="flex items-center gap-1.5">
                 <Clock className="size-4 text-primary" />
                 <span className="text-sm font-semibold tabular-nums text-foreground">
-                  {inputValue || "09:00"}
+                  {value ? format12Hour(value) : "9:00 AM"}
                 </span>
               </div>
               <Button
@@ -148,12 +144,12 @@ export function TimePicker({
               </span>
               <div className="grid grid-cols-4 gap-1">
                 {PRESETS.map((slot) => {
-                  const isSelected = slot === inputValue
+                  const isSelected = slot === value
                   return (
                     <button
                       key={slot}
                       type="button"
-                      onClick={() => handleSelect(slot)}
+                      onClick={() => pick(slot)}
                       className={cn(
                         "rounded-md py-1 text-center text-xs tabular-nums font-medium transition-colors border",
                         isSelected
@@ -161,16 +157,15 @@ export function TimePicker({
                           : "border-border/60 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       )}
                     >
-                      {slot}
+                      {format12Hour(slot)}
                     </button>
                   )
                 })}
               </div>
             </div>
 
-            {/* Two-Column Time Scroller (Hours & Minutes) */}
-            <div className="grid grid-cols-2 gap-2 border-t pt-2.5">
-              {/* Hours Column */}
+            {/* Hour, minute and AM/PM */}
+            <div className="grid grid-cols-3 gap-2 border-t pt-2.5">
               <div className="flex flex-col">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pb-1 text-center">
                   Hour
@@ -179,20 +174,15 @@ export function TimePicker({
                   ref={hourScrollRef}
                   className="flex flex-col gap-1 max-h-44 overflow-y-auto px-1 pr-1.5 [scrollbar-width:thin]"
                 >
-                  {HOURS.map((h) => {
-                    const isSelected = h === currentH
+                  {HOURS_12.map((h) => {
+                    const isSelected = h === current.hour
                     return (
                       <button
                         key={h}
                         type="button"
                         data-active={isSelected ? "true" : undefined}
-                        onClick={() => handleHourSelect(h)}
-                        className={cn(
-                          "rounded-md py-1 text-center text-xs tabular-nums font-medium transition-colors",
-                          isSelected
-                            ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                            : "text-foreground hover:bg-neutral-100"
-                        )}
+                        onClick={() => pick(to24Hour(h, current.minute, current.period))}
+                        className={optionClass(isSelected)}
                       >
                         {h}
                       </button>
@@ -201,7 +191,6 @@ export function TimePicker({
                 </div>
               </div>
 
-              {/* Minutes Column */}
               <div className="flex flex-col border-l pl-2">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pb-1 text-center">
                   Minute
@@ -211,21 +200,38 @@ export function TimePicker({
                   className="flex flex-col gap-1 max-h-44 overflow-y-auto px-1 pr-1.5 [scrollbar-width:thin]"
                 >
                   {MINUTES.map((m) => {
-                    const isSelected = m === currentM
+                    const isSelected = m === current.minute
                     return (
                       <button
                         key={m}
                         type="button"
                         data-active={isSelected ? "true" : undefined}
-                        onClick={() => handleMinuteSelect(m)}
-                        className={cn(
-                          "rounded-md py-1 text-center text-xs tabular-nums font-medium transition-colors",
-                          isSelected
-                            ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                            : "text-foreground hover:bg-neutral-100"
-                        )}
+                        onClick={() => pick(to24Hour(current.hour, m, current.period))}
+                        className={optionClass(isSelected)}
                       >
                         {m}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="flex flex-col border-l pl-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pb-1 text-center">
+                  AM/PM
+                </span>
+                <div className="flex flex-col gap-1 px-1">
+                  {PERIODS.map((period) => {
+                    const isSelected = period === current.period
+                    return (
+                      <button
+                        key={period}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => pick(to24Hour(current.hour, current.minute, period))}
+                        className={optionClass(isSelected)}
+                      >
+                        {period}
                       </button>
                     )
                   })}
