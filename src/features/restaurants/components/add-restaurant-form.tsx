@@ -7,7 +7,7 @@ import { AlertCircle, ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, Perce
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ApiError } from "@/lib/api-client"
+import { ApiError } from "@/api-client"
 
 import { useRestaurants } from "../restaurant-context"
 import {

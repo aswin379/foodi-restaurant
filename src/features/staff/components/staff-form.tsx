@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ApiError } from "@/lib/api-client"
+import { ApiError } from "@/api-client"
 
 import { createStaff, updateStaff } from "../staff-service"
 import type { StaffMember, StaffMeta } from "../types"
