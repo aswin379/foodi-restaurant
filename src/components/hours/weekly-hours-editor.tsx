@@ -1,161 +1,122 @@
 "use client"
 
-import { useId, useRef, useState } from "react"
-import { AlertTriangle, CalendarClock, Copy, Loader2 } from "lucide-react"
+import { useId, useState } from "react"
+import { CircleCheck, Copy, Loader2 } from "lucide-react"
 
 import { ActionResultMessage } from "@/components/shared/action-result-message"
-import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useAuth } from "@/features/auth/auth-context"
+import { canPauseOrders } from "@/features/staff/access"
+import { useHoursCommand } from "@/hooks/use-hours-command"
 import { ORDER_TYPES, orderTypeLabels, type OrderType } from "@/lib/domain/order-types"
-import type { WeeklyHours } from "@/lib/hours/types"
+import type { PauseState, WeeklyHours } from "@/lib/hours/types"
 import {
   copyDayTo,
+  emptyHoursDraft,
   hoursDraftFrom,
   hoursFieldId,
-  hoursFromDraft,
-  hoursLines,
   hoursPaths,
-  hoursWarnings,
-  sameAs,
-  validateHoursDraft,
+  validateTypes,
   type DayDraft,
   type HoursDraft,
 } from "@/lib/hours/weekly-hours"
+import { cn } from "@/lib/utils"
 import { nextWeekday, WEEKDAYS, weekdayLabels, type Weekday } from "@/lib/time/weekly"
 
+import { PauseControl } from "./pause-control"
 import { FieldError, TimeWindowsFields, type FieldErrors } from "./time-windows-fields"
-import { useHoursCommand } from "@/hooks/use-hours-command"
 
 const newKey = () => `new-${crypto.randomUUID().slice(0, 8)}`
-const isBlank = (window: { start: string; end: string }) => window.start === "" && window.end === ""
+const defaultWindow = () => ({ key: newKey(), start: "11:00", end: "23:00" })
 
-/** Error paths in the order they appear, for the summary. */
-function summaryOrder(draft: HoursDraft) {
-  return ORDER_TYPES.flatMap((type) =>
-    WEEKDAYS.flatMap((day) => [
-      hoursPaths.day(type, day),
-      ...draft[type][day].windows.flatMap((window) => [
-        hoursPaths.start(type, day, window.key),
-        hoursPaths.end(type, day, window.key),
-        hoursPaths.window(type, day, window.key),
-      ]),
-    ])
-  )
-}
-
-const typeOfPath = (path: string) => ORDER_TYPES.find((type) => path.startsWith(`hours.${type}.`)) ?? "delivery"
+/** Error paths of one tab, in the order they appear on the page. */
+const orderedPaths = (draft: HoursDraft, type: OrderType) =>
+  WEEKDAYS.flatMap((day) => [
+    hoursPaths.day(type, day),
+    ...draft[type][day].windows.flatMap((window) => [
+      hoursPaths.start(type, day, window.key),
+      hoursPaths.end(type, day, window.key),
+      hoursPaths.window(type, day, window.key),
+    ]),
+  ])
 
 /**
- * Weekly opening hours per order type (PRD §3.3, H2, H8). Validated here and
- * again on the server; in preview mode the save is simulated and labelled.
+ * Hours and pause, one tab per order type the restaurant has switched on. Each tab has its own weekly
+ * hours, its own Save and its own pause. Validated here and again on the server, which stays the only
+ * place that works out availability.
  */
-export function WeeklyHoursEditor({ hours }: { hours: WeeklyHours }) {
+export function WeeklyHoursEditor({
+  hours,
+  pauseByType,
+  locale,
+}: {
+  hours: WeeklyHours
+  pauseByType: Record<OrderType, PauseState>
+  locale: string
+}) {
+  const { user } = useAuth()
+  const canPause = canPauseOrders(user)
+  const visibleTypes = ORDER_TYPES.filter((type) => hours.enabledTypes?.[type] ?? true)
   const command = useHoursCommand()
   const [draft, setDraft] = useState<HoursDraft>(() => hoursDraftFrom(hours))
-  const [active, setActive] = useState<OrderType>("delivery")
+  const [active, setActive] = useState<OrderType>(visibleTypes[0] ?? "delivery")
   const [localErrors, setLocalErrors] = useState<FieldErrors>({})
-  const [confirmSameAs, setConfirmSameAs] = useState<OrderType | null>(null)
-  const summaryRef = useRef<HTMLDivElement>(null)
+  const [saved, setSaved] = useState<OrderType | null>(null)
   const errors: FieldErrors = { ...command.fieldErrors, ...localErrors }
 
-  function update(next: HoursDraft) {
-    setDraft(next)
-    if (Object.keys(localErrors).length) setLocalErrors(validateHoursDraft(next))
+  if (visibleTypes.length === 0) {
+    return <p className="text-sm text-muted-foreground">No order types are switched on for this restaurant yet.</p>
   }
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const nextErrors = validateHoursDraft(draft)
+  function update(type: OrderType, next: HoursDraft) {
+    setDraft(next)
+    setSaved(null)
+    if (Object.keys(localErrors).length) setLocalErrors(validateTypes(next, [type]))
+  }
+
+  function save(type: OrderType) {
+    const nextErrors = validateTypes(draft, [type])
     setLocalErrors(nextErrors)
-    if (Object.keys(nextErrors).length) {
-      requestAnimationFrame(() => summaryRef.current?.focus())
+    const first = orderedPaths(draft, type).find((path) => nextErrors[path])
+    if (first) {
+      requestAnimationFrame(() => document.getElementById(hoursFieldId(first))?.focus())
       return
     }
-    // A failed attempt keeps its key, so retrying can't apply the change twice.
-    command.run({ type: "save_hours", version: hours.version, draft }, "Opening hours updated")
+    command.begin()
+    // Only this tab's hours are sent. A failed attempt can be retried with the same key.
+    command.run({ type: "save_hours", scope: type, version: hours.version, draft: { ...emptyHoursDraft(), [type]: draft[type] } }, "Opening hours updated", () =>
+      setSaved(type)
+    )
   }
 
-  function focusError(path: string) {
-    setActive(typeOfPath(path))
-    requestAnimationFrame(() => document.getElementById(hoursFieldId(path))?.focus())
-  }
-
-  const order = summaryOrder(draft)
-  const errorPaths = order.filter((path) => errors[path])
-  const errorCount = (type: OrderType) => errorPaths.filter((path) => typeOfPath(path) === type).length
-  const valid = Object.keys(validateHoursDraft(draft)).length === 0
-  const saves = valid ? hoursFromDraft(draft) : null
-  const warnings = hoursWarnings(draft)
-  const generalFailure = command.result && !command.result.ok && !command.result.fieldErrors ? command.result : null
+  const failure = command.result && !command.result.ok && !command.result.fieldErrors ? command.result : null
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-5">
-      {errorPaths.length ? (
-        <div
-          ref={summaryRef}
-          tabIndex={-1}
-          role="alert"
-          aria-labelledby="hours-error-summary-title"
-          className="rounded-2xl border border-danger-line bg-danger-soft px-4 py-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          <p id="hours-error-summary-title" className="font-semibold text-danger-foreground">
-            Check {errorPaths.length === 1 ? "1 thing" : `${errorPaths.length} things`} before saving
-          </p>
-          <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-danger-foreground">
-            {errorPaths.map((path) => (
-              <li key={path}>
-                <a
-                  href={`#${hoursFieldId(path)}`}
-                  className="underline underline-offset-4"
-                  onClick={(event) => {
-                    event.preventDefault()
-                    focusError(path)
-                  }}
-                >
-                  {orderTypeLabels[typeOfPath(path)]}: {errors[path]}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+    <Tabs value={active} onValueChange={(value) => setActive(value as OrderType)} className="flex flex-col gap-4">
+      <TabsList aria-label="Order type" className="h-auto flex-wrap">
+        {visibleTypes.map((type) => (
+          <TabsTrigger key={type} value={type}>
+            {orderTypeLabels[type]}
+          </TabsTrigger>
+        ))}
+      </TabsList>
 
-      <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-        <CalendarClock aria-hidden className="mt-px size-3.5 shrink-0" />
-        <span>
-          Times are in the restaurant&apos;s time zone, <span className="font-medium text-foreground">{hours.timeZone}</span>.
-          All day means midnight to midnight there. A day that&apos;s switched off is closed for that order type.
-        </span>
-      </p>
+      {visibleTypes.map((type) => (
+        <TabsContent key={type} value={type} className="flex flex-col gap-5">
+          <PauseControl type={type} pause={pauseByType[type]} locale={locale} canPause={canPause} />
 
-      <Tabs value={active} onValueChange={(value) => setActive(value as OrderType)}>
-        <TabsList aria-label="Order type" className="h-auto flex-wrap">
-          {ORDER_TYPES.map((type) => (
-            <TabsTrigger key={type} value={type}>
-              {orderTypeLabels[type]}
-              {errorCount(type) ? (
-                <span className="ml-1 rounded-full border border-danger-line bg-danger-soft px-1.5 py-px text-[11px] font-semibold text-danger-foreground">
-                  {errorCount(type)}
-                  <span className="sr-only"> {errorCount(type) === 1 ? "error" : "errors"}</span>
-                </span>
-              ) : null}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {ORDER_TYPES.map((type) => (
-          <TabsContent key={type} value={type} className="mt-4 flex flex-col gap-3">
-            {type !== "delivery" ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setConfirmSameAs(type)}>
-                  <Copy aria-hidden />
-                  Same as delivery<span className="sr-only"> for {orderTypeLabels[type]}</span>
-                </Button>
-              </div>
-            ) : null}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-0.5">
+              <h3 className="text-base font-semibold">Weekly hours</h3>
+              <p className="text-xs text-muted-foreground">
+                Times are in <span className="font-medium text-foreground">{hours.timeZone}</span>.
+              </p>
+            </div>
             <ul className="flex flex-col gap-2" aria-label={`${orderTypeLabels[type]} days`}>
               {WEEKDAYS.map((day) => (
                 <DayRow
@@ -164,64 +125,34 @@ export function WeeklyHoursEditor({ hours }: { hours: WeeklyHours }) {
                   day={day}
                   value={draft[type][day]}
                   errors={errors}
-                  onChange={(next) => update({ ...draft, [type]: { ...draft[type], [day]: next } })}
-                  onCopy={(targets) => update(copyDayTo(draft, type, day, targets, newKey))}
+                  onChange={(next) => update(type, { ...draft, [type]: { ...draft[type], [day]: next } })}
+                  onCopy={(targets) => update(type, copyDayTo(draft, type, day, targets, newKey))}
                 />
               ))}
             </ul>
-          </TabsContent>
-        ))}
-      </Tabs>
+          </div>
 
-      {warnings.length ? (
-        <ul className="flex flex-col gap-1 rounded-2xl border border-warning-line bg-warning-soft px-4 py-3 text-xs text-warning-foreground">
-          {warnings.map((warning) => (
-            <li key={warning} className="flex items-center gap-1.5">
-              <AlertTriangle aria-hidden className="size-3.5 shrink-0" />
-              {warning}
-            </li>
-          ))}
-        </ul>
-      ) : null}
+          {failure && active === type ? <ActionResultMessage result={failure} successText="" /> : null}
 
-      {saves ? (
-        <div className="rounded-2xl bg-background/70 p-4 text-xs ring-1 ring-border-soft" aria-label="Saves as">
-          <p className="text-sm font-semibold">Saves as</p>
-          <dl className="mt-1 grid gap-1 text-muted-foreground sm:grid-cols-[auto_1fr] sm:gap-x-3">
-            {ORDER_TYPES.map((type) => (
-              <div key={type} className="contents">
-                <dt className="font-medium text-foreground">{orderTypeLabels[type]}</dt>
-                <dd>{saves[type].length ? hoursLines(saves[type]).join(" · ") : "Closed every day"}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      ) : null}
-
-      {generalFailure ? <ActionResultMessage result={generalFailure} successText="" /> : null}
-
-      <div className="flex justify-end border-t border-border-soft pt-4">
-        <Button type="submit" className="sm:min-w-36" aria-disabled={command.pending || undefined}>
-          {command.pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
-          Save hours
-        </Button>
-      </div>
-
-      <ConfirmDialog
-        open={confirmSameAs !== null}
-        onOpenChange={(open) => !open && setConfirmSameAs(null)}
-        title={`Use delivery hours for ${confirmSameAs ? orderTypeLabels[confirmSameAs].toLowerCase() : ""}?`}
-        description={`${confirmSameAs ? orderTypeLabels[confirmSameAs] : ""}'s current hours are replaced with a copy of the delivery hours. Nothing is saved until you choose Save hours.`}
-        confirmLabel="Use delivery hours"
-        onConfirm={() => {
-          if (confirmSameAs) update(sameAs(draft, confirmSameAs, "delivery", newKey))
-          setConfirmSameAs(null)
-        }}
-      />
-    </form>
+          <div className="flex items-center justify-end gap-3 border-t border-border-soft pt-4">
+            {saved === type ? (
+              <p role="status" className="flex items-center gap-1.5 text-sm font-medium text-success-foreground">
+                <CircleCheck aria-hidden className="size-4" />
+                Saved
+              </p>
+            ) : null}
+            <Button type="button" className="sm:min-w-36" aria-disabled={command.pending || undefined} onClick={() => !command.pending && save(type)}>
+              {command.pending ? <Loader2 aria-hidden className="animate-spin" /> : null}
+              Save {orderTypeLabels[type].toLowerCase()} hours
+            </Button>
+          </div>
+        </TabsContent>
+      ))}
+    </Tabs>
   )
 }
 
+/** One day: Closed and All day switches, then either the opening times or a plain label. */
 function DayRow({
   type,
   day,
@@ -240,90 +171,67 @@ function DayRow({
   const dayPath = hoursPaths.day(type, day)
   const label = weekdayLabels[day]
   const name = `${orderTypeLabels[type]} ${label}`
-  const allDayId = `${hoursFieldId(dayPath)}-all-day`
+  const closedId = hoursFieldId(dayPath)
+  const allDayId = `${closedId}-all-day`
 
   return (
-    <li className="flex flex-col gap-3 rounded-2xl bg-background/70 p-4 ring-1 ring-border-soft">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="flex items-center gap-2.5">
-            <Checkbox
-              id={hoursFieldId(dayPath)}
+    <li
+      className={cn(
+        "flex flex-col gap-3 rounded-2xl border p-4",
+        value.enabled ? "border-success-line bg-success-soft/40" : "border-danger-line bg-danger-soft/40"
+      )}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <span className="w-24 text-sm font-semibold">{label}</span>
+          <div className="flex items-center gap-2">
+            <Switch
+              id={closedId}
+              className="data-[state=checked]:bg-success-foreground data-[state=unchecked]:bg-danger-foreground"
               checked={value.enabled}
-              aria-describedby={errors[dayPath] ? `${hoursFieldId(dayPath)}-error` : undefined}
-              onCheckedChange={(checked) =>
+              aria-describedby={errors[dayPath] ? `${closedId}-error` : undefined}
+              onCheckedChange={(open) =>
                 onChange(
-                  checked === true
-                    ? {
-                        ...value,
-                        enabled: true,
-                        // A newly opened day starts with one empty window to fill in.
-                        windows: value.windows.length || value.allDay ? value.windows : [{ key: newKey(), start: "", end: "" }],
-                      }
+                  open
+                    ? { ...value, enabled: true, windows: value.windows.length || value.allDay ? value.windows : [defaultWindow()] }
                     : { ...value, enabled: false }
                 )
               }
             />
-            <Label htmlFor={hoursFieldId(dayPath)}>
-              {label}
-              <span className="sr-only"> ({orderTypeLabels[type]})</span>
+            <Label
+              htmlFor={closedId}
+              className={cn("cursor-pointer text-xs font-semibold", value.enabled ? "text-success-foreground" : "text-danger-foreground")}
+            >
+              {value.enabled ? "Open" : "Closed"}<span className="sr-only"> on {name}</span>
             </Label>
           </div>
           {value.enabled ? (
             <div className="flex items-center gap-2">
-              <Checkbox
+              <Switch
                 id={allDayId}
                 checked={value.allDay}
-                onCheckedChange={(checked) =>
+                onCheckedChange={(allDay) =>
                   onChange(
-                    checked === true
+                    allDay
                       ? { ...value, allDay: true, windows: [] }
-                      : {
-                          ...value,
-                          allDay: false,
-                          windows:
-                            value.windows.length > 0
-                              ? value.windows
-                              : [{ key: newKey(), start: "11:00", end: "23:00" }],
-                        }
+                      : { ...value, allDay: false, windows: value.windows.length ? value.windows : [defaultWindow()] }
                   )
                 }
               />
               <Label htmlFor={allDayId} className="cursor-pointer text-xs font-medium">
-                All day (24 hours)<span className="sr-only"> for {name}</span>
+                All day<span className="sr-only"> for {name}</span>
               </Label>
             </div>
-          ) : (
-            <span className="text-xs text-muted-foreground font-medium">Closed</span>
-          )}
+          ) : null}
         </div>
-        {value.enabled ? (
-          <div className="flex items-center gap-1.5">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800"
-              title={`Apply ${label}'s hours to all days`}
-              onClick={() => onCopy(WEEKDAYS.filter((target) => target !== day))}
-            >
-              <Copy className="size-3.5 mr-1" />
-              Apply to all days
-            </Button>
-            <CopyDay day={day} name={name} onCopy={onCopy} />
-          </div>
-        ) : null}
+        {value.enabled ? <CopyDay day={day} name={name} onCopy={onCopy} /> : null}
       </div>
       <FieldError path={dayPath} errors={errors} />
-      {value.enabled && value.allDay ? (
-        <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-          <span className="size-2 rounded-full bg-emerald-500" />
-          Open 24 hours all day (midnight to midnight). Timers not needed.
-        </div>
-      ) : null}
+      {!value.enabled ? <p className="text-sm font-semibold text-danger-foreground">Closed</p> : null}
+      {value.enabled && value.allDay ? <p className="text-sm font-semibold text-success-foreground">All day</p> : null}
       {value.enabled && !value.allDay ? (
         <TimeWindowsFields
-          windows={value.windows.length > 0 ? value.windows : [{ key: newKey(), start: "11:00", end: "23:00" }]}
+          windows={value.windows.length > 0 ? value.windows : [defaultWindow()]}
           name={name}
           nextDayLabel={weekdayLabels[nextWeekday(day)]}
           paths={{
@@ -333,6 +241,8 @@ function DayRow({
           }}
           errors={errors}
           newKey={newKey}
+          addLabel="Add hours"
+          keepOne
           onChange={(windows) => onChange({ ...value, windows })}
         />
       ) : null}
@@ -340,7 +250,7 @@ function DayRow({
   )
 }
 
-/** "Copy {day} to…": replaces the chosen days' hours for this order type; "All other days" copies to the whole week. */
+/** "Copy {day} to…": replaces the chosen days' hours for this tab; "All other days" copies to the whole week. */
 function CopyDay({ day, name, onCopy }: { day: Weekday; name: string; onCopy: (targets: Weekday[]) => void }) {
   const id = useId()
   const [open, setOpen] = useState(false)
@@ -359,7 +269,7 @@ function CopyDay({ day, name, onCopy }: { day: Weekday; name: string; onCopy: (t
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" size="sm">
           <Copy aria-hidden />
-          Copy {label} to…<span className="sr-only"> ({name})</span>
+          Copy to other days<span className="sr-only"> ({name})</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64">
@@ -397,7 +307,6 @@ function CopyDay({ day, name, onCopy }: { day: Weekday; name: string; onCopy: (t
             Copy hours
           </Button>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">Replaces the hours on the days you choose. Nothing is saved until you choose Save hours.</p>
       </PopoverContent>
     </Popover>
   )

@@ -8,7 +8,6 @@ import {
   Contact,
   Armchair,
   CreditCard,
-  GitBranch,
   LayoutDashboard,
   MonitorSmartphone,
   LifeBuoy,
@@ -31,6 +30,8 @@ export type NavItem = {
   href: string | null
   /** Module number in the PRD module map (PRD v0.3 §1). */
   prdModule: number
+  /** Shown only while the restaurant delivers its own orders (delivery mode "We deliver ourselves"). */
+  requiresOwnDelivery?: boolean
 }
 
 export type NavGroup = {
@@ -60,6 +61,7 @@ export const dashboardNavigation: NavGroup[] = [
       { title: "Kitchen display", icon: ChefHat, href: "/kitchen", prdModule: 8 },
       { title: "Tables", icon: Armchair, href: "/tables", prdModule: 10 },
       { title: "Delivery", icon: Bike, href: "/delivery", prdModule: 9 },
+      { title: "My delivery boys", icon: Contact, href: "/delivery-boys", prdModule: 9, requiresOwnDelivery: true },
       { title: "Promotions", icon: BadgePercent, href: "/promotions", prdModule: 12 },
     ],
   },
@@ -67,8 +69,6 @@ export const dashboardNavigation: NavGroup[] = [
     label: "Restaurant",
     items: [
       { title: "Restaurant profile", icon: Store, href: "/settings/profile", prdModule: 18 },
-      // Counted under module 18: the PRD keeps multi-outlet (21) out of Release 1.
-      { title: "Branches", icon: GitBranch, href: "/branches", prdModule: 18 },
       { title: "Settings", icon: Settings, href: "/settings", prdModule: 18 },
       { title: "Staff & roles", icon: Users, href: "/staff", prdModule: 20 },
     ],
@@ -115,5 +115,7 @@ export function getOwnerPageTitle(pathname: string) {
   if (pathname === "/restaurants") return "My restaurants"
   if (pathname === "/restaurants/new") return "Add restaurant"
   if (pathname.startsWith("/restaurants/")) return "Restaurant application"
+  // Opened from the Tables page; not a sidebar item, so the header title comes from here.
+  if (pathname === "/locations") return "Locations & QR"
   return null
 }

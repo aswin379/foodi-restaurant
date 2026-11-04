@@ -11,6 +11,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useAuth } from "@/features/auth/auth-context"
+import { useUsesOwnDelivery } from "@/features/delivery-men/own-delivery"
 import { canSeeArea } from "@/features/staff/access"
 import { cn } from "@/lib/utils"
 
@@ -44,12 +45,15 @@ function SidebarNavList({
   // The desktop rail and the mobile sheet each render this list; separate ids stop their indicators sharing a layout.
   const indicatorId = useId()
   const { user } = useAuth()
+  const usesOwnDelivery = useUsesOwnDelivery(user !== null && canSeeArea(user, "/delivery-boys"))
   // Staff only see links they hold the permission for (Soon placeholders included); empty groups disappear.
   // Cosmetic: the API enforces access.
   const groups = dashboardNavigation
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => canSeeArea(user, item.href, item.title)),
+      items: group.items.filter(
+        (item) => canSeeArea(user, item.href, item.title) && (!item.requiresOwnDelivery || usesOwnDelivery)
+      ),
     }))
     .filter((group) => group.items.length > 0)
   return (

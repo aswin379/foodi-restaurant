@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 
+import { RiderRegistration } from "@/features/delivery-men/components/rider-registration"
+import { setUsesOwnDelivery } from "@/features/delivery-men/own-delivery"
+
 import { saveDelivery } from "../profile-service"
 import type { PrepUnit, RestaurantProfile } from "../types"
 import { SectionForm, selectClass, toNumber } from "./section-form"
@@ -36,10 +39,13 @@ export function DeliveryForm({
   const [min, setMin] = useState(String(prepTime.min ?? ""))
   const [max, setMax] = useState(String(prepTime.max ?? ""))
   const [unit, setUnit] = useState<PrepUnit>(prepTime.unit)
+  // Reported by the rider registration shown for Self Delivery; saving that mode needs at least one rider.
+  const [riderCount, setRiderCount] = useState(0)
 
   async function save() {
     if (mode === "") throw new Error("Choose how orders are delivered.")
     const deliveryRadiusKm = toNumber(radius)
+    if (mode === "SELF" && riderCount < 1) throw new Error("Register at least one delivery boy before using Self Delivery.")
     const deliveryFee = toNumber(fee)
     const freeDeliveryThreshold = toNumber(threshold)
     const prepTimeMin = toNumber(min)
@@ -52,21 +58,23 @@ export function DeliveryForm({
     }
     if (prepTimeMax <= prepTimeMin) throw new Error("Maximum time must be greater than minimum time.")
     if (unit === "min" && prepTimeMin < 10) throw new Error("Minimum time must be at least 10 minutes.")
-    onSaved(
-      await saveDelivery({
-        deliveryMode: mode,
-        deliveryRadiusKm,
-        deliveryFee,
-        ...(threshold.trim() === "" ? {} : { freeDeliveryThreshold }),
-        codEnabled: cod,
-        prepTimeUnit: unit,
-        prepTimeMin,
-        prepTimeMax,
-      })
-    )
+    const saved = await saveDelivery({
+      deliveryMode: mode,
+      deliveryRadiusKm,
+      deliveryFee,
+      ...(threshold.trim() === "" ? {} : { freeDeliveryThreshold }),
+      codEnabled: cod,
+      prepTimeUnit: unit,
+      prepTimeMin,
+      prepTimeMax,
+    })
+    setUsesOwnDelivery(mode === "SELF")
+    onSaved(saved)
   }
 
   return (
+    <div className="flex flex-col gap-5">
+    {mode === "SELF" ? <RiderRegistration onCountChange={setRiderCount} /> : null}
     <SectionForm title="Delivery and timing" description="How orders reach customers and how long they take." onSave={save}>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
@@ -115,5 +123,6 @@ export function DeliveryForm({
         </div>
       </div>
     </SectionForm>
+    </div>
   )
 }

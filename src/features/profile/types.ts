@@ -16,6 +16,7 @@ export type RestaurantSettings = {
   halalTag: boolean
   dineIn: boolean
   roomService: boolean
+  theaterService: boolean
   dineInMinTime: number
   dineInMinTimeUnit: "min" | "hour" | "day"
   canEditOrder: boolean

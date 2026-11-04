@@ -113,6 +113,40 @@ export function validateHoursDraft(draft: HoursDraft): Record<string, string> {
   return errors
 }
 
+/**
+ * Windows of one day that overlap. Touching windows (ends at 15:00, starts at 15:00) are fine and are
+ * merged on save; an overnight window runs into the next day, so it never overlaps that day's morning.
+ */
+export function overlapErrors(draft: HoursDraft, types: readonly OrderType[] = ORDER_TYPES): Record<string, string> {
+  const errors: Record<string, string> = {}
+  for (const type of types) {
+    for (const day of WEEKDAYS) {
+      const { enabled, allDay, windows } = draft[type][day]
+      if (!enabled || allDay) continue
+      const spans = windows
+        .filter((window) => parseLocalTime(window.start) !== null && parseLocalTime(window.end) !== null)
+        .map((window) => {
+          const start = parseLocalTime(window.start)!
+          const end = parseLocalTime(window.end)!
+          return { start, end: end <= start ? end + 1440 : end }
+        })
+        .sort((x, y) => x.start - y.start)
+      if (spans.some((span, index) => index > 0 && span.start < spans[index - 1].end)) {
+        errors[hoursPaths.day(type, day)] = `These hours overlap on ${weekdayLabels[day]}. Change the times so they don't overlap.`
+      }
+    }
+  }
+  return errors
+}
+
+/** Everything that blocks saving the given order types (their own rules plus overlaps). */
+export function validateTypes(draft: HoursDraft, types: readonly OrderType[]): Record<string, string> {
+  const own = Object.fromEntries(
+    Object.entries(validateHoursDraft(draft)).filter(([path]) => types.some((type) => path.startsWith(`hours.${type}.`)))
+  )
+  return { ...overlapErrors(draft, types), ...own }
+}
+
 /** Advice that doesn't block saving, e.g. an order type closed every day. */
 export function hoursWarnings(draft: HoursDraft): string[] {
   return ORDER_TYPES.filter((type) => WEEKDAYS.every((day) => !draft[type][day].enabled)).map(

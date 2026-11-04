@@ -14,10 +14,12 @@ const PERMISSION_BY_HREF: Record<string, string> = {
   "/hours": "hours",
   "/kitchen": "kitchen",
   "/tables": "tables",
+  // Opened from the Tables page, not a sidebar link, so it shares the Tables permission.
+  "/locations": "tables",
   "/delivery": "delivery",
+  "/delivery-boys": "delivery",
   "/promotions": "promotions",
   "/settings/profile": "profile",
-  "/branches": "branches",
   "/settings": "settings",
   "/reports": "reports",
   "/wallet": "wallet",
@@ -49,4 +51,15 @@ export function canSeeArea(user: SellerUser | null, href: string | null, title?:
   if (!user || user.role !== "staff") return true
   const needed = permissionFor(href, title)
   return needed !== undefined && (user.permissions ?? []).includes(needed)
+}
+
+/**
+ * Whether the user may pause or resume new orders. Owners always can. The server will get its own
+ * "pause" key (availability step 4); until it exists, "hours" also counts so nobody loses the ability.
+ * The API enforces this on every request; this only decides whether the controls are shown.
+ */
+export function canPauseOrders(user: SellerUser | null): boolean {
+  if (!user || user.role !== "staff") return true
+  const granted = user.permissions ?? []
+  return granted.includes("pause") || granted.includes("hours")
 }

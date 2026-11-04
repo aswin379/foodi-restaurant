@@ -18,7 +18,7 @@ import type { Restaurant } from "./types"
 type RestaurantState = {
   status: "loading" | "ready" | "error"
   restaurants: Restaurant[]
-  /** The restaurant dashboards and branches act on. Always an approved one, or null. */
+  /** The restaurant the dashboards act on. Always an approved one, or null. */
   active: Restaurant | null
   select: (id: number) => void
   reload: () => Promise<void>

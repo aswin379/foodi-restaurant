@@ -24,6 +24,8 @@ export type WeeklyHours = {
   timeZone: string
   /** A weekday with no rule for an order type is closed for it. */
   byOrderType: Record<OrderType, DayRule[]>
+  /** Types the seller has switched on; the hours page shows a tab only for these. Absent = all three. */
+  enabledTypes?: Record<OrderType, boolean>
   /** PROPOSED optimistic-concurrency token. */
   version: string
   updatedAt: string | null
@@ -62,6 +64,8 @@ export type PauseState =
   | { paused: false; lastResumedAt: string | null; lastResumedBy: Actor | null }
   | {
       paused: true
+      /** The scope the server paused ("all", "delivery", "takeaway", "dine_in"); resume ends this scope. */
+      scope?: string
       duration: PauseDuration
       since: string
       /** UTC instant calculated by the server; null = until resumed. */
@@ -104,6 +108,9 @@ export type AvailabilityStatus = {
   timeZone: string
   /** "preview_estimate" only in preview mode; never live availability. */
   source: "server" | "preview_estimate"
+  /** Whole-restaurant pause. */
   pause: PauseState
+  /** Pause per tab; a type missing here falls back to `pause`. */
+  pauseByType?: Partial<Record<OrderType, PauseState>>
   byOrderType: Record<OrderType, OrderTypeStatus>
 }

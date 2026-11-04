@@ -1,6 +1,8 @@
+import { isOrderType, type OrderType } from "@/lib/domain/order-types"
+
 import { specialDateDraftFromInput, type SpecialDateDraft } from "./special-dates"
 import { PAUSE_DURATIONS, type PauseDuration } from "./types"
-import { hoursDraftFromInput, validateHoursDraft, type HoursDraft } from "./weekly-hours"
+import { hoursDraftFromInput, validateHoursDraft, validateTypes, type HoursDraft } from "./weekly-hours"
 
 // Restaurant commands on hours, special dates and pause. Server Actions parse
 // untrusted browser input with parseHoursCommand; the rules (rules.ts, or the
@@ -12,12 +14,14 @@ export type FieldErrors = Record<string, string>
 export const hasErrors = (errors: FieldErrors) => Object.keys(errors).length > 0
 
 export type HoursCommand =
-  | { type: "save_hours"; version: string; draft: HoursDraft }
+  /** `scope` = the tab being saved; only that order type is written. Absent = every type. */
+  | { type: "save_hours"; version: string; draft: HoursDraft; scope?: OrderType }
   | { type: "add_special_date"; draft: SpecialDateDraft }
   | { type: "update_special_date"; id: string; version: string; draft: SpecialDateDraft }
   | { type: "delete_special_date"; id: string; version: string }
-  | { type: "pause"; duration: PauseDuration; reason: string }
-  | { type: "resume" }
+  /** `scope` = the tab to pause or resume. Absent = the whole restaurant. */
+  | { type: "pause"; duration: PauseDuration; reason: string; scope?: OrderType }
+  | { type: "resume"; scope?: OrderType }
 
 export type ParsedHoursCommand = { ok: true; command: HoursCommand } | { ok: false; fieldErrors: FieldErrors }
 
@@ -38,8 +42,12 @@ export function parseHoursCommand(input: unknown): ParsedHoursCommand {
       const version = id(input.version)
       if (!version) return unknownCommand
       const draft = hoursDraftFromInput(input.draft)
-      const errors = validateHoursDraft(draft)
-      return hasErrors(errors) ? { ok: false, fieldErrors: errors } : { ok: true, command: { type: "save_hours", version, draft } }
+      const scope = isOrderType(input.scope) ? input.scope : undefined
+      // A tab save checks only that tab (including overlapping windows); a full save checks everything.
+      const errors = scope ? validateTypes(draft, [scope]) : validateHoursDraft(draft)
+      return hasErrors(errors)
+        ? { ok: false, fieldErrors: errors }
+        : { ok: true, command: { type: "save_hours", version, draft, ...(scope ? { scope } : {}) } }
     }
 
     case "add_special_date":
@@ -70,11 +78,14 @@ export function parseHoursCommand(input: unknown): ParsedHoursCommand {
       if (reason.length > PAUSE_REASON_MAX) {
         return { ok: false, fieldErrors: { reason: `Keep the reason under ${PAUSE_REASON_MAX} characters.` } }
       }
-      return { ok: true, command: { type: "pause", duration: input.duration, reason } }
+      const scope = isOrderType(input.scope) ? input.scope : undefined
+      return { ok: true, command: { type: "pause", duration: input.duration, reason, ...(scope ? { scope } : {}) } }
     }
 
-    case "resume":
-      return { ok: true, command: { type: "resume" } }
+    case "resume": {
+      const scope = isOrderType(input.scope) ? input.scope : undefined
+      return { ok: true, command: { type: "resume", ...(scope ? { scope } : {}) } }
+    }
 
     default:
       return unknownCommand

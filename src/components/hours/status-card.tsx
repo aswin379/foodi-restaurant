@@ -6,7 +6,7 @@ import { FlaskConical, RotateCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useVisibleRefresh } from "@/hooks/use-visible-refresh"
-import { ORDER_TYPES, orderTypeLabels } from "@/lib/domain/order-types"
+import { ORDER_TYPES, orderTypeLabels, type OrderType } from "@/lib/domain/order-types"
 import { immediateReasonLabels, immediateStateLabels } from "@/lib/hours/labels"
 import type { AvailabilityStatus, ImmediateState } from "@/lib/hours/types"
 import { formatInstant } from "@/lib/time/format"
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils"
 // The design system's status tones: open is success (green), never the brand orange.
 const STATE_STYLES: Record<ImmediateState, string> = {
   open: "border-success-line bg-success-soft text-success-foreground",
-  closed: "border-neutral-line bg-neutral-soft text-neutral-foreground",
+  closed: "border-danger-line bg-danger-soft text-danger-foreground",
   paused: "border-warning-line bg-warning-soft text-warning-foreground",
   unresolved: "border-dashed border-warning-line bg-card text-warning-foreground",
 }
@@ -24,7 +24,18 @@ const STATE_STYLES: Record<ImmediateState, string> = {
  * Whether each order type takes new immediate orders right now, with the
  * reason. Shows live server availability, auto-refreshing periodically.
  */
-export function StatusCard({ status, locale, className }: { status: AvailabilityStatus; locale: string; className?: string }) {
+export function StatusCard({
+  status,
+  locale,
+  types = ORDER_TYPES,
+  className,
+}: {
+  status: AvailabilityStatus
+  locale: string
+  /** Only these order types are listed (the ones the restaurant has switched on). */
+  types?: readonly OrderType[]
+  className?: string
+}) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -80,7 +91,7 @@ export function StatusCard({ status, locale, className }: { status: Availability
         </p>
       ) : null}
       <ul className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-        {ORDER_TYPES.map((type) => {
+        {types.map((type) => {
           const { immediate, scheduled } = status.byOrderType[type]
           return (
             <li key={type} className="flex flex-col gap-2 rounded-2xl border border-border-soft bg-background/70 p-4">

@@ -34,6 +34,8 @@ export function TimeWindowsFields({
   errors,
   newKey,
   onChange,
+  addLabel = "Add window",
+  keepOne = false,
 }: {
   windows: WindowDraft[]
   /** Accessible name prefix, e.g. "Delivery Monday". */
@@ -43,6 +45,10 @@ export function TimeWindowsFields({
   errors: FieldErrors
   newKey: () => string
   onChange: (windows: WindowDraft[]) => void
+  /** Text of the add button. */
+  addLabel?: string
+  /** An open day always keeps one window, so the only remove button is hidden. */
+  keepOne?: boolean
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -91,15 +97,17 @@ export function TimeWindowsFields({
                       />
                     </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`Remove ${label}`}
-                    onClick={() => onChange(windows.filter((candidate) => candidate.key !== window.key))}
-                  >
-                    <Trash2 aria-hidden />
-                  </Button>
+                  {keepOne && windows.length === 1 ? null : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Remove ${label}`}
+                      onClick={() => onChange(windows.filter((candidate) => candidate.key !== window.key))}
+                    >
+                      <Trash2 aria-hidden />
+                    </Button>
+                  )}
                 </div>
                 {valid && isOvernight(window) ? (
                   <p className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -124,7 +132,7 @@ export function TimeWindowsFields({
           onClick={() => onChange([...windows, { key: newKey(), start: "", end: "" }])}
         >
           <Plus aria-hidden />
-          Add window<span className="sr-only"> for {name}</span>
+          {addLabel}<span className="sr-only"> for {name}</span>
         </Button>
       ) : null}
     </div>
