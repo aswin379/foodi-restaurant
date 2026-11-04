@@ -9,13 +9,9 @@ import {
   useState,
 } from "react"
 
-import {
-  loginRequest,
-  logoutRequest,
-  refreshSession,
-  setAccessToken,
-  setSessionLostHandler,
-} from "@/lib/api-client"
+import { http, setSessionLostHandler } from "@/lib/http"
+
+import { authApi } from "./auth-api"
 
 import type { SellerUser } from "./types"
 
@@ -35,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SellerUser | null>(null)
 
   const clear = useCallback(() => {
-    setAccessToken(null)
+    http.setAccessToken(null)
     setUser(null)
     setStatus("anonymous")
   }, [])
@@ -44,7 +40,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setSessionLostHandler(clear)
     let active = true
-    refreshSession()
+    authApi
+      .refresh()
       .then((session) => {
         if (!active) return
         setUser(session.user)
@@ -60,14 +57,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clear])
 
   const login = useCallback(async (email: string, password: string) => {
-    const session = await loginRequest(email, password)
+    const session = await authApi.login({ email, password })
     setUser(session.user)
     setStatus("authenticated")
   }, [])
 
   const logout = useCallback(async () => {
     try {
-      await logoutRequest()
+      await authApi.logout()
     } finally {
       clear()
     }
