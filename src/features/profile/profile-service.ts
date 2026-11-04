@@ -1,4 +1,5 @@
-import { api } from "@/lib/api-client"
+import { http } from "@/lib/http"
+import { uploadForm } from "@/lib/upload"
 
 import type { ApplicationOptions } from "@/features/restaurants/types"
 
@@ -18,21 +19,21 @@ const SCOPED = { restaurantScoped: true } as const
 type ProfileReply = { profile: RestaurantProfile }
 
 export async function getProfile(): Promise<RestaurantProfile> {
-  return (await api<ProfileReply>(PATH, SCOPED)).profile
+  return (await http.get<ProfileReply>(PATH, SCOPED)).profile
 }
 
 /** Seller types, cuisines and zones: the same public lists the application form uses. */
 export function getProfileOptions(): Promise<ApplicationOptions> {
-  return api<ApplicationOptions>("/public/restaurant-applications/options")
+  return http.get<ApplicationOptions>("/public/restaurant-applications/options")
 }
 
 /** The zone a pin falls in; rejects when the pin is outside every zone. */
 export function resolveLocation(latitude: number, longitude: number): Promise<{ zoneId: number; zoneName: string }> {
-  return api(`${PATH}/resolve-location`, { method: "POST", body: { latitude, longitude }, ...SCOPED })
+  return http.post(`${PATH}/resolve-location`, { latitude, longitude }, SCOPED)
 }
 
 async function save(path: string, body: unknown): Promise<RestaurantProfile> {
-  return (await api<ProfileReply>(`${PATH}/${path}`, { method: "PATCH", body, ...SCOPED })).profile
+  return (await http.patch<ProfileReply>(`${PATH}/${path}`, body, SCOPED)).profile
 }
 
 export const saveBusiness = (changes: BusinessChanges) => save("business", changes)
@@ -43,9 +44,9 @@ export const saveSettings = (changes: SettingsChanges) => save("settings", chang
 export async function uploadImage(slot: ImageSlot, file: File): Promise<RestaurantProfile> {
   const form = new FormData()
   form.append("file", file)
-  return (await api<ProfileReply>(`${PATH}/files/${slot}`, { method: "PUT", body: form, ...SCOPED })).profile
+  return (await uploadForm<ProfileReply>(`${PATH}/files/${slot}`, form, { method: "put", ...SCOPED })).profile
 }
 
 export async function removeImage(slot: ImageSlot): Promise<RestaurantProfile> {
-  return (await api<ProfileReply>(`${PATH}/files/${slot}`, { method: "DELETE", ...SCOPED })).profile
+  return (await http.delete<ProfileReply>(`${PATH}/files/${slot}`, SCOPED)).profile
 }
