@@ -12,9 +12,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { getAccessToken, getActiveRestaurantId } from "@/lib/api-client"
+import { http } from "@/lib/http"
+import { MAX_UPLOAD_BYTES } from "@/lib/upload"
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api/v1"
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 export function MenuExportImportButtons() {
   const [importOpen, setImportOpen] = useState(false)
@@ -27,39 +35,19 @@ export function MenuExportImportButtons() {
   const handleExport = async (format: "xlsx" | "csv") => {
     setExporting(format)
     try {
-      const token = getAccessToken()
-      const restaurantId = getActiveRestaurantId()
-      const headers: Record<string, string> = {
-        "X-Requested-With": "foodi-seller",
-      }
-      if (token) headers["Authorization"] = `Bearer ${token}`
-      if (restaurantId) headers["X-Seller-Id"] = String(restaurantId)
-
-      const res = await fetch(`${API_BASE}/seller/menu/export?format=${format}`, {
-        headers,
-        credentials: "include",
-      })
-
-      if (!res.ok) throw new Error("Failed to export menu")
-
+      const stamp = new Date().toISOString().slice(0, 10)
       if (format === "xlsx") {
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `menu-${new Date().toISOString().slice(0, 10)}.xlsx`
-        a.click()
-        URL.revokeObjectURL(url)
+        const { blob } = await http.downloadFile("/seller/menu/export", {
+          params: { format },
+          restaurantScoped: true,
+        })
+        saveBlob(blob, `menu-${stamp}.xlsx`)
       } else {
-        const json = await res.json().catch(() => null)
-        const csvContent = json?.data?.csv ?? ""
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `menu-${new Date().toISOString().slice(0, 10)}.csv`
-        a.click()
-        URL.revokeObjectURL(url)
+        const data = await http.get<{ csv?: string }>("/seller/menu/export", {
+          params: { format },
+          restaurantScoped: true,
+        })
+        saveBlob(new Blob([data?.csv ?? ""], { type: "text/csv;charset=utf-8;" }), `menu-${stamp}.csv`)
       }
     } catch (err) {
       alert(err instanceof Error ? err.message : "Export failed")
@@ -70,34 +58,14 @@ export function MenuExportImportButtons() {
 
   const handleDownloadSample = async () => {
     try {
-      const token = getAccessToken()
-      const restaurantId = getActiveRestaurantId()
-      const headers: Record<string, string> = {
-        "X-Requested-With": "foodi-seller",
+      let result
+      try {
+        result = await http.downloadFile("/seller/menu/export/sample", { restaurantScoped: true })
+      } catch {
+        // The owner's route can be unavailable; the public template is the same file.
+        result = await http.downloadFile("/public/menu/sample", { public: true })
       }
-      if (token) headers["Authorization"] = `Bearer ${token}`
-      if (restaurantId) headers["X-Seller-Id"] = String(restaurantId)
-
-      let res = await fetch(`${API_BASE}/seller/menu/export/sample`, {
-        headers,
-        credentials: "include",
-      })
-
-      if (!res.ok) {
-        res = await fetch(`${API_BASE}/public/menu/sample`, {
-          credentials: "include",
-        })
-      }
-
-      if (!res.ok) throw new Error("Failed to download sample template")
-
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `foodi-menu-sample.xlsx`
-      a.click()
-      URL.revokeObjectURL(url)
+      saveBlob(result.blob, "foodi-menu-sample.xlsx")
     } catch (err) {
       alert(err instanceof Error ? err.message : "Download failed")
     }
@@ -108,30 +76,11 @@ export function MenuExportImportButtons() {
     setImporting(true)
     setStatusMsg(null)
     try {
-      const token = getAccessToken()
-      const restaurantId = getActiveRestaurantId()
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const headers: Record<string, string> = {
-        "X-Requested-With": "foodi-seller",
-      }
-      if (token) headers["Authorization"] = `Bearer ${token}`
-      if (restaurantId) headers["X-Seller-Id"] = String(restaurantId)
-
-      const res = await fetch(`${API_BASE}/seller/menu/import`, {
-        method: "POST",
-        headers,
-        credentials: "include",
-        body: formData,
+      const summary = await http.uploadFile<{ created?: number; failed?: number }>("/seller/menu/import", file, {
+        restaurantScoped: true,
+        // The API's upload cap; Excel/CSV type and row checks are the server's.
+        rules: { maxBytes: MAX_UPLOAD_BYTES },
       })
-
-      const json = await res.json().catch(() => null)
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.error?.message || "Import failed")
-      }
-
-      const summary = json.data
       setStatusMsg({
         type: "success",
         text: `Successfully imported ${summary.created ?? 0} items! (${summary.failed ?? 0} failed)`,
