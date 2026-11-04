@@ -1,4 +1,5 @@
-import { api } from "@/lib/api-client"
+import { http } from "@/lib/http"
+import { uploadForm } from "@/lib/upload"
 
 import type {
   ApplicationImages,
@@ -16,7 +17,7 @@ const PATH = "/seller/restaurants"
 
 export async function listRestaurants(): Promise<Restaurant[]> {
   // First page only (up to 100); the switcher never loads every restaurant's detail.
-  return (await api<{ restaurants: Restaurant[] }>(`${PATH}?limit=100`)).restaurants
+  return (await http.get<{ restaurants: Restaurant[] }>(`${PATH}?limit=100`)).restaurants
 }
 
 /** Applies for another restaurant. The owner is taken from the sign-in; only restaurant details are sent. */
@@ -30,40 +31,40 @@ export async function addRestaurant(
   form.append("cover", images.cover)
   if (images.idDocument) form.append("idDocument", images.idDocument)
   if (images.taxCertificate) form.append("taxCertificate", images.taxCertificate)
-  return (await api<{ restaurant: Restaurant }>(PATH, { method: "POST", body: form })).restaurant
+  return (await uploadForm<{ restaurant: Restaurant }>(PATH, form)).restaurant
 }
 
 export async function getRestaurant(id: number): Promise<RestaurantDetail> {
-  return (await api<{ restaurant: RestaurantDetail }>(`${PATH}/${id}`)).restaurant
+  return (await http.get<{ restaurant: RestaurantDetail }>(`${PATH}/${id}`)).restaurant
 }
 
 /** Saves one section of an application with requested changes. */
 export async function saveSection(id: number, step: EditStep, body: unknown): Promise<RestaurantDetail> {
-  return (await api<{ restaurant: RestaurantDetail }>(`${PATH}/${id}/steps/${step}`, { method: "PUT", body })).restaurant
+  return (await http.put<{ restaurant: RestaurantDetail }>(`${PATH}/${id}/steps/${step}`, body)).restaurant
 }
 
 export async function uploadFile(id: number, slot: EditSlot, file: File): Promise<RestaurantDetail> {
   const form = new FormData()
   form.append("file", file)
-  return (await api<{ restaurant: RestaurantDetail }>(`${PATH}/${id}/files/${slot}`, { method: "PUT", body: form })).restaurant
+  return (await uploadForm<{ restaurant: RestaurantDetail }>(`${PATH}/${id}/files/${slot}`, form, { method: "put" })).restaurant
 }
 
 /** A rejected application becomes editable again (status: changes requested). */
 export async function reopenRestaurant(id: number): Promise<RestaurantDetail> {
-  return (await api<{ restaurant: RestaurantDetail }>(`${PATH}/${id}/reopen`, { method: "POST" })).restaurant
+  return (await http.post<{ restaurant: RestaurantDetail }>(`${PATH}/${id}/reopen`)).restaurant
 }
 
 /** Sends the corrected application back to review. The restaurant is not approved by this. */
 export async function resubmitRestaurant(id: number): Promise<RestaurantDetail> {
-  return (await api<{ restaurant: RestaurantDetail }>(`${PATH}/${id}/resubmit`, { method: "POST" })).restaurant
+  return (await http.post<{ restaurant: RestaurantDetail }>(`${PATH}/${id}/resubmit`)).restaurant
 }
 
 /** Which active zone a point is in. Rejects with a 400 `ApiError` when the point is outside every zone. */
 export function resolveLocation(latitude: number, longitude: number): Promise<{ zoneId: number; zoneName: string }> {
-  return api("/public/restaurant-applications/resolve-location", { method: "POST", body: { latitude, longitude } })
+  return http.post("/public/restaurant-applications/resolve-location", { latitude, longitude })
 }
 
 /** Seller types, cuisines and zones: the same public lists the application form uses. */
 export function getApplicationOptions(): Promise<ApplicationOptions> {
-  return api<ApplicationOptions>("/public/restaurant-applications/options")
+  return http.get<ApplicationOptions>("/public/restaurant-applications/options")
 }
