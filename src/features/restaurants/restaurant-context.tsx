@@ -10,7 +10,7 @@ import {
 } from "react"
 
 import { useAuth } from "@/features/auth/auth-context"
-import { setActiveRestaurantId } from "@/lib/api-client"
+import { setActiveRestaurantId } from "@/lib/http"
 
 import { listRestaurants } from "./restaurant-service"
 import type { Restaurant } from "./types"

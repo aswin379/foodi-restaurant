@@ -4,7 +4,7 @@ import { useCallback, useRef, useState, useTransition } from "react"
 
 import { runMenuCommand } from "@/app/(dashboard)/menu/actions"
 import { notifyActionResult } from "@/components/shared/notifications"
-import { getAccessToken, getActiveRestaurantId, syncAuthCookies } from "@/lib/api-client"
+import { getAccessToken, getActiveRestaurantId, syncAuthCookies } from "@/lib/http"
 import { createIdempotencyKey } from "@/lib/api/idempotency"
 import type { ActionResult } from "@/lib/data-source/result"
 import type { MenuCommand } from "@/lib/menu/commands"
