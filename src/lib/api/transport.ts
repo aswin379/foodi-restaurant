@@ -2,6 +2,8 @@ import "server-only"
 
 import { AsyncLocalStorage } from "node:async_hooks"
 import { cookies, headers } from "next/headers"
+import type { Envelope } from "@/api-client"
+import { API_BASE_URL, API_PREFIX } from "@/lib/api/base-url"
 import { ServiceError } from "@/lib/data-source/errors"
 
 export type ApiMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
@@ -39,7 +41,8 @@ export const notConfiguredTransport: FoodiApiTransport = {
   },
 }
 
-const API_BASE = (process.env.FOODI_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api/v1"
+// Server code may reach the API on an internal address (FOODI_API_URL); otherwise the public one.
+const API_BASE = process.env.FOODI_API_URL ? `${process.env.FOODI_API_URL}${API_PREFIX}` : API_BASE_URL
 
 export const httpApiTransport: FoodiApiTransport = {
   async request<Response>(req: ApiRequest): Promise<Response> {
@@ -85,6 +88,9 @@ export const httpApiTransport: FoodiApiTransport = {
 
     const reqHeaders: Record<string, string> = {
       "X-Requested-With": "foodi-seller",
+      "X-App": "seller",
+      "X-App-Version": process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0",
+      "X-Request-Id": crypto.randomUUID(),
     }
 
     if (cookieHeader) {
@@ -128,13 +134,13 @@ export const httpApiTransport: FoodiApiTransport = {
       throw new ServiceError("not_found", "Resource not found.")
     }
     if (res.status === 409) {
-      const errorJson = (await res.json().catch(() => null)) as { error?: { message?: string } } | null
+      const errorJson = (await res.json().catch(() => null)) as Envelope<unknown> | null
       const message = errorJson?.error?.message || "Conflict."
       throw new ServiceError("conflict", message)
     }
 
     if (!res.ok) {
-      const errorJson = (await res.json().catch(() => null)) as { error?: { message?: string } } | null
+      const errorJson = (await res.json().catch(() => null)) as Envelope<unknown> | null
       const message = errorJson?.error?.message || `API error: ${res.statusText}`
       throw new ServiceError("unavailable", message)
     }

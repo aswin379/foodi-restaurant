@@ -1,7 +1,5 @@
 import { createApiClient, type SessionBase } from "@/api-client"
-
-// Public by design: the browser calls the API directly. No secret belongs in a NEXT_PUBLIC_ variable.
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000"
+import { API_BASE_URL } from "@/lib/api/base-url"
 
 export const AUTH_PATHS = {
   login: "/seller/auth/login",
@@ -56,7 +54,7 @@ export function setSessionLostHandler(handler: (() => void) | null) {
 
 /** The one HTTP client for the sellers app (browser only; server code uses lib/api/transport.ts). */
 export const http = createApiClient({
-  baseURL: `${API_URL}/api/v1`,
+  baseURL: API_BASE_URL,
   appId: "seller",
   appVersion: process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0",
   // The server's CSRF check on refresh/logout accepts only this value (also for the seller routes).
