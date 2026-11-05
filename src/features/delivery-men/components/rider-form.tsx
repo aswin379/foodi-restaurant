@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { selectClass } from "@/features/profile/components/section-form"
 
-import { squareCrop } from "../square-crop"
 import {
   DELIVERY_TYPES,
   IDENTITY_TYPES,
@@ -26,6 +25,7 @@ import {
   type RiderFiles,
   type RiderValues,
 } from "../validation"
+import { SquareImagePicker } from "./square-image-picker"
 
 function Field({ label, error, children, htmlFor }: { label: string; error?: string | undefined; children: React.ReactNode; htmlFor: string }) {
   return (
@@ -42,9 +42,10 @@ function Field({ label, error, children, htmlFor }: { label: string; error?: str
 }
 
 /**
- * The delivery boy form. Same fields and rules as the admin form. The zone is the restaurant's own and is
- * shown read-only. Create sends the photo and documents; edit sends fields only (files have their own panel).
- * `onSubmit` throws an Error whose message is shown above the button.
+ * The delivery boy form. Same fields and rules as the admin form, without a zone: the server places the delivery
+ * boy in the restaurant's own zone. Create sends the photo and the identity and extra images (each cropped to a
+ * square first); edit sends fields only (files have their own panel). `onSubmit` throws an Error whose message
+ * is shown above the button.
  */
 export function RiderForm({
   lookups,
@@ -71,25 +72,11 @@ export function RiderForm({
     type: rider?.deliveryManType ?? "freelance",
   })
   const [files, setFiles] = useState<RiderFiles>({ photo: null, identity: [], extra: [] })
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [errors, setErrors] = useState<RiderErrors>({})
   const [serverError, setServerError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
   const set = <K extends keyof RiderValues>(key: K, value: RiderValues[K]) => setValues((c) => ({ ...c, [key]: value }))
-
-  async function pickPhoto(file: File | undefined) {
-    if (!file) return
-    try {
-      const cropped = await squareCrop(file)
-      if (photoPreview) URL.revokeObjectURL(photoPreview)
-      setPhotoPreview(URL.createObjectURL(cropped))
-      setFiles((c) => ({ ...c, photo: cropped }))
-      setErrors((c) => ({ ...c, photo: undefined }))
-    } catch (e) {
-      setErrors((c) => ({ ...c, photo: e instanceof Error ? e.message : "This image could not be read." }))
-    }
-  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -115,6 +102,18 @@ export function RiderForm({
           <CircleAlert aria-hidden className="size-4 shrink-0" />
           {serverError}
         </p>
+      ) : null}
+      {mode === "create" ? (
+        <Field label="Profile photo (required, square)" htmlFor={`${id}-photo`} error={errors.photo}>
+          <SquareImagePicker
+            variant="avatar"
+            id={`${id}-photo`}
+            name="Profile photo"
+            max={1}
+            files={files.photo ? [files.photo] : []}
+            onChange={(next) => setFiles((c) => ({ ...c, photo: next[0] ?? null }))}
+          />
+        </Field>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="First name" htmlFor={`${id}-first`} error={errors.firstName}>
@@ -148,9 +147,6 @@ export function RiderForm({
             ))}
           </select>
         </Field>
-        <Field label="Zone" htmlFor={`${id}-zone`}>
-          <Input id={`${id}-zone`} value={lookups.zone?.name ?? "No zone yet"} readOnly disabled />
-        </Field>
         <Field label="Vehicle" htmlFor={`${id}-vehicle`} error={errors.vehicleId}>
           <select id={`${id}-vehicle`} value={values.vehicleId} onChange={(e) => set("vehicleId", e.target.value)} className={selectClass}>
             <option value="">Choose…</option>
@@ -181,43 +177,28 @@ export function RiderForm({
       </div>
 
       {mode === "create" ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Profile photo (required, cropped to a square)" htmlFor={`${id}-photo`} error={errors.photo}>
-            <div className="flex items-center gap-3">
-              {photoPreview ? (
-                // eslint-disable-next-line @next/next/no-img-element -- local blob preview
-                <img src={photoPreview} alt="Profile photo preview" className="size-16 rounded-lg border object-cover" />
-              ) : null}
-              <input
-                id={`${id}-photo`}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(e) => void pickPhoto(e.target.files?.[0])}
-                className="text-sm"
-              />
-            </div>
-          </Field>
-          <Field label={`Identity images (up to ${MAX_IDENTITY_FILES}, JPG/PNG/PDF, 2 MB each)`} htmlFor={`${id}-identity`} error={errors.identity}>
-            <input
+        <>
+          <Field label={`Identity images (up to ${MAX_IDENTITY_FILES}, square)`} htmlFor={`${id}-identity`} error={errors.identity}>
+            <SquareImagePicker
+              variant="gallery"
               id={`${id}-identity`}
-              type="file"
-              multiple
-              accept="image/jpeg,image/png,application/pdf"
-              onChange={(e) => setFiles((c) => ({ ...c, identity: Array.from(e.target.files ?? []) }))}
-              className="text-sm"
+              name="Identity image"
+              max={MAX_IDENTITY_FILES}
+              files={files.identity}
+              onChange={(next) => setFiles((c) => ({ ...c, identity: next }))}
             />
           </Field>
-          <Field label={`Additional documents (up to ${MAX_EXTRA_FILES}, JPG/PNG/PDF, 2 MB each)`} htmlFor={`${id}-extra`} error={errors.extra}>
-            <input
+          <Field label={`Additional documents (optional, up to ${MAX_EXTRA_FILES}, square)`} htmlFor={`${id}-extra`} error={errors.extra}>
+            <SquareImagePicker
+              variant="gallery"
               id={`${id}-extra`}
-              type="file"
-              multiple
-              accept="image/jpeg,image/png,application/pdf"
-              onChange={(e) => setFiles((c) => ({ ...c, extra: Array.from(e.target.files ?? []) }))}
-              className="text-sm"
+              name="Additional document"
+              max={MAX_EXTRA_FILES}
+              files={files.extra}
+              onChange={(next) => setFiles((c) => ({ ...c, extra: next }))}
             />
           </Field>
-        </div>
+        </>
       ) : null}
 
       <div className="flex justify-end">
@@ -230,7 +211,7 @@ export function RiderForm({
   )
 }
 
-/** Builds the multipart body the API expects (zone is added by the server from the restaurant). */
+/** Builds the multipart body the API expects. There is no zone: the server uses the restaurant's own. */
 export function toCreateForm(values: RiderValues, files: RiderFiles): FormData {
   const form = new FormData()
   form.set("first_name", values.firstName.trim())

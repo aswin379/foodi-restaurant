@@ -1,20 +1,19 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import { Bike, CircleAlert, Plus } from "lucide-react"
 
 import { PageHeader } from "@/components/dashboard/page-header"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
+import { ImageCropDialog } from "@/components/shared/image-crop-dialog"
 import { notify } from "@/components/shared/notifications"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 import {
-  createDeliveryBoy,
   deleteDeliveryBoy,
   deleteDeliveryBoyDocument,
   getDeliveryBoyFileUrl,
@@ -26,26 +25,21 @@ import {
   updateDeliveryBoy,
   uploadDeliveryBoyDocument,
 } from "../delivery-men-service"
-import { squareCrop } from "../square-crop"
-import type { ApplicationStatus, DeliveryBoy, DeliveryBoyFile, DeliveryLookups } from "../types"
-import { DOCUMENT_TYPES, MAX_FILE_BYTES } from "../validation"
-import { RiderForm, toCreateForm, toUpdateFields } from "./rider-form"
+import type { DeliveryBoy, DeliveryBoyFile, DeliveryLookups } from "../types"
+import { IMAGE_SOURCE_TYPES, checkSourceImage } from "../validation"
+import { ActiveSwitch } from "./active-switch"
+import { RiderForm, toUpdateFields } from "./rider-form"
 
 const fullName = (r: DeliveryBoy) => [r.firstName, r.lastName].filter(Boolean).join(" ")
 
-function ApplicationBadge({ status }: { status: ApplicationStatus }) {
-  if (status === "approved") return <Badge variant="success">Approved</Badge>
-  if (status === "denied") return <Badge variant="destructive">Rejected</Badge>
-  return <Badge variant="warning">Awaiting admin approval</Badge>
-}
-
-/** "My delivery boys": list, register, view, edit, files, switch on/off and delete. */
+/** Delivery boys: list, register, view, edit, files, switch on/off and delete. */
 export function DeliveryBoysManager() {
   const [lookups, setLookups] = useState<DeliveryLookups | null>(null)
   const [riders, setRiders] = useState<DeliveryBoy[] | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [adding, setAdding] = useState(false)
   const [viewingId, setViewingId] = useState<number | null>(null)
+  const [togglingId, setTogglingId] = useState<number | null>(null)
+  const [toggleError, setToggleError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const reload = useCallback(() => setReloadKey((k) => k + 1), [])
 
@@ -66,28 +60,70 @@ export function DeliveryBoysManager() {
 
   const viewing = riders?.find((r) => r.id === viewingId) ?? null
 
+  // The seller switches a delivery boy on or off straight from the list; the server checks it is theirs.
+  async function toggle(rider: DeliveryBoy, next: "active" | "inactive") {
+    if (togglingId !== null) return
+    setTogglingId(rider.id)
+    setToggleError(null)
+    try {
+      await setDeliveryBoyStatus(rider.id, next)
+      reload()
+    } catch (e) {
+      setToggleError(e instanceof Error ? e.message : "Nothing was changed.")
+    } finally {
+      setTogglingId(null)
+    }
+  }
+
   if (lookups && lookups.deliveryMode !== "SELF") {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader title="My delivery boys" />
+        <PageHeader title="Delivery boys" />
         <p className="rounded-2xl bg-card p-5 text-sm text-muted-foreground">
-          Delivery boys are available when the restaurant delivers its own orders. Choose “We deliver ourselves” in Restaurant profile → Delivery.
+          Delivery boys are available when the restaurant delivers its own orders. Choose &ldquo;We deliver ourselves&rdquo; in
+          Restaurant profile &rarr; Delivery and timing.
         </p>
       </div>
     )
   }
 
+  const noZone = lookups !== null && lookups.zone === null
+  const noneActive = riders !== null && riders.length > 0 && !riders.some((r) => r.accountStatus === "active")
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="My delivery boys"
-        description="Riders who deliver your orders. Foodi reviews each new registration before they can sign in."
+        title="Delivery boys"
+        description="Riders who deliver your orders. Switch a delivery boy on or off any time."
         actions={
-          <Button onClick={() => setAdding(true)} disabled={!lookups || lookups.zone === null}>
-            <Plus aria-hidden /> Add delivery boy
-          </Button>
+          !lookups || noZone ? (
+            <Button disabled>
+              <Plus aria-hidden /> Add delivery boy
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href="/delivery-boys/new">
+                <Plus aria-hidden /> Add delivery boy
+              </Link>
+            </Button>
+          )
         }
       />
+      {noZone ? (
+        <p role="alert" className="rounded-2xl bg-card p-4 text-sm text-danger-foreground">
+          Set your restaurant location in Restaurant profile first, so it is placed in a delivery zone. Then you can add delivery boys.
+        </p>
+      ) : null}
+      {noneActive ? (
+        <p className="rounded-2xl bg-card p-4 text-sm text-muted-foreground">
+          No delivery boy is switched on. Turn one on to receive your own delivery orders.
+        </p>
+      ) : null}
+      {toggleError ? (
+        <p role="alert" className="flex items-center gap-2 text-sm text-danger-foreground">
+          <CircleAlert aria-hidden className="size-4" /> {toggleError}
+        </p>
+      ) : null}
       {error ? (
         <p role="alert" className="flex items-center gap-2 text-sm text-danger-foreground">
           <CircleAlert aria-hidden className="size-4" /> {error}
@@ -109,7 +145,6 @@ export function DeliveryBoysManager() {
                 <TableHead>Name</TableHead>
                 <TableHead>Vehicle</TableHead>
                 <TableHead>Zone</TableHead>
-                <TableHead>Application</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -128,10 +163,7 @@ export function DeliveryBoysManager() {
                   <TableCell>{r.vehicle.name}</TableCell>
                   <TableCell>{r.zone.name}</TableCell>
                   <TableCell>
-                    <ApplicationBadge status={r.applicationStatus} />
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={r.accountStatus === "active" ? "success" : "secondary"}>{r.accountStatus}</Badge>
+                    <ActiveSwitch rider={r} busy={togglingId === r.id} onToggle={(next) => void toggle(r, next)} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -139,27 +171,6 @@ export function DeliveryBoysManager() {
           </Table>
         </div>
       ) : null}
-
-      <Dialog open={adding} onOpenChange={setAdding}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Add delivery boy</DialogTitle>
-            <DialogDescription>Same details Foodi asks for on every delivery partner.</DialogDescription>
-          </DialogHeader>
-          {lookups ? (
-            <RiderForm
-              lookups={lookups}
-              submitLabel="Register delivery boy"
-              onSubmit={async (values, files) => {
-                await createDeliveryBoy(toCreateForm(values, files))
-                notify({ kind: "success", title: "Delivery boy registered", description: "Awaiting admin approval", preview: false })
-                setAdding(false)
-                reload()
-              }}
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
 
       <Sheet open={viewing !== null} onOpenChange={(open) => !open && setViewingId(null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
@@ -209,16 +220,13 @@ function RiderDetails({
     }
   }
 
-  const approved = rider.applicationStatus === "approved"
   const suspended = rider.accountStatus === "suspended"
 
   return (
     <>
       <SheetHeader>
         <SheetTitle>{fullName(rider)}</SheetTitle>
-        <SheetDescription>
-          <ApplicationBadge status={rider.applicationStatus} />
-        </SheetDescription>
+        <SheetDescription>{rider.email}</SheetDescription>
       </SheetHeader>
       <div className="flex flex-col gap-5 px-4 pb-6">
         {error ? (
@@ -229,6 +237,19 @@ function RiderDetails({
         {rider.applicationStatus === "denied" && rider.denialReason ? (
           <p className="text-sm text-muted-foreground">Rejected: {rider.denialReason}</p>
         ) : null}
+        <div className="flex items-center justify-between rounded-xl border p-3">
+          <span className="text-sm font-medium">Status</span>
+          <ActiveSwitch
+            rider={rider}
+            busy={busy}
+            onToggle={(next) =>
+              void run(async () => {
+                await setDeliveryBoyStatus(rider.id, next)
+                onChanged()
+              })
+            }
+          />
+        </div>
         {editing ? (
           <RiderForm
             lookups={lookups}
@@ -251,7 +272,6 @@ function RiderDetails({
             <Detail label="Identity">
               {rider.identityDocumentType.replace("_", " ")} · {rider.identityDocumentNumber}
             </Detail>
-            <Detail label="Account">{rider.accountStatus}</Detail>
             <Detail label="Orders in progress">{rider.currentOrderCount}</Detail>
           </dl>
         )}
@@ -260,20 +280,6 @@ function RiderDetails({
             <Button variant="outline" onClick={() => setEditing(true)}>
               Edit
             </Button>
-            {approved && !suspended ? (
-              <Button
-                variant="outline"
-                disabled={busy}
-                onClick={() =>
-                  void run(async () => {
-                    await setDeliveryBoyStatus(rider.id, rider.accountStatus === "active" ? "inactive" : "active")
-                    onChanged()
-                  })
-                }
-              >
-                {rider.accountStatus === "active" ? "Deactivate" : "Activate"}
-              </Button>
-            ) : null}
             <Button variant="destructive" disabled={busy} onClick={() => setConfirmDelete(true)}>
               Delete
             </Button>
@@ -283,9 +289,6 @@ function RiderDetails({
             Cancel editing
           </Button>
         )}
-        {!approved ? (
-          <p className="text-xs text-muted-foreground">Only Foodi can approve a delivery boy. You can activate them after approval.</p>
-        ) : null}
         {suspended ? <p className="text-xs text-muted-foreground">This delivery boy was suspended by Foodi. Contact support to reinstate.</p> : null}
         <RiderFiles riderId={rider.id} />
       </div>
@@ -353,18 +356,32 @@ function RiderFiles({ riderId }: { riderId: number }) {
     })
   }
 
-  async function addDocument(file: File | undefined, type: "identity" | "other") {
-    if (!file) return
-    if (!DOCUMENT_TYPES.includes(file.type) || file.size > MAX_FILE_BYTES) {
-      setError("Each file must be a JPG, PNG or PDF of 2 MB or smaller.")
+  const [job, setJob] = useState<{ kind: "photo" | "identity" | "other"; queue: File[]; total: number } | null>(null)
+
+  function pick(input: HTMLInputElement, kind: "photo" | "identity" | "other") {
+    const picked = Array.from(input.files ?? [])
+    input.value = "" // lets the same file be picked again
+    if (picked.length === 0) return
+    const problem = picked.map(checkSourceImage).find((message) => message !== null)
+    if (problem) {
+      setError(problem)
       return
     }
-    await act(() => uploadDeliveryBoyDocument(riderId, type, file))
+    setError(null)
+    setJob({ kind, queue: picked, total: picked.length })
   }
 
-  async function replacePhoto(file: File | undefined) {
-    if (!file) return
-    await act(async () => replaceDeliveryBoyPhoto(riderId, await squareCrop(file)))
+  const next = () => setJob((j) => (j && j.queue.length > 1 ? { ...j, queue: j.queue.slice(1) } : null))
+
+  // Each image is cropped to a square first, then uploaded straight away; the server re-checks that it is square.
+  async function upload(cropped: File) {
+    if (!job) return
+    const { kind } = job
+    next()
+    await act(async () => {
+      if (kind === "photo") await replaceDeliveryBoyPhoto(riderId, cropped)
+      else await uploadDeliveryBoyDocument(riderId, kind, cropped)
+    })
   }
 
   return (
@@ -397,17 +414,25 @@ function RiderFiles({ riderId }: { riderId: number }) {
       <div className="grid gap-2 text-sm">
         <label className="flex flex-col gap-1">
           Replace photo
-          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => void replacePhoto(e.target.files?.[0])} />
+          <input type="file" accept={IMAGE_SOURCE_TYPES.join(",")} onChange={(e) => pick(e.target, "photo")} />
         </label>
         <label className="flex flex-col gap-1">
-          Add identity document
-          <input type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => void addDocument(e.target.files?.[0], "identity")} />
+          Add identity images
+          <input type="file" multiple accept={IMAGE_SOURCE_TYPES.join(",")} onChange={(e) => pick(e.target, "identity")} />
         </label>
         <label className="flex flex-col gap-1">
-          Add other document
-          <input type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => void addDocument(e.target.files?.[0], "other")} />
+          Add other documents (images)
+          <input type="file" multiple accept={IMAGE_SOURCE_TYPES.join(",")} onChange={(e) => pick(e.target, "other")} />
         </label>
       </div>
+      <ImageCropDialog
+        file={job?.queue[0] ?? null}
+        title={job?.kind === "photo" ? "Crop profile photo" : "Crop image"}
+        description={job && job.total > 1 ? `Image ${job.total - job.queue.length + 1} of ${job.total}. Drag to reposition, use the slider to zoom.` : undefined}
+        confirmLabel="Upload"
+        onCancel={next}
+        onConfirm={(cropped) => void upload(cropped)}
+      />
     </section>
   )
 }

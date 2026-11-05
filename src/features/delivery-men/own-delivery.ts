@@ -5,7 +5,7 @@ import { useEffect, useSyncExternalStore } from "react"
 import { getDeliveryLookups } from "./delivery-men-service"
 
 // Whether the active restaurant delivers its own orders, from the delivery lookups (readable by anyone with the
-// delivery permission). It decides if "My delivery boys" is shown; the API enforces access regardless.
+// delivery permission). It decides if the "Delivery boys" sub-link of Delivery is shown; the API enforces access regardless.
 type State = boolean | null
 
 let current: State = null

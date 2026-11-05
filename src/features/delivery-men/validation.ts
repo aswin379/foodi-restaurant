@@ -4,7 +4,20 @@ import type { DeliveryManType, IdentityType } from "./types"
 export const MAX_FILE_BYTES = 2 * 1024 * 1024
 export const MAX_IDENTITY_FILES = 5
 export const MAX_EXTRA_FILES = 5
-export const DOCUMENT_TYPES = ["image/jpeg", "image/png", "application/pdf"]
+// Identity images and additional documents are images only: each is cropped to a square before upload, so what is
+// sent is always a JPEG. PDFs cannot be square and are not accepted.
+export const DOCUMENT_TYPES = ["image/jpeg", "image/png"]
+/** What the seller may pick; the crop step turns it into a square JPEG. Admin accepts the same source types. */
+export const IMAGE_SOURCE_TYPES = ["image/jpeg", "image/png", "image/webp"]
+export const MAX_SOURCE_BYTES = 5 * 1024 * 1024
+export const IMAGE_ONLY_MESSAGE = "Each file must be a JPG or PNG image of 2 MB or smaller."
+
+/** The message for a picked file that cannot be cropped, or null when it can. */
+export function checkSourceImage(file: File): string | null {
+  if (!IMAGE_SOURCE_TYPES.includes(file.type)) return "Choose a JPG, PNG or WebP image."
+  if (file.size > MAX_SOURCE_BYTES) return "Choose an image of 5 MB or smaller."
+  return null
+}
 
 export type RiderValues = {
   firstName: string
@@ -53,9 +66,9 @@ export function validateRider(values: RiderValues, files: RiderFiles, mode: "cre
     if (!files.photo) errors.photo = "Profile photo is required."
     else if (files.photo.size > MAX_FILE_BYTES) errors.photo = "Photo must be 2 MB or smaller."
     if (files.identity.length > MAX_IDENTITY_FILES) errors.identity = `Upload at most ${MAX_IDENTITY_FILES} files.`
-    else if (badFile(files.identity)) errors.identity = "Each file must be a JPG, PNG or PDF of 2 MB or smaller."
+    else if (badFile(files.identity)) errors.identity = IMAGE_ONLY_MESSAGE
     if (files.extra.length > MAX_EXTRA_FILES) errors.extra = `Upload at most ${MAX_EXTRA_FILES} files.`
-    else if (badFile(files.extra)) errors.extra = "Each file must be a JPG, PNG or PDF of 2 MB or smaller."
+    else if (badFile(files.extra)) errors.extra = IMAGE_ONLY_MESSAGE
   }
   return errors
 }
