@@ -20,6 +20,7 @@ const TOGGLES: Array<{ key: Toggle; label: string; gate?: keyof SettingsGates }>
   { key: "takeAway", label: "Takeaway", gate: "takeAway" },
   { key: "dineIn", label: "Dine-in", gate: "dineIn" },
   { key: "roomService", label: "Room service" },
+  { key: "theaterService", label: "Theater service" },
   { key: "instantOrder", label: "Instant orders", gate: "instantOrder" },
   { key: "scheduleOrder", label: "Scheduled orders", gate: "scheduleOrder" },
   { key: "selfDeliverySystem", label: "Self delivery" },

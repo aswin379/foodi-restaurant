@@ -103,6 +103,7 @@ export function itemDraftFrom(value: unknown): MenuItemDraft {
     name: text(raw.name, 500),
     description: text(raw.description, 1000),
     categoryId: id(raw.categoryId) ?? "",
+    cuisineId: id(raw.cuisineId) ?? undefined,
     price: text(raw.price, 20),
     sizes: list(raw.sizes, 11).map(sizeDraft).filter((size): size is SizeDraft => size !== null),
     groups: list(raw.groups, 11).map(groupDraft).filter((group): group is GroupDraft => group !== null),

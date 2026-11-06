@@ -6,6 +6,7 @@ import { CalendarClock, Copy, Moon, Plus, Sun, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { TimePicker } from "@/components/ui/time-picker"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -479,30 +480,26 @@ function WindowRow({
             <Label htmlFor={fieldId(startPath)} className="text-xs">
               From<span className="sr-only">, {name}</span>
             </Label>
-            <Input
+            <TimePicker
               id={fieldId(startPath)}
-              type="time"
-              step={900}
               value={window.start}
-              onChange={(event) => onChange({ ...window, start: event.target.value })}
+              onChange={(val) => onChange({ ...window, start: val })}
               aria-invalid={errors[startPath] || errors[windowPath] ? true : undefined}
               aria-describedby={described(startPath)}
-              className="h-9 w-full px-2 tabular-nums sm:w-32"
+              className="w-full sm:w-32"
             />
           </div>
           <div className="grid min-w-0 gap-1">
             <Label htmlFor={fieldId(endPath)} className="text-xs">
               To<span className="sr-only">, {name}</span>
             </Label>
-            <Input
+            <TimePicker
               id={fieldId(endPath)}
-              type="time"
-              step={900}
               value={window.end}
-              onChange={(event) => onChange({ ...window, end: event.target.value })}
+              onChange={(val) => onChange({ ...window, end: val })}
               aria-invalid={errors[endPath] || errors[windowPath] ? true : undefined}
               aria-describedby={described(endPath)}
-              className="h-9 w-full px-2 tabular-nums sm:w-32"
+              className="w-full sm:w-32"
             />
           </div>
         </div>

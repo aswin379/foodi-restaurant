@@ -1,4 +1,5 @@
 import { ServiceError } from "@/lib/data-source/errors"
+import { ORDER_TYPES, type OrderType } from "@/lib/domain/order-types"
 import { addDays, localClock, offsetMinutes, startOfLocalDay } from "@/lib/time/calendar"
 
 import { hasErrors, type HoursCommand } from "./commands"
@@ -15,6 +16,8 @@ export type HoursState = {
   weekly: WeeklyHours
   specialDates: SpecialDate[]
   pause: PauseState
+  /** Pause per tab (preview). A tab without an entry follows `pause`. */
+  typePauses?: Partial<Record<OrderType, PauseState>>
 }
 
 export type HoursCommandResult =
@@ -61,6 +64,14 @@ export function expirePause(pause: PauseState, now: Date): PauseState {
   return { paused: false, lastResumedAt: pause.until, lastResumedBy: { kind: "system" } }
 }
 
+/** The pause that applies to one order type, with expired pauses ended. */
+export function effectivePause(state: Pick<HoursState, "pause" | "typePauses">, type: OrderType, now: Date): PauseState {
+  const own = state.typePauses?.[type]
+  const whole = expirePause(state.pause, now)
+  if (whole.paused) return whole
+  return own ? expirePause(own, now) : whole
+}
+
 /** Special dates as a reader sees them: past ones not editable. */
 export function withEditable(specialDates: SpecialDate[], today: string): SpecialDate[] {
   return specialDates
@@ -80,7 +91,13 @@ export function applyHoursCommand(
 ): { state: HoursState; result: HoursCommandResult } {
   const now = context.now.toISOString()
   const today = localClock(context.now, context.timeZone).date
-  const state = { ...current, pause: expirePause(current.pause, context.now) }
+  const state: HoursState = {
+    ...current,
+    pause: expirePause(current.pause, context.now),
+    ...(current.typePauses
+      ? { typePauses: Object.fromEntries(ORDER_TYPES.filter((type) => current.typePauses?.[type]).map((type) => [type, expirePause(current.typePauses![type]!, context.now)])) }
+      : {}),
+  }
 
   switch (command.type) {
     case "save_hours": {
@@ -89,9 +106,10 @@ export function applyHoursCommand(
       }
       const errors = validateHoursDraft(command.draft)
       if (hasErrors(errors)) throw new ServiceError("validation", "Invalid hours.", errors)
+      const drafted = hoursFromDraft(command.draft)
       const weekly: WeeklyHours = {
         ...state.weekly,
-        byOrderType: hoursFromDraft(command.draft),
+        byOrderType: command.scope ? { ...state.weekly.byOrderType, [command.scope]: drafted[command.scope] } : drafted,
         version: nextVersion(state.weekly.version),
         updatedAt: now,
         updatedBy: context.actor,
@@ -152,10 +170,13 @@ export function applyHoursCommand(
     }
 
     case "pause": {
-      if (state.pause.paused) throw refuse("The restaurant is already paused. Resume it first to choose another duration.")
+      const scope = command.scope
+      const already = scope ? effectivePause(state, scope, context.now) : state.pause
+      if (already.paused) throw refuse(scope ? "This order type is already paused. Resume it first to choose another duration." : "The restaurant is already paused. Resume it first to choose another duration.")
       const until = pauseEnd(command.duration, context.now, context.timeZone)
       const pause: PauseState = {
         paused: true,
+        scope: scope ?? "all",
         duration: command.duration,
         since: now,
         until: until?.toISOString() ?? null,
@@ -164,10 +185,20 @@ export function applyHoursCommand(
         reason: command.reason || null,
         by: context.actor,
       }
+      if (scope) return { state: { ...state, typePauses: { ...state.typePauses, [scope]: pause } }, result: { kind: "pause", pause } }
       return { state: { ...state, pause }, result: { kind: "pause", pause } }
     }
 
     case "resume": {
+      if (command.scope) {
+        const scope = command.scope
+        const existing = effectivePause(state, scope, context.now)
+        if (!existing.paused) return { state, result: { kind: "pause", pause: existing } }
+        const resumed: PauseState = { paused: false, lastResumedAt: now, lastResumedBy: context.actor }
+        // A whole-restaurant pause is ended as a whole; a tab pause only for its tab.
+        if (state.pause.paused) return { state: { ...state, pause: resumed }, result: { kind: "pause", pause: resumed } }
+        return { state: { ...state, typePauses: { ...state.typePauses, [scope]: resumed } }, result: { kind: "pause", pause: resumed } }
+      }
       // Resuming when not paused changes nothing (idempotent).
       if (!state.pause.paused) return { state, result: { kind: "pause", pause: state.pause } }
       const pause: PauseState = { paused: false, lastResumedAt: now, lastResumedBy: context.actor }

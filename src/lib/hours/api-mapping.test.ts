@@ -7,29 +7,16 @@ import { statusFromApi, weeklyHoursFromApi } from "./api-mapping"
 import { apiHoursAdapter } from "./api-source"
 import { emptyHoursDraft } from "./weekly-hours"
 
-// The backend's names aren't decided (PRD §9.1). Pretend it calls takeaway
-// "pickup", to prove every order type goes through the mapping layer.
-vi.mock("@/lib/api/mapping", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/lib/api/mapping")>()
-  const { ServiceError } = await import("@/lib/data-source/errors")
-  return {
-    ...original,
-    toApiOrderType: (value: string) => (value === "takeaway" ? "pickup" : value),
-    fromApiOrderType: (value: string) => {
-      if (value === "pickup") return "takeaway"
-      if (value === "delivery" || value === "dine_in") return value
-      throw new ServiceError("unavailable", `Unknown order type from API: ${value}`)
-    },
-  }
-})
+// The real server contract: four order types (delivery split into foodi_delivery and seller_delivery),
+// full weekday names, snake_case engine results. The page folds delivery into one tab.
 
 const requests: ApiRequest[] = []
-let response: unknown
+let responder: (request: ApiRequest) => unknown
 vi.mock("@/lib/api/transport", () => ({
   getApiTransport: () => ({
     request: async (request: ApiRequest) => {
       requests.push(request)
-      return response
+      return responder(request)
     },
   }),
 }))
@@ -42,38 +29,48 @@ const staff = { kind: "staff", staff: { id: "stf_1", name: "Owner" } }
 const apiHours = {
   timeZone: "Asia/Kolkata",
   version: "h-12",
+  enabledTypes: { foodi_delivery: false, seller_delivery: true, takeaway: true, dine_in: false },
   byOrderType: {
-    delivery: [{ days: ["fri"], allDay: false, windows: [{ start: "18:00", end: "02:00" }] }],
-    pickup: [{ days: ["sat", "sun"], allDay: true, windows: [] }],
+    foodi_delivery: [],
+    seller_delivery: [{ days: ["friday"], allDay: false, windows: [{ start: "18:00", end: "02:00" }] }],
+    takeaway: [{ days: ["saturday", "sunday"], allDay: true, windows: [] }],
     dine_in: [],
   },
   updatedAt: "2026-10-24T05:00:00Z",
   updatedBy: staff,
 }
 const refused = expect.objectContaining({ kind: "unavailable" })
+const engine = (status: string, reason_code: string, extra: Record<string, unknown> = {}) => ({
+  status,
+  reason_code,
+  closes_at: null,
+  next_opens_at: null,
+  resumes_at: null,
+  accepts_scheduled: true,
+  ...extra,
+})
 
 describe("hours API mapping", () => {
-  it("reads order types as record keys in product names", async () => {
-    response = apiHours
-    const hours = await apiHoursAdapter.getHours()
-    expect(hours.byOrderType.takeaway).toEqual([{ days: ["sat", "sun"], allDay: true, windows: [] }])
-    expect(requests[0]).toMatchObject({ method: "GET", path: "/seller/hours" })
+  it("folds the enabled delivery mode into the Delivery tab and short weekdays", () => {
+    const hours = weeklyHoursFromApi(apiHours)
+    expect(hours.byOrderType.delivery).toEqual([{ days: ["fri"], allDay: false, windows: [{ start: "18:00", end: "02:00" }] }])
+    expect(hours.byOrderType.takeaway[0].days).toEqual(["sat", "sun"])
+    expect(hours.enabledTypes).toEqual({ delivery: true, takeaway: true, dine_in: false })
   })
 
-  it("refuses unknown or missing order types, bad days and bad times instead of guessing", () => {
-    expect(() => weeklyHoursFromApi({ ...apiHours, byOrderType: { ...apiHours.byOrderType, curbside: [] } })).toThrow(refused)
-    expect(() => weeklyHoursFromApi({ ...apiHours, byOrderType: { delivery: [], dine_in: [] } })).toThrow(refused)
-    expect(() => weeklyHoursFromApi({ ...apiHours, byOrderType: { ...apiHours.byOrderType, delivery: [{ days: ["funday"], allDay: false, windows: [] }] } })).toThrow(refused)
+  it("refuses missing order types, bad days and bad times instead of guessing", () => {
+    expect(() => weeklyHoursFromApi({ ...apiHours, byOrderType: { foodi_delivery: [], seller_delivery: [], dine_in: [] } })).toThrow(refused)
+    expect(() => weeklyHoursFromApi({ ...apiHours, byOrderType: { ...apiHours.byOrderType, takeaway: [{ days: ["funday"], allDay: false, windows: [] }] } })).toThrow(refused)
     expect(() =>
-      weeklyHoursFromApi({ ...apiHours, byOrderType: { ...apiHours.byOrderType, delivery: [{ days: ["fri"], allDay: false, windows: [{ start: "25:00", end: "02:00" }] }] } })
+      weeklyHoursFromApi({ ...apiHours, byOrderType: { ...apiHours.byOrderType, takeaway: [{ days: ["friday"], allDay: false, windows: [{ start: "25:00", end: "02:00" }] }] } })
     ).toThrow(refused)
   })
 
-  it("maps special-date order types as values, and refuses unknown ones", async () => {
+  it("maps special-date delivery modes to the Delivery tab and refuses unknown types", async () => {
     const apiDate = {
       id: "spd_9",
       date: "2026-11-08",
-      orderTypes: ["pickup", "delivery"],
+      orderTypes: ["foodi_delivery", "seller_delivery", "takeaway"],
       kind: "special_hours",
       allDay: false,
       windows: [{ start: "17:00", end: "01:00" }],
@@ -85,67 +82,82 @@ describe("hours API mapping", () => {
       updatedAt: "2026-10-24T05:10:00Z",
       updatedBy: { kind: "system" },
     }
-    response = [apiDate]
+    responder = () => [apiDate]
     const [specialDate] = await apiHoursAdapter.listSpecialDates()
     expect(specialDate).toMatchObject({ orderTypes: ["delivery", "takeaway"], updatedBy: { kind: "system" } })
-    response = [{ ...apiDate, orderTypes: ["takeaway"] }]
-    await expect(apiHoursAdapter.listSpecialDates()).rejects.toMatchObject({ kind: "unavailable" })
-    response = { not: "a list" }
+    responder = () => [{ ...apiDate, orderTypes: ["curbside"] }]
     await expect(apiHoursAdapter.listSpecialDates()).rejects.toMatchObject({ kind: "unavailable" })
   })
 
-  it("treats status as the server's, and keeps 'no statement' about scheduled orders as null (P-2)", () => {
-    const status = statusFromApi({
-      asOf: "2026-10-24T13:05:00Z",
-      timeZone: "Asia/Kolkata",
-      source: "preview_estimate",
-      pause: { paused: false, lastResumedAt: null, lastResumedBy: null },
-      byOrderType: {
-        delivery: { immediate: { state: "open", reason: "weekly_hours", until: null, nextOpening: null }, scheduled: { accepting: true } },
-        pickup: { immediate: { state: "closed", reason: "special_date", until: null, nextOpening: "2026-10-25T03:30:00Z" } },
-        dine_in: { immediate: { state: "paused", reason: "paused", until: null, nextOpening: null }, scheduled: null },
+  it("maps engine statuses, per-tab pauses and a missing scheduled flag", () => {
+    const notPaused = { paused: false as const, lastResumedAt: null, lastResumedBy: null }
+    const status = statusFromApi(
+      {
+        asOf: "2026-10-24T13:05:00Z",
+        timeZone: "Asia/Kolkata",
+        source: "server",
+        pause: notPaused,
+        byOrderType: {
+          foodi_delivery: engine("UNAVAILABLE", "TYPE_DISABLED"),
+          seller_delivery: engine("CLOSING_SOON", "OPEN_WEEKLY", { closes_at: "2026-10-24T13:20:00Z" }),
+          takeaway: engine("CLOSED", "SPECIAL_DATE_CLOSED", { next_opens_at: "2026-10-25T03:30:00Z", accepts_scheduled: undefined }),
+          dine_in: engine("PAUSED", "PAUSED", { resumes_at: "2026-10-24T14:00:00Z" }),
+        },
       },
-    })
+      { takeaway: notPaused }
+    )
     expect(status.source).toBe("server")
-    expect(status.byOrderType.takeaway).toMatchObject({ immediate: { state: "closed" }, scheduled: null })
-    expect(status.byOrderType.delivery.scheduled).toEqual({ accepting: true })
-    // "Unresolved" is a preview-only value; the API can't send it.
-    expect(() =>
-      statusFromApi({ ...status, byOrderType: { delivery: { immediate: { state: "unresolved", reason: "weekly_hours" } }, pickup: {}, dine_in: {} } })
-    ).toThrow(refused)
+    expect(status.byOrderType.delivery).toMatchObject({ immediate: { state: "open", until: "2026-10-24T13:20:00Z" }, scheduled: { accepting: true } })
+    expect(status.byOrderType.takeaway).toMatchObject({ immediate: { state: "closed", reason: "special_date" }, scheduled: null })
+    expect(status.byOrderType.dine_in.immediate).toMatchObject({ state: "paused", until: "2026-10-24T14:00:00Z" })
+    expect(status.pauseByType).toEqual({ takeaway: notPaused })
+    expect(() => statusFromApi({ ...status, byOrderType: { foodi_delivery: engine("BROKEN", "X"), takeaway: {}, dine_in: {} } })).toThrow(refused)
   })
 
-  it("sends commands to the proposed paths with API names, If-Match and the idempotency key", async () => {
-    response = apiHours
+  it("saves one tab: delivery hours go to every enabled delivery mode, other tabs are left out", async () => {
+    responder = (request) => (request.method === "GET" ? apiHours : apiHours)
     const draft = emptyHoursDraft()
-    draft.takeaway.sat = { enabled: true, allDay: true, windows: [] }
-    await apiHoursAdapter.act({ type: "save_hours", version: "h-12", draft }, "key-1")
-    expect(requests[0]).toMatchObject({
-      method: "PUT",
+    draft.delivery.fri = { enabled: true, allDay: true, windows: [] }
+    await apiHoursAdapter.act({ type: "save_hours", scope: "delivery", version: "h-12", draft }, "key-1")
+    const put = requests.find((request) => request.method === "PUT")
+    expect(put).toMatchObject({
       path: "/seller/hours",
       ifMatch: "h-12",
       idempotencyKey: "key-1",
-      body: { byOrderType: { delivery: [], pickup: [{ days: ["sat"], allDay: true, windows: [] }], dine_in: [] } },
+      body: { byOrderType: { seller_delivery: [{ days: ["friday"], allDay: true, windows: [] }] } },
     })
-
-    response = { paused: true, duration: "rest_of_today", since: "x", until: "y", untilLocal: "2026-10-25T00:00+05:30", timeZone: "Asia/Kolkata", reason: null, by: staff }
-    await apiHoursAdapter.act({ type: "pause", duration: "rest_of_today", reason: "" }, "key-2")
-    expect(requests[1]).toMatchObject({ method: "POST", path: "/seller/pause", body: { duration: "rest_of_today", reason: null } })
-
-    await apiHoursAdapter.act({ type: "delete_special_date", id: "spd 9", version: "v3" }, "key-3")
-    expect(requests[2]).toMatchObject({ method: "DELETE", path: "/seller/hours/special-dates/spd%209", ifMatch: "v3" })
-
-    response = { paused: false, lastResumedAt: "z", lastResumedBy: staff }
-    await apiHoursAdapter.act({ type: "resume" }, "key-4")
-    expect(requests[3]).toMatchObject({ method: "DELETE", path: "/seller/pause" })
+    expect(Object.keys((put!.body as { byOrderType: object }).byOrderType)).toEqual(["seller_delivery"])
   })
 
-  it("sends special-date order types in API names", async () => {
-    response = { id: "a", date: "2026-11-08", orderTypes: ["pickup"], kind: "closed", allDay: false, windows: [], note: null, editable: true, version: "a-1", createdAt: "", createdBy: staff, updatedAt: "", updatedBy: staff }
+  it("says plainly that someone else changed the hours on a stale save", async () => {
+    const { ServiceError } = await import("@/lib/data-source/errors")
+    responder = (request) => {
+      if (request.method === "PUT") throw new ServiceError("conflict", "version_conflict")
+      return apiHours
+    }
+    await expect(
+      apiHoursAdapter.act({ type: "save_hours", scope: "takeaway", version: "old", draft: emptyHoursDraft() }, "key-2")
+    ).rejects.toMatchObject({ kind: "conflict", userMessage: expect.stringContaining("Someone else changed") })
+  })
+
+  it("pauses and resumes one tab by its scope", async () => {
+    const pausedAll = { paused: true, scope: "all", duration: "until_resumed", since: "x", until: null, untilLocal: null, timeZone: "Asia/Kolkata", reason: null, by: staff }
+    responder = () => pausedAll
+    await apiHoursAdapter.act({ type: "pause", duration: "30m", reason: "Busy", scope: "takeaway" }, "key-3")
+    expect(requests[0]).toMatchObject({ method: "POST", path: "/seller/pause", body: { duration: "30m", reason: "Busy", orderType: "takeaway" } })
+
+    requests.length = 0
+    await apiHoursAdapter.act({ type: "resume", scope: "takeaway" }, "key-4")
+    // A wider pause is ended as the server reports it, not as the tab names it.
+    expect(requests[1]).toMatchObject({ method: "DELETE", path: "/seller/pause?orderType=all" })
+  })
+
+  it("sends special-date Delivery to the enabled delivery modes", async () => {
+    responder = (request) => request.method === "GET" ? apiHours : ({ id: "a", date: "2026-11-08", orderTypes: ["foodi_delivery"], kind: "closed", allDay: false, windows: [], note: null, editable: true, version: "a-1", createdAt: "", createdBy: staff, updatedAt: "", updatedBy: staff })
     await apiHoursAdapter.act(
-      { type: "add_special_date", draft: { date: "2026-11-08", orderTypes: ["takeaway"], kind: "closed", allDay: false, windows: [], note: "" } },
+      { type: "add_special_date", draft: { date: "2026-11-08", orderTypes: ["delivery"], kind: "closed", allDay: false, windows: [], note: "" } },
       "key-5"
     )
-    expect(requests[0]).toMatchObject({ method: "POST", path: "/seller/hours/special-dates", body: { orderTypes: ["pickup"] } })
+    expect(requests[0]).toMatchObject({ method: "POST", path: "/seller/hours/special-dates", body: { orderTypes: ["seller_delivery"] } })
   })
 })

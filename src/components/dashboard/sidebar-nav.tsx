@@ -1,9 +1,10 @@
 "use client"
 
-import { Suspense, useId } from "react"
+import { Suspense, useId, useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { m } from "framer-motion"
+import { ChevronDown } from "lucide-react"
 
 import {
   Tooltip,
@@ -11,39 +12,49 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useAuth } from "@/features/auth/auth-context"
+import { useUsesOwnDelivery } from "@/features/delivery-men/own-delivery"
 import { canSeeArea } from "@/features/staff/access"
 import { cn } from "@/lib/utils"
 
-import { dashboardNavigation, getActiveNavItem, type NavItem } from "./navigation"
+import {
+  dashboardNavigation,
+  getActiveChild,
+  getActiveNavItem,
+  pathOf,
+  type NavChild,
+  type NavItem,
+} from "./navigation"
 
 type SidebarNavProps = {
   collapsed?: boolean
   onNavigate?: () => void
 }
 
-// The pathname is request data on dynamic routes (e.g. /orders/[orderId]), so
-// it is read inside Suspense; the fallback is the same nav with nothing active.
+// The pathname and query are request data on dynamic routes (e.g. /orders/[orderId]), so
+// they are read inside Suspense; the fallback is the same nav with nothing active.
 export function SidebarNav(props: SidebarNavProps) {
   return (
-    <Suspense fallback={<SidebarNavList {...props} pathname={null} />}>
+    <Suspense fallback={<SidebarNavList {...props} pathname={null} searchParams={null} />}>
       <SidebarNavForCurrentPath {...props} />
     </Suspense>
   )
 }
 
 function SidebarNavForCurrentPath(props: SidebarNavProps) {
-  return <SidebarNavList {...props} pathname={usePathname()} />
+  return <SidebarNavList {...props} pathname={usePathname()} searchParams={useSearchParams()} />
 }
 
 function SidebarNavList({
   collapsed = false,
   onNavigate,
   pathname,
-}: SidebarNavProps & { pathname: string | null }) {
+  searchParams,
+}: SidebarNavProps & { pathname: string | null; searchParams: URLSearchParams | null }) {
   const activeItem = pathname ? getActiveNavItem(pathname) : null
   // The desktop rail and the mobile sheet each render this list; separate ids stop their indicators sharing a layout.
   const indicatorId = useId()
   const { user } = useAuth()
+  const usesOwnDelivery = useUsesOwnDelivery(user !== null && canSeeArea(user, "/delivery-boys"))
   // Staff only see links they hold the permission for (Soon placeholders included); empty groups disappear.
   // Cosmetic: the API enforces access.
   const groups = dashboardNavigation
@@ -68,21 +79,42 @@ function SidebarNavList({
           </h2>
           {collapsed && index > 0 ? <span aria-hidden className="mx-3 -mt-3 mb-1 h-px bg-border-soft" /> : null}
           <ul className="flex flex-col gap-0.5">
-            {group.items.map((item) => (
-              <li key={item.title}>
-                <SidebarNavItem
-                  item={item}
-                  active={item === activeItem}
-                  indicatorId={indicatorId}
-                  collapsed={collapsed}
-                  onNavigate={onNavigate}
-                />
-              </li>
-            ))}
+            {group.items.map((item) => {
+              const links = visibleChildren(item, user, usesOwnDelivery)
+              return (
+                <li key={item.title}>
+                  {links.length > 0 && !collapsed ? (
+                    <SidebarNavDropdown
+                      item={item}
+                      links={links}
+                      activeChild={pathname ? getActiveChild(item, pathname, searchParams) : null}
+                      indicatorId={indicatorId}
+                      onNavigate={onNavigate}
+                    />
+                  ) : (
+                    // The collapsed rail has no room for a dropdown, so the item links to its own page (Activity).
+                    <SidebarNavItem
+                      item={item}
+                      active={item === activeItem}
+                      indicatorId={indicatorId}
+                      collapsed={collapsed}
+                      onNavigate={onNavigate}
+                    />
+                  )}
+                </li>
+              )
+            })}
           </ul>
         </div>
       ))}
     </nav>
+  )
+}
+
+/** The sub-links this user may see: staff need the permission for the page; "Delivery boys" needs Self delivery. */
+function visibleChildren(item: NavItem, user: ReturnType<typeof useAuth>["user"], usesOwnDelivery: boolean): NavChild[] {
+  return (item.children ?? []).filter(
+    (child) => canSeeArea(user, pathOf(child.href), child.title) && (!child.requiresOwnDelivery || usesOwnDelivery)
   )
 }
 
@@ -173,5 +205,96 @@ function SidebarNavItem({
         {item.href ? item.title : `${item.title} · Coming soon`}
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+/**
+ * A parent row that opens its sub-links. It opens by itself while one of them is the current page; the owner can
+ * still close it. The active pill sits on the sub-link, or on the parent while the dropdown is closed.
+ */
+function SidebarNavDropdown({
+  item,
+  links,
+  activeChild,
+  indicatorId,
+  onNavigate,
+}: {
+  item: NavItem
+  links: NavChild[]
+  activeChild: NavChild | null
+  indicatorId: string
+  onNavigate?: () => void
+}) {
+  const listId = useId()
+  const [manual, setManual] = useState<boolean | null>(null)
+  const hasActive = activeChild !== null && links.includes(activeChild)
+  const expanded = manual ?? hasActive
+  const Icon = item.icon
+  const parentActive = hasActive && !expanded
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls={listId}
+        onClick={() => setManual(!expanded)}
+        className={cn(
+          itemBase,
+          parentActive ? "font-semibold text-primary-text" : "text-foreground/80 hover:bg-primary-faint hover:text-foreground"
+        )}
+      >
+        {parentActive ? (
+          <m.span
+            layoutId={indicatorId}
+            aria-hidden
+            transition={{ type: "spring", stiffness: 500, damping: 40 }}
+            className="absolute inset-0 rounded-xl border border-primary-line bg-primary-soft"
+          >
+            <span className="absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-full bg-primary" />
+          </m.span>
+        ) : null}
+        <Icon
+          aria-hidden
+          strokeWidth={1.75}
+          className={cn("relative size-5 shrink-0", hasActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}
+        />
+        <span className="relative flex-1 truncate text-left">{item.title}</span>
+        <ChevronDown
+          aria-hidden
+          className={cn("relative size-4 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-180")}
+        />
+      </button>
+      {expanded ? (
+        <ul id={listId} className="ml-5 flex flex-col gap-0.5 border-l border-border-soft pl-2">
+          {links.map((child) => {
+            const active = child === activeChild
+            return (
+              <li key={child.href}>
+                <Link
+                  href={child.href}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "relative flex h-9 w-full items-center rounded-lg px-3 text-sm font-medium outline-none transition-colors",
+                    active ? "font-semibold text-primary-text" : "text-foreground/80 hover:bg-primary-faint hover:text-foreground"
+                  )}
+                >
+                  {active ? (
+                    <m.span
+                      layoutId={indicatorId}
+                      aria-hidden
+                      transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                      className="absolute inset-0 rounded-lg border border-primary-line bg-primary-soft"
+                    />
+                  ) : null}
+                  <span className="relative truncate">{child.title}</span>
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
+    </div>
   )
 }

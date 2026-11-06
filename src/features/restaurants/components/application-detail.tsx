@@ -5,7 +5,7 @@ import Link from "next/link"
 import { AlertCircle, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { ApiError } from "@/lib/api-client"
+import { ApiError } from "@/api-client"
 
 import { getRestaurant, reopenRestaurant } from "../restaurant-service"
 import type { RestaurantDetail } from "../types"

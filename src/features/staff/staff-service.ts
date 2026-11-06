@@ -1,4 +1,4 @@
-import { api } from "@/lib/api-client"
+import { http } from "@/lib/http"
 
 import type {
   CreateStaffInput,
@@ -17,7 +17,7 @@ const PATH = "/seller/staff"
 export const PAGE_SIZE = 10
 
 export function getStaffMeta(): Promise<StaffMeta> {
-  return api<StaffMeta>(`${PATH}/meta`)
+  return http.get<StaffMeta>(`${PATH}/meta`)
 }
 
 export function listStaff(query: StaffListQuery): Promise<StaffPage> {
@@ -31,26 +31,26 @@ export function listStaff(query: StaffListQuery): Promise<StaffPage> {
   if (query.sellerId) params.set("sellerId", query.sellerId)
   if (query.designationId) params.set("designationId", query.designationId)
   if (query.status) params.set("status", query.status)
-  return api<StaffPage>(`${PATH}?${params}`)
+  return http.get<StaffPage>(`${PATH}?${params}`)
 }
 
 export async function createStaff(input: CreateStaffInput): Promise<StaffMember> {
-  return (await api<{ staff: StaffMember }>(PATH, { method: "POST", body: input })).staff
+  return (await http.post<{ staff: StaffMember }>(PATH, input)).staff
 }
 
 export async function updateStaff(id: number, input: StaffInput): Promise<StaffMember> {
-  return (await api<{ staff: StaffMember }>(`${PATH}/${id}`, { method: "PATCH", body: input })).staff
+  return (await http.patch<{ staff: StaffMember }>(`${PATH}/${id}`, input)).staff
 }
 
 export async function setStaffStatus(id: number, status: StaffStatus): Promise<StaffMember> {
-  return (await api<{ staff: StaffMember }>(`${PATH}/${id}/status`, { method: "PATCH", body: { status } })).staff
+  return (await http.patch<{ staff: StaffMember }>(`${PATH}/${id}/status`, { status })).staff
 }
 
 export async function resetStaffPassword(id: number, password: string): Promise<void> {
-  await api(`${PATH}/${id}/reset-password`, { method: "POST", body: { password } })
+  await http.post(`${PATH}/${id}/reset-password`, { password })
 }
 
 /** A signed-in staff member replaces the password the owner chose. */
 export async function changeOwnPassword(currentPassword: string, newPassword: string): Promise<void> {
-  await api("/seller/staff-auth/change-password", { method: "POST", body: { currentPassword, newPassword } })
+  await http.post("/seller/staff-auth/change-password", { currentPassword, newPassword })
 }

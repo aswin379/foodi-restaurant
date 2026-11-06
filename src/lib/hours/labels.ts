@@ -35,6 +35,9 @@ export function listLabels(labels: readonly string[]) {
   return labels.length <= 1 ? (labels[0] ?? "") : `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}`
 }
 
+/** Under the pause buttons of a tab. */
+export const PAUSE_TAB_NOTE = "Orders already accepted aren't changed or cancelled."
+
 export const PAUSE_EFFECT_NOTE =
   "Pausing stops new orders for delivery, takeaway and dine-in. Orders already accepted or scheduled aren't changed."
 

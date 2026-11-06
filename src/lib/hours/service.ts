@@ -16,7 +16,6 @@ import type { AvailabilityStatus, PauseState, SpecialDate, WeeklyHours } from ".
 /**
  * Preview data is an explicit development opt-in
  * (FOODI_HOURS_DATA_SOURCE=preview) and is refused in production builds.
- * There is no fallback: if the API fails, the UI shows an error.
  */
 function hours(): { mode: DataSourceMode; adapter: HoursAdapter } {
   return selectAdapter({
@@ -63,5 +62,5 @@ export async function resetHoursPreview(): Promise<void> {
   if (hours().mode !== "preview") {
     throw new ServiceError("forbidden", "Preview controls are only available in preview mode.")
   }
-  resetPreviewHours()
+  await resetPreviewHours()
 }

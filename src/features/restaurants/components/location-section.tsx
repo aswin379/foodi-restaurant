@@ -6,7 +6,7 @@ import { Loader2, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ApiError } from "@/lib/api-client"
+import { ApiError } from "@/api-client"
 import { cn } from "@/lib/utils"
 
 import { resolveLocation } from "../restaurant-service"

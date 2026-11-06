@@ -6,7 +6,7 @@ import { ServiceError } from "@/lib/data-source/errors"
 import { selectAdapter, type DataSourceMode } from "@/lib/data-source/mode"
 import type { RestaurantContext } from "@/lib/restaurant/context"
 
-import type { MenuAdapter } from "./adapter"
+import type { CuisineOption, MenuAdapter } from "./adapter"
 import { apiMenuAdapter } from "./api-source"
 import type { MenuCommand } from "./commands"
 import type { MealPeriod } from "./meal-periods"
@@ -54,6 +54,11 @@ export async function listMenuCategories(previewScenario?: unknown): Promise<Men
 }
 
 /** Every meal period, archived ones included (B3b). */
+export async function listMenuCuisines(previewScenario?: unknown): Promise<CuisineOption[]> {
+  await connection()
+  return menu().adapter.listCuisines(previewScenario)
+}
+
 export async function listMealPeriods(previewScenario?: unknown): Promise<MealPeriod[]> {
   await connection()
   return menu().adapter.listMealPeriods(previewScenario)

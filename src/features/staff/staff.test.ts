@@ -102,6 +102,7 @@ describe("canSeeArea", () => {
     expect(canSeeArea(user({}), "/wallet")).toBe(true)
   })
 
+  // Delivery's sub-links (Activity, History, Delivery boys) share its permission; they have their own test below.
   const links = dashboardNavigation.flatMap((group) => group.items).filter((item) => item.href !== "/staff")
   const staffWith = (permissions: string[]) => user({ role: "staff", permissions })
   const needed = (item: (typeof links)[number]) => permissionFor(item.href, item.title) as string
@@ -118,6 +119,12 @@ describe("canSeeArea", () => {
       const others = links.filter((o) => o !== item).map(needed)
       expect(canSeeArea(staffWith(others), item.href, item.title), `others ${item.title}`).toBe(false)
     }
+  })
+
+  it("shows the Delivery sub-links with the delivery permission, like the Delivery page", () => {
+    expect(permissionFor("/delivery-boys", "Delivery boys")).toBe("delivery")
+    expect(canSeeArea(staffWith(["delivery"]), "/delivery-boys")).toBe(true)
+    expect(canSeeArea(staffWith(["orders"]), "/delivery-boys")).toBe(false)
   })
 
   it("uses the most specific page: Categories needs its own permission, not Menu's", () => {

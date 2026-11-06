@@ -214,19 +214,31 @@ export function SpecialDateDialog({
                   onCheckedChange={(checked) =>
                     update(
                       checked === true
-                        ? { allDay: true, windows: draft.windows.filter((window) => window.start || window.end) }
-                        : { allDay: false, windows: draft.windows.length ? draft.windows : [{ key: newKey(), start: "", end: "" }] }
+                        ? { allDay: true, windows: [] }
+                        : {
+                            allDay: false,
+                            windows:
+                              draft.windows.length > 0
+                                ? draft.windows
+                                : [{ key: newKey(), start: "11:00", end: "23:00" }],
+                          }
                     )
                   }
                 />
-                <Label htmlFor={`${id}-all-day`} className="font-normal">
-                  All day (midnight to midnight)
+                <Label htmlFor={`${id}-all-day`} className="cursor-pointer text-xs font-medium">
+                  All day (24 hours: midnight to midnight)
                 </Label>
               </div>
               <FieldError path={specialDatePaths.hours} errors={errors} />
-              {!draft.allDay || draft.windows.length ? (
+              {draft.allDay ? (
+                <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                  <span className="size-2 rounded-full bg-emerald-500" />
+                  Open 24 hours all day. Timers not needed.
+                </div>
+              ) : null}
+              {!draft.allDay ? (
                 <TimeWindowsFields
-                  windows={draft.windows}
+                  windows={draft.windows.length > 0 ? draft.windows : [{ key: newKey(), start: "11:00", end: "23:00" }]}
                   name="Special hours"
                   nextDayLabel={isCalendarDate(draft.date) ? weekdayLabels[weekdayOf(addDays(draft.date, 1))] : "the next day"}
                   paths={specialDatePaths}

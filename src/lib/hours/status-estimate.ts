@@ -5,8 +5,8 @@ import { assertPreviewAllowed } from "@/lib/data-source/mode"
 import { addDays, localClock, weekdayOf } from "@/lib/time/calendar"
 import { isOvernight, parseLocalTime, type TimeWindow } from "@/lib/time/windows"
 
-import { expirePause, type HoursState } from "./rules"
-import type { AvailabilityStatus, ImmediateReason, OrderTypeStatus } from "./types"
+import { effectivePause, expirePause, type HoursState } from "./rules"
+import type { AvailabilityStatus, PauseState, ImmediateReason, OrderTypeStatus } from "./types"
 
 // PREVIEW ESTIMATE (development only). A rough "open now?" per order type
 // for sample data, so the status card has something to show in preview. It
@@ -65,16 +65,17 @@ export function estimateStatus(state: HoursState, now: Date, timeZone: string): 
   assertPreviewAllowed()
   const pause = expirePause(state.pause, now)
   const { date, minutes: nowMinutes } = localClock(now, timeZone)
+  const pauseByType = Object.fromEntries(ORDER_TYPES.map((type) => [type, effectivePause(state, type, now)])) as Record<OrderType, PauseState>
   const byOrderType = Object.fromEntries(
     ORDER_TYPES.map((type): [OrderType, OrderTypeStatus] => [
       type,
       {
-        immediate: pause.paused
-          ? { state: "paused", reason: "paused", until: pause.until, nextOpening: null }
+        immediate: pauseByType[type].paused
+          ? { state: "paused", reason: "paused", until: pauseByType[type].until, nextOpening: null }
           : estimateFor(state, type, date, nowMinutes),
         scheduled: null,
       },
     ])
   ) as Record<OrderType, OrderTypeStatus>
-  return { asOf: now.toISOString(), timeZone, source: "preview_estimate", pause, byOrderType }
+  return { asOf: now.toISOString(), timeZone, source: "preview_estimate", pause, pauseByType, byOrderType }
 }

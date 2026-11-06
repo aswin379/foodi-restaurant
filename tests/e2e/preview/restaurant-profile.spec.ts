@@ -2,7 +2,7 @@ import { expect, test, type Page, type Route } from "@playwright/test"
 
 import { expectNoConsoleErrors, expectNoSeriousA11yViolations, gotoAndSettle, mockOwnerSession } from "../helpers"
 
-// The restaurant profile and its branches, with the API mocked (the preview server has none). The mock answers
+// The restaurant profile, with the API mocked (the preview server has none). The mock answers
 // by the X-Seller-Id header, as the real API does, so these specs also prove the page asks for the right restaurant.
 
 const RESTAURANTS = [
@@ -69,7 +69,6 @@ function profile(id: number, name: string, address: string, zone: string, cuisin
 }
 
 type Profile = Omit<ReturnType<typeof profile>, "logoUrl" | "coverUrl"> & { logoUrl: string | null; coverUrl: string | null }
-type Branch = { id: number; name: string; isMain: boolean; isActive: boolean; tableCount: number; roomCount: number }
 type Seen = { method: string; path: string; sellerId: string | undefined; body: unknown; contentType: string | undefined }
 
 // A 1x1 transparent PNG the mock "stores" for the uploaded logo.
@@ -79,10 +78,6 @@ async function mockApi(page: Page) {
   const profiles: Record<number, Profile> = {
     1: profile(1, "Alpha Kitchen", "1 Alpha Road", "Alpha Zone", [11, 12]),
     2: profile(2, "Beta Bistro", "2 Beta Lane", "Beta Zone", [13]),
-  }
-  const branches: Record<number, Branch[]> = {
-    1: [{ id: 10, name: "Alpha Main", isMain: true, isActive: true, tableCount: 0, roomCount: 0 }],
-    2: [{ id: 20, name: "Beta Main", isMain: true, isActive: true, tableCount: 0, roomCount: 0 }],
   }
   const seen: Seen[] = []
   const reply = (route: Route, status: number, data: unknown) =>
@@ -146,24 +141,6 @@ async function mockApi(page: Page) {
     return reply(route, 200, { profile: found })
   })
 
-  await page.route(/\/api\/v1\/seller\/branches(\/\d+)?$/, async (route) => {
-    const { request, body } = record(route)
-    const list = branches[Number(request.headers()["x-seller-id"])]
-    if (!list) return reply(route, 404, null)
-    if (request.method() === "POST") {
-      const branch = { id: 100 + list.length, name: (body as { name: string }).name, isMain: false, isActive: true, tableCount: 0, roomCount: 0 }
-      list.push(branch)
-      return reply(route, 201, { branch })
-    }
-    if (request.method() === "PATCH") {
-      const id = Number(new URL(request.url()).pathname.split("/").pop())
-      const branch = list.find((b) => b.id === id)
-      if (!branch) return reply(route, 404, null)
-      Object.assign(branch, body)
-      return reply(route, 200, { branch })
-    }
-    return reply(route, 200, { branches: list })
-  })
   return seen
 }
 
@@ -214,10 +191,9 @@ test("an approved restaurant's real details appear in the profile forms", async 
   await expectNoSeriousA11yViolations(page)
 })
 
-test("switching restaurants shows the other restaurant's profile and branches", async ({ page }) => {
+test("switching restaurants shows the other restaurant's profile", async ({ page }) => {
   await open(page, 1)
   await expect(page.getByRole("heading", { name: "Alpha Kitchen", level: 2 })).toBeVisible()
-  await expect(page.getByText("Alpha Main")).toBeVisible()
 
   await page.getByRole("button", { name: /Alpha Kitchen.*Switch restaurant/ }).click()
   await page.getByRole("menuitem", { name: "Beta Bistro" }).click()
@@ -226,8 +202,6 @@ test("switching restaurants shows the other restaurant's profile and branches", 
   await expect(form(page, "Restaurant details").getByLabel("Restaurant name")).toHaveValue("Beta Bistro")
   await expect(form(page, "Address and location").getByLabel("Address")).toHaveValue("2 Beta Lane")
   await expect(page.locator("main")).not.toContainText("1 Alpha Road")
-  await expect(page.getByText("Beta Main")).toBeVisible()
-  await expect(page.getByText("Alpha Main")).toHaveCount(0)
 })
 
 test("the owner edits the restaurant details and they are saved for the selected restaurant", async ({ page }) => {
@@ -336,24 +310,6 @@ test("the owner uploads and removes the logo", async ({ page }) => {
   await images.getByRole("button", { name: "Remove logo" }).click()
   await expect(images.getByText("No logo yet")).toBeVisible()
   expect(seen.some((r) => r.method === "DELETE" && r.path.endsWith("/files/logo"))).toBe(true)
-})
-
-test("the owner adds a branch under the selected restaurant", async ({ page }) => {
-  const seen = await open(page, 2)
-  await expect(page.getByRole("heading", { name: "Manage branches" })).toBeVisible()
-
-  await page.getByRole("button", { name: "Add branch" }).click()
-  await page.getByLabel("Branch name").fill("Beta Downtown")
-  await page.getByRole("dialog").getByRole("button", { name: "Add branch" }).click()
-  const downtown = page.locator("li:not([data-slot=toast])").filter({ hasText: "Beta Downtown" })
-  await expect(downtown).toBeVisible()
-  const post = seen.find((r) => r.method === "POST" && r.path === "/seller/branches")
-  expect(post?.sellerId).toBe("2")
-  // Adding a branch calls only the branch API; no restaurant is created.
-  expect(seen.filter((r) => r.method === "POST").every((r) => r.path.endsWith("/seller/branches"))).toBe(true)
-
-  await page.getByRole("switch", { name: "Beta Downtown is active" }).click()
-  await expect(downtown).toContainText("Disabled")
 })
 
 test("a restaurant the API refuses is shown as an error, never as another restaurant's data", async ({ page }) => {

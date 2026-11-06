@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { validateEmail } from "@/lib/auth/validation"
-import { forgotPasswordRequest, resetPasswordRequest } from "@/lib/api-client"
+import { forgotPasswordRequest, resetPasswordRequest } from "@/features/auth/auth-api"
 
 // Same rule as the API (shared password policy).
 const MIN_PASSWORD_LENGTH = 10

@@ -84,7 +84,7 @@ function DevelopmentNotice() {
       <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />
       <p>
         <span className="font-semibold">Development preview.</span> Only
-        sign-in and Branches use live restaurant data. The other sections are
+        sign-in and Locations & QR use live restaurant data. The other sections are
         still previews.
       </p>
     </div>

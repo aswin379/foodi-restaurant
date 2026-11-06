@@ -7,7 +7,7 @@ import { BackToMenuLink, MenuFormSkeleton } from "@/components/menu/menu-page-pa
 import { MenuLoadFailure } from "@/components/menu/menu-states"
 import { PreviewNotice } from "@/components/shared/preview-notice"
 import { loadScheduleSupport } from "@/lib/menu/schedule-support"
-import { getMenuContext, listMenuCategories, menuMode } from "@/lib/menu/service"
+import { getMenuContext, listMenuCategories, listMenuCuisines, menuMode } from "@/lib/menu/service"
 
 export const metadata: Metadata = {
   title: "Add menu item",
@@ -32,8 +32,13 @@ export default function NewMenuItemPage() {
 async function NewItemForm() {
   let loaded
   try {
-    const [context, categories, support] = await Promise.all([getMenuContext(), listMenuCategories(), loadScheduleSupport()])
-    loaded = { context, categories, support }
+    const [context, categories, cuisines, support] = await Promise.all([
+      getMenuContext(),
+      listMenuCategories(),
+      listMenuCuisines(),
+      loadScheduleSupport(),
+    ])
+    loaded = { context, categories, cuisines, support }
   } catch (error) {
     // Every item needs a category (D7), so the form can't work without them.
     return <MenuLoadFailure error={error} retryHref="/menu/new" what="categories" />
@@ -44,6 +49,7 @@ async function NewItemForm() {
       <MenuItemForm
         mode="create"
         categories={loaded.categories}
+        cuisines={loaded.cuisines}
         context={{ timeZone: loaded.context.timeZone, locale: loaded.context.locale }}
         mealPeriods={loaded.support.mealPeriods}
         hours={loaded.support.hours}

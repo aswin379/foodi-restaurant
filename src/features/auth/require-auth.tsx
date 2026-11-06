@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
 
 import { useAuth } from "./auth-context"
-import { refreshSession } from "@/lib/api-client"
+import { authApi } from "@/features/auth/auth-api"
 
 /**
  * Keeps signed-out visitors off the dashboard. This is a convenience only: the API checks the
@@ -22,7 +22,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     } else if (status === "authenticated" && typeof document !== "undefined") {
       if (!document.cookie.includes("foodi_seller_token") && !refreshedRef.current) {
         refreshedRef.current = true
-        refreshSession().then(() => {
+        authApi.refresh().then(() => {
           router.refresh()
         }).catch(() => {})
       }

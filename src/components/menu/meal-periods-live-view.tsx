@@ -10,7 +10,7 @@ import { MenuListSkeleton, MenuError } from "@/components/menu/menu-states"
 import { PreviewMenuControls } from "@/components/menu/preview-menu-controls"
 import { PreviewNotice } from "@/components/shared/preview-notice"
 import { Button } from "@/components/ui/button"
-import { api } from "@/lib/api-client"
+import { http } from "@/lib/http"
 import { mealPeriodListFromApi } from "@/lib/menu/meal-periods-api"
 import type { MealPeriod } from "@/lib/menu/meal-periods"
 
@@ -33,9 +33,7 @@ export function MealPeriodsLiveView({
     setLoading(true)
     setError(null)
     try {
-      const raw = await api<unknown>("/seller/menu/meal-periods", {
-        restaurantScoped: true,
-      })
+      const raw = await http.get<unknown>("/seller/menu/meal-periods", { restaurantScoped: true })
       let list = raw
       if (raw && typeof raw === "object" && "periods" in raw) {
         list = (raw as { periods: unknown }).periods

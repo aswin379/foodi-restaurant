@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 
+import { setUsesOwnDelivery } from "@/features/delivery-men/own-delivery"
+
 import { saveDelivery } from "../profile-service"
 import type { PrepUnit, RestaurantProfile } from "../types"
 import { SectionForm, selectClass, toNumber } from "./section-form"
@@ -52,18 +54,18 @@ export function DeliveryForm({
     }
     if (prepTimeMax <= prepTimeMin) throw new Error("Maximum time must be greater than minimum time.")
     if (unit === "min" && prepTimeMin < 10) throw new Error("Minimum time must be at least 10 minutes.")
-    onSaved(
-      await saveDelivery({
-        deliveryMode: mode,
-        deliveryRadiusKm,
-        deliveryFee,
-        ...(threshold.trim() === "" ? {} : { freeDeliveryThreshold }),
-        codEnabled: cod,
-        prepTimeUnit: unit,
-        prepTimeMin,
-        prepTimeMax,
-      })
-    )
+    const saved = await saveDelivery({
+      deliveryMode: mode,
+      deliveryRadiusKm,
+      deliveryFee,
+      ...(threshold.trim() === "" ? {} : { freeDeliveryThreshold }),
+      codEnabled: cod,
+      prepTimeUnit: unit,
+      prepTimeMin,
+      prepTimeMax,
+    })
+    setUsesOwnDelivery(mode === "SELF")
+    onSaved(saved)
   }
 
   return (

@@ -11,10 +11,10 @@ export type { Money }
 export const DIETARY_TYPES = ["veg", "non_veg", "egg", "vegan"] as const
 export type DietaryType = (typeof DIETARY_TYPES)[number]
 
-export const SPICE_LEVELS = ["none", "mild", "medium", "hot"] as const
+export const SPICE_LEVELS = ["none", "mild", "medium", "hot", "extra_hot"] as const
 export type SpiceLevel = (typeof SPICE_LEVELS)[number]
 
-export const ITEM_TAGS = ["bestseller", "new", "chefs_special"] as const
+export const ITEM_TAGS = ["bestseller", "new", "chefs_special", "spicy"] as const
 export type ItemTag = (typeof ITEM_TAGS)[number]
 
 /** PROVISIONAL allergen list; the PRD names allergens but not the list. */
@@ -83,6 +83,8 @@ export type MenuItem = {
   /** Required for active items (D7); archived items keep their last category. */
   categoryId: string
   categoryName: string
+  cuisineId?: string | null
+  cuisineName?: string | null
   /** Base price, used when the item has no sizes. */
   price: Money
   sizes: MenuSize[]

@@ -3,7 +3,7 @@
 import { AlertCircle, Moon, Plus, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { TimePicker } from "@/components/ui/time-picker"
 import { Label } from "@/components/ui/label"
 import { hoursFieldId, type WindowDraft } from "@/lib/hours/weekly-hours"
 import { MAX_WINDOWS_PER_DAY } from "@/lib/time/weekly"
@@ -34,6 +34,8 @@ export function TimeWindowsFields({
   errors,
   newKey,
   onChange,
+  addLabel = "Add window",
+  keepOne = false,
 }: {
   windows: WindowDraft[]
   /** Accessible name prefix, e.g. "Delivery Monday". */
@@ -43,6 +45,10 @@ export function TimeWindowsFields({
   errors: FieldErrors
   newKey: () => string
   onChange: (windows: WindowDraft[]) => void
+  /** Text of the add button. */
+  addLabel?: string
+  /** An open day always keeps one window, so the only remove button is hidden. */
+  keepOne?: boolean
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -68,42 +74,40 @@ export function TimeWindowsFields({
                       <Label htmlFor={hoursFieldId(startPath)} className="text-xs">
                         From<span className="sr-only">, {label}</span>
                       </Label>
-                      <Input
+                      <TimePicker
                         id={hoursFieldId(startPath)}
-                        type="time"
-                        step={900}
                         value={window.start}
-                        onChange={(event) => set({ start: event.target.value })}
+                        onChange={(val) => set({ start: val })}
                         aria-invalid={errors[startPath] || errors[windowPath] ? true : undefined}
                         aria-describedby={described(startPath)}
-                        className="h-9 w-full px-2 tabular-nums sm:w-32"
+                        className="w-full sm:w-32"
                       />
                     </div>
                     <div className="grid min-w-0 gap-1">
                       <Label htmlFor={hoursFieldId(endPath)} className="text-xs">
                         To<span className="sr-only">, {label}</span>
                       </Label>
-                      <Input
+                      <TimePicker
                         id={hoursFieldId(endPath)}
-                        type="time"
-                        step={900}
                         value={window.end}
-                        onChange={(event) => set({ end: event.target.value })}
+                        onChange={(val) => set({ end: val })}
                         aria-invalid={errors[endPath] || errors[windowPath] ? true : undefined}
                         aria-describedby={described(endPath)}
-                        className="h-9 w-full px-2 tabular-nums sm:w-32"
+                        className="w-full sm:w-32"
                       />
                     </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`Remove ${label}`}
-                    onClick={() => onChange(windows.filter((candidate) => candidate.key !== window.key))}
-                  >
-                    <Trash2 aria-hidden />
-                  </Button>
+                  {keepOne && windows.length === 1 ? null : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Remove ${label}`}
+                      onClick={() => onChange(windows.filter((candidate) => candidate.key !== window.key))}
+                    >
+                      <Trash2 aria-hidden />
+                    </Button>
+                  )}
                 </div>
                 {valid && isOvernight(window) ? (
                   <p className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -128,7 +132,7 @@ export function TimeWindowsFields({
           onClick={() => onChange([...windows, { key: newKey(), start: "", end: "" }])}
         >
           <Plus aria-hidden />
-          Add window<span className="sr-only"> for {name}</span>
+          {addLabel}<span className="sr-only"> for {name}</span>
         </Button>
       ) : null}
     </div>

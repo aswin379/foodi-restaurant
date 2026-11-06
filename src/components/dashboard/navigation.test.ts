@@ -4,7 +4,7 @@ import { join } from "node:path"
 
 import { describe, expect, it } from "vitest"
 
-import { dashboardNavigation, getActiveNavItem, getOwnerPageTitle } from "./navigation"
+import { dashboardNavigation, getActiveChild, getActiveNavItem, getOwnerPageTitle, pathOf } from "./navigation"
 
 const items = dashboardNavigation.flatMap((group) => group.items)
 const appDir = join(process.cwd(), "src", "app", "(dashboard)")
@@ -14,6 +14,20 @@ describe("dashboard navigation", () => {
     for (const item of items.filter((candidate) => candidate.href)) {
       expect(existsSync(join(appDir, item.href!, "page.tsx")), item.href!).toBe(true)
     }
+    for (const child of items.flatMap((item) => item.children ?? [])) {
+      expect(existsSync(join(appDir, pathOf(child.href), "page.tsx")), child.href).toBe(true)
+    }
+  })
+
+  it("puts Activity, History and Delivery boys under Delivery, with no separate My delivery boys item", () => {
+    const delivery = items.find((item) => item.title === "Delivery")
+    expect(delivery?.children?.map((child) => [child.title, child.href])).toEqual([
+      ["Activity", "/delivery"],
+      ["History", "/delivery?view=history"],
+      ["Delivery boys", "/delivery-boys"],
+    ])
+    expect(delivery?.children?.filter((child) => child.requiresOwnDelivery).map((child) => child.title)).toEqual(["Delivery boys"])
+    expect(items.some((item) => item.title === "My delivery boys")).toBe(false)
   })
 
   // POS (10) and Tables (also module 10) are listed because the owner asked for the POS UI ahead of Release 2.
@@ -33,6 +47,24 @@ describe("dashboard navigation", () => {
     expect(getActiveNavItem("/menu/abc/edit")?.title).toBe("Menu")
     expect(getActiveNavItem("/orders/PRV-1001")?.title).toBe("Orders")
     expect(getActiveNavItem("/menus")).toBeNull()
+  })
+
+  it("selects Delivery for each of its sub-pages", () => {
+    for (const path of ["/delivery", "/delivery-boys", "/delivery-boys/new", "/delivery/anything"]) {
+      expect(getActiveNavItem(path)?.title, path).toBe("Delivery")
+    }
+  })
+
+  it("selects the open sub-link: History only while its query matches, otherwise Activity", () => {
+    const delivery = items.find((item) => item.title === "Delivery")!
+    const active = (path: string, query = "") => getActiveChild(delivery, path, new URLSearchParams(query))?.title
+    expect(active("/delivery")).toBe("Activity")
+    expect(active("/delivery", "view=active")).toBe("Activity")
+    expect(active("/delivery", "view=history")).toBe("History")
+    expect(active("/delivery-boys")).toBe("Delivery boys")
+    expect(active("/delivery-boys/new")).toBe("Delivery boys")
+    expect(getActiveChild(delivery, "/delivery", null)?.title).toBe("Activity")
+    expect(getActiveChild(delivery, "/orders", null)).toBeNull()
   })
 
   it("titles the owner-level pages", () => {

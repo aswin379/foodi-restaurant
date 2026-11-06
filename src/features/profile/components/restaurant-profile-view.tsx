@@ -6,8 +6,6 @@ import { CircleAlert } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { BranchList } from "@/features/branches/components/branch-list"
-import { useRestaurants } from "@/features/restaurants/restaurant-context"
 import type { ApplicationOptions } from "@/features/restaurants/types"
 
 import { getProfile, getProfileOptions } from "../profile-service"
@@ -23,7 +21,6 @@ import { ProfileImages } from "./profile-images"
  * switches restaurant (RequireRestaurant keys on the id), so it can never show another restaurant's data.
  */
 export function RestaurantProfileView() {
-  const { active } = useRestaurants()
   const [profile, setProfile] = useState<RestaurantProfile | null>(null)
   const [options, setOptions] = useState<ApplicationOptions | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -86,7 +83,6 @@ export function RestaurantProfileView() {
       <LocationForm profile={profile} onSaved={setProfile} />
       <DeliveryForm profile={profile} onSaved={setProfile} />
       <OptionsForm profile={profile} onSaved={setProfile} />
-      <BranchList embedded key={active?.id} />
     </div>
   )
 }

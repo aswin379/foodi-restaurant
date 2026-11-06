@@ -12,12 +12,14 @@ export const spiceLabels: Record<SpiceLevel, string> = {
   mild: "Mild",
   medium: "Medium",
   hot: "Hot",
+  extra_hot: "Extra hot",
 }
 
 export const tagLabels: Record<ItemTag, string> = {
   bestseller: "Bestseller",
   new: "New",
   chefs_special: "Chef's special",
+  spicy: "Spicy",
 }
 
 export const allergenLabels: Record<Allergen, string> = {
