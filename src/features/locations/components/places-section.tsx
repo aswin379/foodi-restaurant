@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { CircleAlert, Download, Eye, Pencil, Plus, Printer, QrCode, RefreshCw, Search } from "lucide-react"
+import { CircleAlert, Download, Eye, Pencil, Plus, Printer, QrCode, RefreshCw, Search, Trash2 } from "lucide-react"
 
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { notify } from "@/components/shared/notifications"
@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch"
 import {
   bulkCreate,
   createDestination,
+  deleteDestination,
   generateMissing,
   generateQr,
   listAllDestinations,
@@ -53,6 +54,7 @@ export function PlacesSection({ restaurantName, type, canManage, onChanged }: Pr
   const [bulk, setBulk] = useState(false)
   const [renaming, setRenaming] = useState<Destination | null>(null)
   const [regenerating, setRegenerating] = useState<Destination | null>(null)
+  const [deleting, setDeleting] = useState<Destination | null>(null)
   const [preview, setPreview] = useState<(PrintCard & { fileName: string }) | null>(null)
   const [busy, setBusy] = useState<number | "all" | "print" | null>(null)
 
@@ -298,6 +300,9 @@ export function PlacesSection({ restaurantName, type, canManage, onChanged }: Pr
                           <RefreshCw aria-hidden />
                         </Button>
                       ) : null}
+                      <Button variant="ghost" size="icon" aria-label={`Delete ${text.one} ${item.label}`} title="Delete" onClick={() => setDeleting(item)}>
+                        <Trash2 aria-hidden />
+                      </Button>
                     </>
                   ) : null}
                 </div>
@@ -371,6 +376,22 @@ export function PlacesSection({ restaurantName, type, canManage, onChanged }: Pr
           if (!target) return
           void run(target.id, async () => void (await regenerateQr(target.id)), "New QR code created. Print and replace the old one.").then(() =>
             setRegenerating(null),
+          )
+        }}
+      />
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={`Delete ${text.one} ${deleting?.label ?? ""}?`}
+        description="Its QR code stops working. Orders already placed keep the name. To only stop new orders for a while, disable it instead."
+        confirmLabel="Delete"
+        destructive
+        pending={busy !== null}
+        onConfirm={() => {
+          const target = deleting
+          if (!target) return
+          void run(target.id, async () => void (await deleteDestination(target.id)), `${text.Title} ${target.label} deleted`).then(() =>
+            setDeleting(null),
           )
         }}
       />

@@ -82,6 +82,11 @@ export async function regenerateQr(id: number): Promise<Destination> {
     .destination
 }
 
+/** Removes a table, room or seat. Orders already placed there keep its name. */
+export async function deleteDestination(id: number): Promise<void> {
+  await http.delete(`${PATH}/destinations/${id}`, SCOPED)
+}
+
 export async function createSingleQr(): Promise<Destination> {
   return (await http.post<{ destination: Destination }>(`${PATH}/general`, undefined, SCOPED)).destination
 }
